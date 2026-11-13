@@ -1,51 +1,51 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=158.69.130.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
 	t=1794575957;
-	b=BTYGZ8ylT7wh6V5N8RtVO7LnUl1TvI0gne1E4JOWDGKcE/iLH+MLA2+FDu54me1fpnvA
-	 G/smcVtNS0vc4p8qhW7+3SDvDYC0gA3DF1l5jG/IwfFgoC30CTHqVusjGagkZOBQubDQ2
-	 pNXBB12qgehRzvhdd16dtNwsrcT4KV/z/dBqIyctZ1WR/jTCzKiBuRoHYzqbU2nfHOebc
-	 8/7UD9ZyBAo63wbXac/YHPJRSdvj3TKbPKDDzicOZwI9rlyCoKkQb47X9TC76vDGLOmG+
-	 IRLh2wPej9i7X7UCCLXyZLf6i350lSOVH2KrWZ3ywEKKaaS7elFPBh+fwPHpNjQ8IYg==
+	b=4qCTUBqJ+6P6VJBN4yNiPNi661/0276RDHfRcAv/1fabw5NDxmeVpteZvwWKF7oT/1S/
+	 8h6sg4F0sy3BHjyhKGtZNRWikjkOBIBf+N3WYUoBmtaEVKnJU5isWlmqyUoGlJaPewU6b
+	 fbVfmy2BXFtvCaG4kv7QieNNSkau2vgcm8bEXnbfQ3s+1x2OCGxcGRYz97/gzr+kajBN2
+	 WhslF6PkpR8oSqt34kOk2fOBNiuLNfVOxXCJCPX+dqbZtZuwv5m+qNnlNTKu7bAfEvn5H
+	 AtSQZL9zha9lxefRYs224cORu06RgyQy5WFg0M7lxvNf7RZ33J718er1K6IE0TmUzMg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
 	a=rsa-sha256; c=relaxed/relaxed; t=1794575957;
 	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
 	 Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=8OhAk9cmyRbLG0MiVOEFk9DU+w4LVEx3Semv5sjBMcE=;
-	b=c52z4rwpcb8bgYTFSzDCswTftW6nq46SRnP6naB/EbUBkimVpHOSoTQ/fiww3ujmk/5v
-	 KqxSEfq+PclfHZ2XaOF3NVtXx5dF2En9IM105NGoSY1GC7J76v/iRjeTBABLxfrV6oyMa
-	 ncb+s0jweyp46m8KazLq7JhPuw0A+Kj3rBkSBk1etX3SfzTAsoy6hwe6GF7afmYcEMqlT
-	 XRqccZ6mw/3qDTUwGEPqcsnfm+myxj1KCggWWCh3dvG6Cn7ETQ7IMOtCObioQ/YFD8DXU
-	 lfDSUbIxZnN03PaRknSNBsW8M4IvJC0WYN9KXjM5StebEyDRE2hygXiDpAgRovegvHg==
+	bh=B+Kv6NWvYAW9LgU4w/PYUOqJKuqBS7y3QSlmC0jmQEE=;
+	b=dbsatPuN199F94Wg+sNmrcSJKNt04TbNyn47LcLLn0o0l8E+rGCwdtT77ie7d2zk6qtQ
+	 Q1vvweD1kjf7y6p+WLH1IBkILQSZrzPY1wNmpRkDqaG5cUqvagk416RC/GYIY3Fmxym3h
+	 /07KxNQdJce/9FWOCe3y0s1fiWZS+JihOa96gWsunhlq835+H1lvTkyR6rfCvwc2xD8eU
+	 CQ8x67wdiaKtzap7pdIwbuvIzOu1RSdr0q4DOAIIMmGISUD8kfdWG1W9UiCeWVoUN9ceT
+	 4tqvcaVJCNkDV/2x5ve0dpCGzWk+dOaTZZqYyRoA2NyCZcsh3T8V9CwFVVb/ztlf0qg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=efficios.com;
 	spf=pass smtp.mailfrom=efficios.com;
-	dkim=pass header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b="gB8/n3oE";
+	dkim=pass header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=uzdwVrmO;
 	arc=none smtp.remote-ip=158.69.130.18
 Received: from smtpout.efficios.com (smtpout.efficios.com [158.69.130.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79FA9606A89C;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79F7C606A890;
 	Fri, 13 Nov 2026 13:19:16 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 79FA9606A89C
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 79F7C606A890
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=efficios.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=efficios.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=gB8/n3oE
+	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=uzdwVrmO
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=efficios.com;
 	s=smtpout1; t=1794575950;
-	bh=8OhAk9cmyRbLG0MiVOEFk9DU+w4LVEx3Semv5sjBMcE=;
+	bh=B+Kv6NWvYAW9LgU4w/PYUOqJKuqBS7y3QSlmC0jmQEE=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=gB8/n3oEPTSMcNN9PdI9lIveWGuLnluQZil7NIeWFqwYI4Gw9gjeUngDIWVZTwpwC
-	 ev3GqxrZUFItO0Z0bdp4UkWTvgelfNPzCaxqyE6pAewOLcEliu8TAyGFUC3EgF/AXr
-	 KX/PzKmMk/F7ajfdA+aWSN93ZjFNgVMTnGepMcGhHONnwzz0cyGm9TrUfV7H5P9FAr
-	 G+vZJSJdtYc0QCH46I7hpJmr/ePCojt3tr2uWshOjLr3BbHKsiHgy+q0XIbxxasEvd
-	 gtmY52BTLXh/fTROKqSk6K/fEKOGyrr0+jhhUbQe4+OqBHorjefk8dtWhhwGOMsYiw
-	 Rs8opj+Gsilsg==
+	b=uzdwVrmOPenZL8yin/nLlzevFb/tM/owH8nip1lmaXLk0ouFbH4w2k8bLOofqqiTX
+	 Qs3VNLET6vNzA/UE5DGgXT9AEaKiY/bqEjl8Nn2w8shovyJp1VQrWNphP9qS24EqvT
+	 AjcOCXBcrol2mwzPfRBdiHeC37U986a/nF01YcyfPmEubMcGKu6coZhooVZnR9LUtp
+	 HSb1hLafn3fKxP9KPWRNrvAvgh/GM4zzBKhHMjyy0Ld5Hk9MIKgs++1jBeWl8WhHx2
+	 ypKkFLXpbhxTaXvJ+uShyPBo9CpbB7Wx+1DYaEK/OrigCU2Oc7Xdg3zxxs9Q3n32rD
+	 F7wlZcW8MC61A==
 Received: from thinkos.internal.efficios.com (mtl.efficios.com [216.120.195.104])
-	by smtpout.efficios.com (Postfix) with ESMTPSA id 4jQyWy1b9lzPX1;
-	Fri, 13 Nov 2026 08:19:10 -0500 (EST)
+	by smtpout.efficios.com (Postfix) with ESMTPSA id 4jQyWx6qN6zPmY;
+	Fri, 13 Nov 2026 08:19:09 -0500 (EST)
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 To: Peter Zijlstra <peterz@infradead.org>,
 	Ingo Molnar <mingo@redhat.com>
@@ -124,9 +124,9 @@ Cc: linux-kernel@vger.kernel.org,
 	"David S. Miller" <davem@davemloft.net>,
 	Masami Hiramatsu <mhiramat@kernel.org>,
 	linux-trace-kernel@vger.kernel.org
-Subject: [RFC PATCH 07/16] selftests/membarrier: Test command arguments and registration lifetime
-Date: Fri, 13 Nov 2026 08:18:54 -0500
-Message-Id: <20261113131903.157186-8-mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH 06/16] selftests/membarrier: Test which CPUs the expedited commands interrupt
+Date: Fri, 13 Nov 2026 08:18:53 -0500
+Message-Id: <20261113131903.157186-7-mathieu.desnoyers@efficios.com>
 X-Mailer: git-send-email 2.39.5
 In-Reply-To: <20261113131903.157186-1-mathieu.desnoyers@efficios.com>
 References: <20261113131903.157186-1-mathieu.desnoyers@efficios.com>
@@ -141,414 +141,811 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The existing tests issue each command once with valid arguments, in
-one fixed order of registrations. They miss the following:
+The existing tests only check the return value of each command. They
+cannot tell whether a command reached the threads it must reach.
 
- - the query mask is not compared with the commands which the kernel
-   accepts. Commit 809232619f5b ("sched/membarrier: Fix
-   membarrier-rseq fence command missing from query bitmask") fixed
-   such a mismatch,
- - only MEMBARRIER_CMD_QUERY is tested with an invalid flag,
- - only the stress test issues the rseq command. Its registration,
-   its -EPERM result and its CPU argument are not checked,
- - each registration is not tested alone. Commit fc0d77387cb5
-   ("sched/membarrier: Fix private expedited registration check")
-   fixed an interaction between two registrations,
- - the registrations are not tested across fork, exec and CLONE_VM.
+Add membarrier_test_ipi. A test cannot observe a missing memory
+barrier reliably. It can observe a missing IPI in /proc/interrupts.
+The comment at the top of the file describes the method. The test
+cases are:
 
-Add membarrier_test_cmd for those. It uses the kselftest harness,
-which runs each test in its own process. A registration cannot be
-undone, so each test needs a new process.
+ - global expedited reaches a registered process and skips an
+   unregistered one,
+ - global expedited reaches a registered process after one of its
+   threads exits,
+ - global expedited reaches a process which registered on another CPU
+   and came back to a CPU which stayed idle meanwhile,
+ - global expedited reaches each thread of a process which registered
+   while multi-threaded,
+ - global expedited reaches a forked child and skips a process after
+   exec,
+ - private expedited, sync core and rseq reach each thread,
+ - rseq with MEMBARRIER_CMD_FLAG_CPU reaches only the CPU it names,
+ - private expedited skips another registered process,
+ - private expedited reaches a CLONE_VM task of another thread group.
 
-The sync core and rseq registration tests fail without commit
-"sched/membarrier: Report only completed registrations".
+Each test case runs in its own process, because a membarrier
+registration cannot be undone.
+
+The thread exit and idle CPU cases fail without commit
+"sched/membarrier: Fix stale runqueue state after a lazy mm switch".
+
+The test is skipped with fewer than 3 allowed CPUs. It is also skipped
+when /proc/interrupts has no function call interrupt count.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 ---
  tools/testing/selftests/membarrier/.gitignore |   1 +
  tools/testing/selftests/membarrier/Makefile   |   1 +
- .../membarrier/membarrier_test_cmd.c          | 352 ++++++++++++++++++
- 3 files changed, 354 insertions(+)
- create mode 100644 tools/testing/selftests/membarrier/membarrier_test_cmd.c
+ .../membarrier/membarrier_test_ipi.c          | 739 ++++++++++++++++++
+ 3 files changed, 741 insertions(+)
+ create mode 100644 tools/testing/selftests/membarrier/membarrier_test_ipi.c
 
 diff --git a/tools/testing/selftests/membarrier/.gitignore b/tools/testing/selftests/membarrier/.gitignore
-index 58969a5e4613..45b995b884a6 100644
+index 031920478205..58969a5e4613 100644
 --- a/tools/testing/selftests/membarrier/.gitignore
 +++ b/tools/testing/selftests/membarrier/.gitignore
-@@ -3,3 +3,4 @@ membarrier_test_multi_thread
+@@ -2,3 +2,4 @@
+ membarrier_test_multi_thread
  membarrier_test_single_thread
  membarrier_rseq_stress
- membarrier_test_ipi
-+membarrier_test_cmd
++membarrier_test_ipi
 diff --git a/tools/testing/selftests/membarrier/Makefile b/tools/testing/selftests/membarrier/Makefile
-index ee5b9deb808b..c7fa0573e978 100644
+index 20bb66380090..ee5b9deb808b 100644
 --- a/tools/testing/selftests/membarrier/Makefile
 +++ b/tools/testing/selftests/membarrier/Makefile
-@@ -5,6 +5,7 @@ LDLIBS += -lpthread
+@@ -4,6 +4,7 @@ LDLIBS += -lpthread
+ 
  TEST_GEN_PROGS := membarrier_test_single_thread \
  		membarrier_test_multi_thread \
- 		membarrier_test_ipi \
-+		membarrier_test_cmd \
++		membarrier_test_ipi \
  		membarrier_rseq_stress
  
  LOCAL_HDRS += membarrier_test_impl.h
-diff --git a/tools/testing/selftests/membarrier/membarrier_test_cmd.c b/tools/testing/selftests/membarrier/membarrier_test_cmd.c
+diff --git a/tools/testing/selftests/membarrier/membarrier_test_ipi.c b/tools/testing/selftests/membarrier/membarrier_test_ipi.c
 new file mode 100644
-index 000000000000..5982861f77b6
+index 000000000000..49b74844c1f4
 --- /dev/null
-+++ b/tools/testing/selftests/membarrier/membarrier_test_cmd.c
-@@ -0,0 +1,352 @@
++++ b/tools/testing/selftests/membarrier/membarrier_test_ipi.c
+@@ -0,0 +1,739 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
-+ * Check the membarrier command arguments and the lifetime of the
-+ * registrations.
++ * Check which CPUs the expedited membarrier commands interrupt.
 + *
-+ * The test harness runs each test in its own process. This matters
-+ * because a membarrier registration cannot be undone.
++ * An expedited command sends an IPI to each CPU which runs a targeted
++ * thread. The IPI is the memory barrier. A test cannot observe a
++ * missing memory barrier reliably. It can observe a missing IPI: the
++ * kernel counts the function call interrupts of each CPU in
++ * /proc/interrupts.
++ *
++ * Each test case pins a "target" which spins in user-space on its own
++ * CPU. A "sender" pinned on another CPU issues the command NR_CMDS
++ * times. The test then compares the count of function call interrupts
++ * of the target CPU before and after.
++ *
++ * Each test case runs in its own process because a membarrier
++ * registration cannot be undone.
 + */
 +#define _GNU_SOURCE
 +#include <linux/membarrier.h>
++#include <sys/mman.h>
++#include <sys/prctl.h>
 +#include <sys/wait.h>
 +#include <syscall.h>
-+#include <limits.h>
++#include <stdatomic.h>
 +#include <pthread.h>
 +#include <signal.h>
++#include <stdbool.h>
 +#include <stdlib.h>
 +#include <string.h>
 +#include <unistd.h>
 +#include <sched.h>
++#include <stdio.h>
 +#include <errno.h>
++#include <time.h>
 +
-+#include "kselftest_harness.h"
++#include "kselftest.h"
 +
++#define NR_CMDS		1000
++/*
++ * A target which must be interrupted can lose a few IPIs when another
++ * task preempts it. A target which must not be interrupted can receive
++ * a few unrelated IPIs. The observed counts are either close to
++ * NR_CMDS or close to zero. Keep a wide margin on both sides.
++ */
++#define MIN_HIT		(NR_CMDS / 2)
++#define MAX_MISS	(NR_CMDS / 4)
++
++#define MAX_TARGETS	2
++/* Seconds to wait for the targets of a test case. */
++#define READY_TIMEOUT	10
 +#define STACK_SIZE	(64 * 1024)
 +
-+#define REGISTER_CMDS						\
-+	(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED |		\
-+	 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED |		\
-+	 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE |	\
-+	 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ)
-+
-+/* Pairs of registration command and command which needs it. */
-+static const struct {
-+	int register_cmd;
-+	int cmd;
-+} private_cmds[] = {
-+	{ MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED,
-+	  MEMBARRIER_CMD_PRIVATE_EXPEDITED },
-+	{ MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE,
-+	  MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE },
-+	{ MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ,
-+	  MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ },
++/*
++ * Exit status of a test case process. Each skip status has its own
++ * reason, which run_case() reports. CASE_FAIL is a failure of
++ * membarrier. CASE_ERROR is a failure of the test setup.
++ */
++enum {
++	CASE_PASS = 0,
++	CASE_FAIL = 1,
++	CASE_SKIP_NO_COUNT = 2,
++	CASE_SKIP_NO_CMD = 3,
++	CASE_ERROR = 4,
 +};
++
++struct shared {
++	atomic_int ready;
++	atomic_int stop;
++};
++
++static struct shared *shared;
++static int shared_fd;
++
++/* CPU of the sender and CPUs of the targets. */
++static int sender_cpu, target_cpu[MAX_TARGETS];
 +
 +static int sys_membarrier(int cmd, unsigned int flags, int cpu_id)
 +{
 +	return syscall(__NR_membarrier, cmd, flags, cpu_id);
 +}
 +
-+static int query(void)
++/* Pin the task @pid on @cpu. A @pid of 0 is the calling thread. */
++static void pin_task(pid_t pid, int cpu)
 +{
-+	return sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0);
++	cpu_set_t set;
++
++	CPU_ZERO(&set);
++	CPU_SET(cpu, &set);
++	if (sched_setaffinity(pid, sizeof(set), &set)) {
++		perror("sched_setaffinity");
++		_exit(CASE_ERROR);
++	}
 +}
 +
-+static int get_registrations(void)
++static void pin_to_cpu(int cpu)
 +{
-+	return sys_membarrier(MEMBARRIER_CMD_GET_REGISTRATIONS, 0, 0);
++	pin_task(0, cpu);
 +}
 +
-+/* Each command is either in the query mask or returns -EINVAL. */
-+TEST(query_matches_commands)
++/* Die with the parent. A killed test must leave no spinning target. */
++static void die_with_parent(void)
 +{
-+	int mask = query(), bit, ret;
++	if (prctl(PR_SET_PDEATHSIG, SIGKILL)) {
++		perror("prctl");
++		_exit(CASE_ERROR);
++	}
++}
 +
-+	ASSERT_GE(mask, 0);
-+	for (bit = 0; bit < 32; bit++) {
-+		int cmd = (int)(1U << bit);
++static void must_join(pthread_t thread)
++{
++	errno = pthread_join(thread, NULL);
++	if (errno) {
++		perror("pthread_join");
++		_exit(CASE_ERROR);
++	}
++}
 +
-+		errno = 0;
-+		ret = sys_membarrier(cmd, 0, 0);
-+		if (mask & cmd) {
-+			EXPECT_NE(errno, EINVAL) {
-+				TH_LOG("command 0x%x is in the query mask", cmd);
-+			}
-+		} else {
-+			EXPECT_EQ(ret, -1);
-+			EXPECT_EQ(errno, EINVAL) {
-+				TH_LOG("command 0x%x is not in the query mask", cmd);
-+			}
++/* Wait for the child @pid. Its setup failed unless it exits with 0. */
++static void must_wait(pid_t pid)
++{
++	int status;
++
++	if (waitpid(pid, &status, 0) != pid) {
++		perror("waitpid");
++		_exit(CASE_ERROR);
++	}
++	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
++		fprintf(stderr, "# child %d did not exit with 0\n", pid);
++		_exit(CASE_ERROR);
++	}
++}
++
++static void must_register(int cmd)
++{
++	if (sys_membarrier(cmd, 0, 0)) {
++		perror("membarrier registration");
++		_exit(CASE_ERROR);
++	}
++}
++
++/* Announce that this target is in place, then spin in user-space. */
++static void spin(void)
++{
++	die_with_parent();
++	atomic_fetch_add(&shared->ready, 1);
++	while (!atomic_load(&shared->stop))
++		;
++}
++
++/*
++ * Wait until @nr targets spin. Report a setup error when they do not
++ * show up: a target may have died in its setup.
++ */
++static void wait_ready(int nr)
++{
++	time_t start = time(NULL);
++
++	while (atomic_load(&shared->ready) < nr) {
++		if (time(NULL) - start > READY_TIMEOUT) {
++			fprintf(stderr, "# the targets are not ready\n");
++			atomic_store(&shared->stop, 1);
++			_exit(CASE_ERROR);
 +		}
-+	}
-+}
-+
-+/* A command is a single bit. */
-+TEST(invalid_commands)
-+{
-+	static const int cmds[] = {
-+		-1, INT_MAX,
-+		MEMBARRIER_CMD_GLOBAL | MEMBARRIER_CMD_GLOBAL_EXPEDITED,
-+		MEMBARRIER_CMD_PRIVATE_EXPEDITED |
-+			MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED,
-+	};
-+	int i;
-+
-+	for (i = 0; i < ARRAY_SIZE(cmds); i++) {
-+		EXPECT_EQ(sys_membarrier(cmds[i], 0, 0), -1);
-+		EXPECT_EQ(errno, EINVAL);
-+	}
-+}
-+
-+/* Only the rseq command accepts a flag: MEMBARRIER_CMD_FLAG_CPU. */
-+TEST(invalid_flags)
-+{
-+	static const unsigned int flags[] = {
-+		MEMBARRIER_CMD_FLAG_CPU, 1U << 1, 1U << 31, ~0U,
-+		MEMBARRIER_CMD_FLAG_CPU | (1U << 1),
-+	};
-+	int mask = query(), bit, i;
-+
-+	ASSERT_GE(mask, 0);
-+	/* Bit -1 stands for MEMBARRIER_CMD_QUERY, which is 0. */
-+	for (bit = -1; bit < 32; bit++) {
-+		int cmd = bit < 0 ? MEMBARRIER_CMD_QUERY : (int)(1U << bit);
-+
-+		if (cmd && !(mask & cmd))
-+			continue;
-+		for (i = 0; i < ARRAY_SIZE(flags); i++) {
-+			if (cmd == MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ &&
-+			    flags[i] == MEMBARRIER_CMD_FLAG_CPU)
-+				continue;
-+			EXPECT_EQ(sys_membarrier(cmd, flags[i], 0), -1);
-+			EXPECT_EQ(errno, EINVAL) {
-+				TH_LOG("command 0x%x flags 0x%x", cmd, flags[i]);
-+			}
-+		}
-+	}
-+}
-+
-+/* A private command needs its own registration. */
-+TEST(private_needs_registration)
-+{
-+	int mask = query(), registered = get_registrations(), i;
-+
-+	ASSERT_GE(mask, 0);
-+	ASSERT_GE(registered, 0);
-+	for (i = 0; i < ARRAY_SIZE(private_cmds); i++) {
-+		if (!(mask & private_cmds[i].cmd))
-+			continue;
-+		/* The C library may have registered already. */
-+		if (registered & private_cmds[i].register_cmd)
-+			continue;
-+		EXPECT_EQ(sys_membarrier(private_cmds[i].cmd, 0, 0), -1);
-+		EXPECT_EQ(errno, EPERM);
-+	}
-+	if ((mask & MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ) &&
-+	    !(registered & MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ)) {
-+		EXPECT_EQ(sys_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ,
-+					 MEMBARRIER_CMD_FLAG_CPU, 0), -1);
-+		EXPECT_EQ(errno, EPERM);
++		sched_yield();
 +	}
 +}
 +
 +/*
-+ * Issue one registration command. It must add its own bit to the
-+ * registrations, and no other bit. It must allow its own command, and
-+ * no other command.
++ * Read the count of function call interrupts of each CPU of @cpus.
++ * Return false when /proc/interrupts has no such count for one of
++ * them. An offline CPU has no count.
 + */
-+static void register_one(struct __test_metadata *_metadata, int register_cmd)
++static bool read_ipi_counts(const int *cpus, int nr_cpus, long *counts)
 +{
-+	int mask = query(), before = get_registrations(), i;
++	int *col_cpu = NULL, nr_cols = 0, i, c;
++	char *line = NULL, *p, *end;
++	unsigned int seen = 0;
++	size_t len = 0;
++	FILE *f;
 +
-+	ASSERT_GE(mask, 0);
-+	ASSERT_GE(before, 0);
-+	if (!(mask & register_cmd))
-+		SKIP(return, "command 0x%x is not available", register_cmd);
-+	ASSERT_EQ(sys_membarrier(register_cmd, 0, 0), 0);
-+	EXPECT_EQ(get_registrations(), before | register_cmd);
-+	/* A second registration succeeds and changes nothing. */
-+	ASSERT_EQ(sys_membarrier(register_cmd, 0, 0), 0);
-+	EXPECT_EQ(get_registrations(), before | register_cmd);
++	for (c = 0; c < nr_cpus; c++)
++		counts[c] = 0;
++	f = fopen("/proc/interrupts", "r");
++	if (!f)
++		return false;
++	/* The first line names the CPU of each column. */
++	if (getline(&line, &len, f) < 0)
++		goto out;
++	for (p = line; (p = strstr(p, "CPU")); p = end) {
++		int cpu = strtol(p + 3, &end, 10);
 +
-+	for (i = 0; i < ARRAY_SIZE(private_cmds); i++) {
-+		if (!(mask & private_cmds[i].cmd))
++		int *new_col_cpu;
++
++		new_col_cpu = realloc(col_cpu, (nr_cols + 1) * sizeof(*col_cpu));
++		if (!new_col_cpu)
++			goto out;
++		col_cpu = new_col_cpu;
++		col_cpu[nr_cols++] = cpu;
++	}
++	while (getline(&line, &len, f) >= 0) {
++		/* x86 uses the "CAL" label. Others describe the line. */
++		if (!strstr(line, "CAL:") && !strstr(line, "unction call"))
 +			continue;
-+		if ((before | register_cmd) & private_cmds[i].register_cmd) {
-+			EXPECT_EQ(sys_membarrier(private_cmds[i].cmd, 0, 0), 0);
-+		} else {
-+			EXPECT_EQ(sys_membarrier(private_cmds[i].cmd, 0, 0), -1);
-+			EXPECT_EQ(errno, EPERM);
++		p = strchr(line, ':');
++		if (!p)
++			continue;
++		p++;
++		for (i = 0; i < nr_cols; i++) {
++			long val = strtol(p, &end, 10);
++
++			if (end == p)
++				break;
++			p = end;
++			for (c = 0; c < nr_cpus; c++)
++				if (cpus[c] == col_cpu[i]) {
++					counts[c] += val;
++					seen |= 1U << c;
++				}
 +		}
 +	}
++out:
++	free(col_cpu);
++	free(line);
++	fclose(f);
++	return seen == (1U << nr_cpus) - 1;
 +}
 +
-+TEST(register_global_expedited)
++/*
++ * Issue @cmd NR_CMDS times. Store into @delta the count of function
++ * call interrupts which each target CPU received meanwhile.
++ */
++static int send_cmds(int cmd, unsigned int flags, int cpu_id, long *delta)
 +{
-+	register_one(_metadata, MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
-+}
++	long before[MAX_TARGETS], after[MAX_TARGETS];
++	int i;
 +
-+TEST(register_private_expedited)
-+{
-+	register_one(_metadata, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED);
-+}
-+
-+TEST(register_private_expedited_sync_core)
-+{
-+	register_one(_metadata,
-+		     MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE);
-+}
-+
-+TEST(register_private_expedited_rseq)
-+{
-+	register_one(_metadata, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ);
-+}
-+
-+/* Register every command, one at a time. Return the registrations. */
-+static int register_all(struct __test_metadata *_metadata)
-+{
-+	int mask = query(), expected = get_registrations(), bit;
-+
-+	for (bit = 0; bit < 31; bit++) {
-+		int cmd = 1 << bit;
-+
-+		if (!(cmd & REGISTER_CMDS & mask))
-+			continue;
-+		ASSERT_EQ(sys_membarrier(cmd, 0, 0), 0);
-+		expected |= cmd;
-+		EXPECT_EQ(get_registrations(), expected);
++	if (!read_ipi_counts(target_cpu, MAX_TARGETS, before))
++		return CASE_SKIP_NO_COUNT;
++	for (i = 0; i < NR_CMDS; i++) {
++		if (sys_membarrier(cmd, flags, cpu_id)) {
++			perror("membarrier");
++			return CASE_FAIL;
++		}
 +	}
-+	return expected;
++	if (!read_ipi_counts(target_cpu, MAX_TARGETS, after))
++		return CASE_SKIP_NO_COUNT;
++	for (i = 0; i < MAX_TARGETS; i++)
++		delta[i] = after[i] - before[i];
++	return CASE_PASS;
 +}
 +
-+TEST(register_all_commands)
++static int expect_hit(int target, long *delta)
 +{
-+	register_all(_metadata);
++	if (delta[target] >= MIN_HIT)
++		return CASE_PASS;
++	fprintf(stderr, "# CPU %d received %ld IPIs for %d commands\n",
++		target_cpu[target], delta[target], NR_CMDS);
++	return CASE_FAIL;
 +}
 +
-+static void *thread_pause(void *arg)
++static int expect_miss(int target, long *delta)
 +{
-+	for (;;)
-+		pause();
++	if (delta[target] <= MAX_MISS)
++		return CASE_PASS;
++	fprintf(stderr, "# CPU %d received %ld IPIs, expected none\n",
++		target_cpu[target], delta[target]);
++	return CASE_FAIL;
++}
++
++/*
++ * Global expedited test cases.
++ *
++ * The sender is the test case process. The target is a child process.
++ * @setup runs in the child and ends with spin().
++ */
++
++static void *thread_nop(void *arg)
++{
 +	return NULL;
 +}
 +
-+/*
-+ * The rseq command accepts any CPU number. It ignores a CPU which does
-+ * not exist. A negative CPU number selects all CPUs.
-+ *
-+ * The kernel only looks at the CPU number of a multi-threaded process,
-+ * so keep a second thread alive.
-+ */
-+TEST(rseq_cpu_argument)
++static void *thread_spin(void *arg)
 +{
-+	static const int cpus[] = { 0, INT_MAX, -1, INT_MIN };
-+	pthread_t thread;
-+	int i;
-+
-+	if (!(query() & MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ))
-+		SKIP(return, "the rseq command is not available");
-+	ASSERT_EQ(pthread_create(&thread, NULL, thread_pause, NULL), 0);
-+	ASSERT_EQ(sys_membarrier(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ,
-+				 0, 0), 0);
-+	EXPECT_EQ(sys_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ,
-+				 MEMBARRIER_CMD_FLAG_CPU, sched_getcpu()), 0);
-+	for (i = 0; i < ARRAY_SIZE(cpus); i++) {
-+		EXPECT_EQ(sys_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ,
-+					 MEMBARRIER_CMD_FLAG_CPU, cpus[i]), 0) {
-+			TH_LOG("cpu_id %d", cpus[i]);
-+		}
-+	}
-+	/* Without the flag, the CPU argument is ignored. */
-+	EXPECT_EQ(sys_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ,
-+				 0, INT_MAX), 0);
++	pin_to_cpu(target_cpu[(long)arg]);
++	spin();
++	return NULL;
 +}
 +
-+/* A forked child inherits the registrations. */
-+TEST(fork_inherits_registrations)
++static void setup_registered(void)
 +{
-+	int expected = register_all(_metadata), status;
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
++	spin();
++}
++
++static void setup_unregistered(void)
++{
++	spin();
++}
++
++/*
++ * The exiting thread clears the runqueue membarrier state in
++ * exit_mm(). The scheduler then switches to the main thread, which
++ * has the same mm.
++ */
++static void setup_thread_exit(void)
++{
++	pthread_t thread;
++
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
++	if (pthread_create(&thread, NULL, thread_nop, NULL))
++		_exit(CASE_ERROR);
++	must_join(thread);
++	spin();
++}
++
++/*
++ * Register on another CPU. Meanwhile the first CPU is idle and its
++ * idle thread borrows the mm of this process. Come back to the first
++ * CPU: the scheduler switches from the idle thread to this process.
++ */
++static void setup_lazy_tlb(void)
++{
++	pin_to_cpu(target_cpu[1]);
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
++	pin_to_cpu(target_cpu[0]);
++	spin();
++}
++
++/* Register from a multi-threaded process. Both threads are targets. */
++static void setup_multi_thread(void)
++{
++	pthread_t thread;
++
++	if (pthread_create(&thread, NULL, thread_spin, (void *)1L))
++		_exit(CASE_ERROR);
++	wait_ready(1);
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
++	spin();
++}
++
++/* A forked child inherits the registration. */
++static void setup_fork(void)
++{
 +	pid_t pid;
 +
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
 +	pid = fork();
-+	ASSERT_GE(pid, 0);
-+	if (!pid)
-+		_exit(get_registrations() != expected);
-+	ASSERT_EQ(waitpid(pid, &status, 0), pid);
-+	EXPECT_TRUE(WIFEXITED(status));
-+	EXPECT_EQ(WEXITSTATUS(status), 0);
++	if (pid < 0)
++		_exit(CASE_ERROR);
++	if (!pid) {
++		spin();
++		_exit(0);
++	}
++	must_wait(pid);
++}
++
++/* exec() drops the registration. */
++static void setup_exec(void)
++{
++	char fd_str[16];
++
++	must_register(MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED);
++	snprintf(fd_str, sizeof(fd_str), "%d", shared_fd);
++	execl("/proc/self/exe", "membarrier_test_ipi", "--spin", fd_str, NULL);
++	perror("execl");
++	_exit(CASE_ERROR);
++}
++
++static int test_global(void (*setup)(void), int nr_targets, bool hit)
++{
++	long delta[MAX_TARGETS];
++	int ret, i;
++	pid_t pid;
++
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) &
++	      MEMBARRIER_CMD_GLOBAL_EXPEDITED))
++		return CASE_SKIP_NO_CMD;
++	pid = fork();
++	if (pid < 0)
++		return CASE_ERROR;
++	if (!pid) {
++		die_with_parent();
++		pin_to_cpu(target_cpu[0]);
++		setup();
++		_exit(0);
++	}
++	wait_ready(nr_targets);
++	ret = send_cmds(MEMBARRIER_CMD_GLOBAL_EXPEDITED, 0, 0, delta);
++	atomic_store(&shared->stop, 1);
++	must_wait(pid);
++	for (i = 0; !ret && i < nr_targets; i++)
++		ret = hit ? expect_hit(i, delta) : expect_miss(i, delta);
++	return ret;
++}
++
++static int case_global_registered(void)
++{
++	return test_global(setup_registered, 1, true);
++}
++
++static int case_global_unregistered(void)
++{
++	return test_global(setup_unregistered, 1, false);
++}
++
++static int case_global_thread_exit(void)
++{
++	return test_global(setup_thread_exit, 1, true);
++}
++
++static int case_global_lazy_tlb(void)
++{
++	return test_global(setup_lazy_tlb, 1, true);
++}
++
++static int case_global_multi_thread(void)
++{
++	return test_global(setup_multi_thread, 2, true);
++}
++
++static int case_global_fork(void)
++{
++	return test_global(setup_fork, 1, true);
++}
++
++static int case_global_exec(void)
++{
++	return test_global(setup_exec, 1, false);
 +}
 +
 +/*
-+ * exec() drops the registrations. The new program image starts with
-+ * the registrations which this test program had when it started.
++ * Private expedited test cases.
++ *
++ * The sender is the main thread of the test case process. The targets
++ * are threads of the same process, one per target CPU.
 + */
-+static int initial_registrations;
 +
-+TEST(exec_drops_registrations)
++static int start_thread_targets(pthread_t *threads)
 +{
-+	char expected[16];
++	long i;
++
++	for (i = 0; i < MAX_TARGETS; i++)
++		if (pthread_create(&threads[i], NULL, thread_spin, (void *)i))
++			return CASE_ERROR;
++	wait_ready(MAX_TARGETS);
++	return CASE_PASS;
++}
++
++static void stop_thread_targets(pthread_t *threads)
++{
++	int i;
++
++	atomic_store(&shared->stop, 1);
++	for (i = 0; i < MAX_TARGETS; i++)
++		must_join(threads[i]);
++}
++
++static int test_private(int register_cmd, int cmd)
++{
++	pthread_t threads[MAX_TARGETS];
++	long delta[MAX_TARGETS];
++	int ret, i;
++
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) & cmd))
++		return CASE_SKIP_NO_CMD;
++	if (start_thread_targets(threads))
++		return CASE_ERROR;
++	must_register(register_cmd);
++	ret = send_cmds(cmd, 0, 0, delta);
++	stop_thread_targets(threads);
++	for (i = 0; !ret && i < MAX_TARGETS; i++)
++		ret = expect_hit(i, delta);
++	return ret;
++}
++
++static int case_private(void)
++{
++	return test_private(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED,
++			    MEMBARRIER_CMD_PRIVATE_EXPEDITED);
++}
++
++static int case_private_sync_core(void)
++{
++	return test_private(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE,
++			    MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE);
++}
++
++static int case_private_rseq(void)
++{
++	return test_private(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ,
++			    MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ);
++}
++
++/* MEMBARRIER_CMD_FLAG_CPU interrupts only the CPU it names. */
++static int case_private_rseq_cpu(void)
++{
++	pthread_t threads[MAX_TARGETS];
++	long delta[MAX_TARGETS];
++	int ret;
++
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) &
++	      MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ))
++		return CASE_SKIP_NO_CMD;
++	if (start_thread_targets(threads))
++		return CASE_ERROR;
++	must_register(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ);
++	ret = send_cmds(MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ,
++			MEMBARRIER_CMD_FLAG_CPU, target_cpu[0], delta);
++	stop_thread_targets(threads);
++	if (!ret)
++		ret = expect_hit(0, delta);
++	if (!ret)
++		ret = expect_miss(1, delta);
++	return ret;
++}
++
++/* A private command does not interrupt another registered process. */
++static int case_private_other_process(void)
++{
++	long delta[MAX_TARGETS];
++	pthread_t thread;
++	pid_t pid;
++	int ret;
++
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) &
++	      MEMBARRIER_CMD_PRIVATE_EXPEDITED))
++		return CASE_SKIP_NO_CMD;
++	pid = fork();
++	if (pid < 0)
++		return CASE_ERROR;
++	if (!pid) {
++		pin_to_cpu(target_cpu[0]);
++		must_register(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED);
++		spin();
++		_exit(0);
++	}
++	if (pthread_create(&thread, NULL, thread_spin, (void *)1L))
++		return CASE_ERROR;
++	wait_ready(2);
++	must_register(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED);
++	ret = send_cmds(MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0, 0, delta);
++	atomic_store(&shared->stop, 1);
++	must_join(thread);
++	must_wait(pid);
++	if (!ret)
++		ret = expect_miss(0, delta);
++	if (!ret)
++		ret = expect_hit(1, delta);
++	return ret;
++}
++
++/*
++ * This task shares the TLS of its parent. Its parent pins it, so that
++ * it only spins.
++ */
++static int clone_vm_fn(void *arg)
++{
++	spin();
++	return 0;
++}
++
++/*
++ * A private command covers every task which uses the mm. This includes
++ * a task of another thread group created with CLONE_VM.
++ */
++static int case_private_clone_vm(void)
++{
++	long delta[MAX_TARGETS];
++	char *stack;
++	pid_t pid;
++	int ret;
++
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) &
++	      MEMBARRIER_CMD_PRIVATE_EXPEDITED))
++		return CASE_SKIP_NO_CMD;
++	stack = malloc(STACK_SIZE);
++	if (!stack)
++		return CASE_ERROR;
++	pid = clone(clone_vm_fn, stack + STACK_SIZE, CLONE_VM | SIGCHLD, NULL);
++	if (pid < 0) {
++		free(stack);
++		return CASE_ERROR;
++	}
++	pin_task(pid, target_cpu[0]);
++	wait_ready(1);
++	must_register(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED);
++	ret = send_cmds(MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0, 0, delta);
++	atomic_store(&shared->stop, 1);
++	must_wait(pid);
++	free(stack);
++	if (!ret)
++		ret = expect_hit(0, delta);
++	return ret;
++}
++
++static const struct test_case {
++	const char *name;
++	int (*fn)(void);
++} test_cases[] = {
++	{ "global expedited reaches a registered process",
++	  case_global_registered },
++	{ "global expedited skips an unregistered process",
++	  case_global_unregistered },
++	{ "global expedited reaches a process after a thread exit",
++	  case_global_thread_exit },
++	{ "global expedited reaches a process registered on another CPU",
++	  case_global_lazy_tlb },
++	{ "global expedited reaches each thread of a process",
++	  case_global_multi_thread },
++	{ "global expedited reaches a forked child",
++	  case_global_fork },
++	{ "global expedited skips a process after exec",
++	  case_global_exec },
++	{ "private expedited reaches each thread",
++	  case_private },
++	{ "private expedited sync core reaches each thread",
++	  case_private_sync_core },
++	{ "private expedited rseq reaches each thread",
++	  case_private_rseq },
++	{ "private expedited rseq with a CPU reaches only that CPU",
++	  case_private_rseq_cpu },
++	{ "private expedited skips another process",
++	  case_private_other_process },
++	{ "private expedited reaches a CLONE_VM task",
++	  case_private_clone_vm },
++};
++
++static void run_case(const struct test_case *tc)
++{
 +	int status;
 +	pid_t pid;
 +
-+	register_all(_metadata);
-+	snprintf(expected, sizeof(expected), "%d", initial_registrations);
++	atomic_store(&shared->ready, 0);
++	atomic_store(&shared->stop, 0);
 +	pid = fork();
-+	ASSERT_GE(pid, 0);
++	if (pid < 0)
++		ksft_exit_fail_msg("fork failed\n");
 +	if (!pid) {
-+		execl("/proc/self/exe", "membarrier_test_cmd",
-+		      "--expect-registrations", expected, NULL);
-+		_exit(2);
++		/* The targets inherit this process group. */
++		if (setpgid(0, 0)) {
++			perror("setpgid");
++			_exit(CASE_ERROR);
++		}
++		die_with_parent();
++		pin_to_cpu(sender_cpu);
++		_exit(tc->fn());
 +	}
-+	ASSERT_EQ(waitpid(pid, &status, 0), pid);
-+	EXPECT_TRUE(WIFEXITED(status));
-+	if (WEXITSTATUS(status) == 2)
-+		SKIP(return, "cannot exec /proc/self/exe");
-+	EXPECT_EQ(WEXITSTATUS(status), 0);
++	if (waitpid(pid, &status, 0) != pid)
++		ksft_exit_fail_msg("waitpid failed\n");
++	/*
++	 * Kill the targets which a failed test case left behind. There
++	 * is usually none: kill() then fails with ESRCH.
++	 */
++	atomic_store(&shared->stop, 1);
++	if (kill(-pid, SIGKILL) && errno != ESRCH)
++		ksft_exit_fail_msg("kill failed\n");
++	if (!WIFEXITED(status))
++		status = CASE_FAIL;
++	else
++		status = WEXITSTATUS(status);
++	switch (status) {
++	case CASE_PASS:
++		ksft_test_result_pass("%s\n", tc->name);
++		break;
++	case CASE_SKIP_NO_COUNT:
++		ksft_test_result_skip("%s: Cannot read the interrupt counts\n",
++				      tc->name);
++		break;
++	case CASE_SKIP_NO_CMD:
++		ksft_test_result_skip("%s: Command not available\n",
++				      tc->name);
++		break;
++	case CASE_ERROR:
++		ksft_test_result_error("%s: Test setup failed\n", tc->name);
++		break;
++	default:
++		ksft_test_result_fail("%s\n", tc->name);
++	}
 +}
 +
-+static int clone_vm_fn(void *arg)
++/* Pick the sender CPU and the target CPUs among the allowed CPUs. */
++static bool pick_cpus(void)
 +{
-+	int cmd = *(int *)arg;
++	int cpu, nr = 0, *dst[] = {
++		&sender_cpu, &target_cpu[0], &target_cpu[1],
++	};
++	cpu_set_t set;
 +
-+	return sys_membarrier(cmd, 0, 0) ? 1 : 0;
++	if (sched_getaffinity(0, sizeof(set), &set))
++		return false;
++	for (cpu = 0; cpu < CPU_SETSIZE && nr < ARRAY_SIZE(dst); cpu++)
++		if (CPU_ISSET(cpu, &set))
++			*dst[nr++] = cpu;
++	return nr == ARRAY_SIZE(dst);
 +}
 +
-+/*
-+ * The registrations belong to the mm. A task of another thread group
-+ * which shares the mm (CLONE_VM without CLONE_THREAD) registers for
-+ * both thread groups.
-+ */
-+TEST(clone_vm_shares_registrations)
++static struct shared *map_shared(int fd)
 +{
-+	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED;
-+	int before = get_registrations(), status;
-+	char *stack;
-+	pid_t pid;
++	void *p;
 +
-+	ASSERT_GE(before, 0);
-+	stack = malloc(STACK_SIZE);
-+	ASSERT_NE(stack, NULL);
-+	pid = clone(clone_vm_fn, stack + STACK_SIZE, CLONE_VM | SIGCHLD, &cmd);
-+	ASSERT_GE(pid, 0);
-+	ASSERT_EQ(waitpid(pid, &status, 0), pid);
-+	EXPECT_TRUE(WIFEXITED(status));
-+	EXPECT_EQ(WEXITSTATUS(status), 0);
-+	EXPECT_EQ(get_registrations(), before | cmd);
-+	EXPECT_EQ(sys_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0, 0), 0);
-+	free(stack);
++	p = mmap(NULL, sizeof(struct shared), PROT_READ | PROT_WRITE,
++		 MAP_SHARED, fd, 0);
++	return p == MAP_FAILED ? NULL : p;
 +}
 +
 +int main(int argc, char **argv)
 +{
-+	/* New program image of exec_drops_registrations. */
-+	if (argc == 3 && !strcmp(argv[1], "--expect-registrations"))
-+		return get_registrations() != atoi(argv[2]);
++	long counts[MAX_TARGETS];
++	int i;
 +
-+	if (query() < 0)
++	/* Target of the exec test case. See setup_exec(). */
++	if (argc == 3 && !strcmp(argv[1], "--spin")) {
++		shared = map_shared(atoi(argv[2]));
++		if (!shared)
++			return CASE_ERROR;
++		spin();
++		return 0;
++	}
++
++	ksft_print_header();
++	if (sys_membarrier(MEMBARRIER_CMD_QUERY, 0, 0) < 0)
 +		ksft_exit_skip("sys membarrier (CONFIG_MEMBARRIER) is disabled.\n");
-+	initial_registrations = get_registrations();
-+	if (initial_registrations < 0)
-+		ksft_exit_skip("MEMBARRIER_CMD_GET_REGISTRATIONS is not available.\n");
-+	return test_harness_run(argc, argv);
++	if (!pick_cpus())
++		ksft_exit_skip("This test needs 3 allowed CPUs.\n");
++	if (!read_ipi_counts(target_cpu, MAX_TARGETS, counts))
++		ksft_exit_skip("No function call interrupt count in /proc/interrupts.\n");
++	shared_fd = memfd_create("membarrier_test_ipi", 0);
++	if (shared_fd < 0 || ftruncate(shared_fd, sizeof(struct shared)))
++		ksft_exit_fail_msg("memfd_create failed\n");
++	shared = map_shared(shared_fd);
++	if (!shared)
++		ksft_exit_fail_msg("mmap failed\n");
++
++	ksft_set_plan(ARRAY_SIZE(test_cases));
++	for (i = 0; i < ARRAY_SIZE(test_cases); i++)
++		run_case(&test_cases[i]);
++	ksft_finished();
 +}
 -- 
 2.47.3
