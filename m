@@ -1,51 +1,51 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=158.69.130.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794575962;
-	b=eHui5KQGgV1tIAaGNcrXcRg6ylbgIOClylZDTUlUM8zXjHPWm1WiqaVSAM7eNE1p6YO+
-	 K5A9UwBXzabt1jCKJEResPjaPZ25tmzYhDobKKQB/VmbAgxf/1chlBDMaTa5oLi4efuUW
-	 IytiyECssUB1VYxBQqsPHmux0neJQvL8iRmX1o0ThmcSHHbMwUZ6rx85hInBvSBQd+XnG
-	 6n5EqQiZpMq7/xoH23oKec27+ALshtxZGYv9H0iUcoUXEgbfVhVb1st7Wosj5L8Kzr8Wn
-	 AXXUrjghPDCme/ribAQXMcLBvc1dXtL6wI7OCoFiYReJcht7MbGOYj9waKuOVkm0UeA==
+	t=1794575958;
+	b=3Nw9RKyAaXDQQsWiamnKB50S2Gak2nWuDmR7YP8RhVN4MYQBQ78zUEazqJk2LRXewtte
+	 BGpABWGlSOZas+OOtQ112bch6xHt6DCXvvCGbPgQPkuFCR9bdM7pQRYo/So/ykTznfsGE
+	 Qi+UCUo79Yv594J5uqHGv59LkvU8BvQ+kPjauKC4QtioRNpNIGU8ZneLw6KtWCRGXQEsS
+	 li13yAoLH2+yv9RjNeY1yTq5locHfXhbFKSbCPJAjTudRHYUY4cUJXEb7NPiu4F6qHLc2
+	 nRbmJ3N2497b39uwi1lmyTHiBRl0ZRDGxiVOm+gEft0iO+xPJ6d8+xxwAhaprG8hurA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794575962;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794575958;
 	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
 	 Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=WHY+8I3fXBrwECRQRQwc27pmPFAuQe8kSc5abxVwo8A=;
-	b=zbPsNKohDGWaeV2VVYBrOV6M2jL3QENgUhiT1xH5kSEwZx4UUEDALdTYWozzW+6qjmo0
-	 zHa10fODtg+1CB65EdpXQqv+bkwWh2aya0GquCaSQ/DU85uRSAppt9rOT3DN7aHYZ4uoT
-	 BDdeXU5HDIDX5bCHYsJ6JuxlGMRfZ0Xx96ZxfB/Pe6GsiCZAc3G9DJtJWhXRy/NGRPPQb
-	 UZUYoddXpkgrlG8s7i4Ow4G3l2DZcCIU54ibL2uArG8vSWYSmR6kMT3O9vgbPIdwR0V7u
-	 +UT0r/OQ/sg4WOYkWd7nlqKZMqf8JSwxIFM4+d23n1gTjHmnj+DKHYRhCHej/0NOLLA==
+	bh=IUEMjQyKvdg75ReLfe0GUIqEXU/84tt1/W6uEXFVIFk=;
+	b=QN5KBwgtxvjSjoBPqbwTOtL9ovuN0XOmpNm54TjuuVvG4gCNv8YdK78+XinXx7hXxces
+	 yFVh3ZZmlF4IkIO/cnlYC7VTERM/K+Cx/D+QnWFcMGlxPD2YXE87+iPvVT/kmMUedwgu8
+	 D/FJOIJiRvE1DicVPjYjKVdOI1x/Qgx7c7QIFpnhJzJ7mHmFNzA2sYK907C6dftj+0cej
+	 8I7CmR2i1U5UF/tyeO8sRbimpmcQiLG1TfLdUxv21CmqDF6PxLXHVI56Z2apy0aJwsnw6
+	 BhONLgtHFDrlU31RiLTec5MxRlngxrF5b5d+if9IT08QsehzRM8zUD4Ejrq1QXUlsUA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=efficios.com;
 	spf=pass smtp.mailfrom=efficios.com;
-	dkim=pass header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=bDJyICoo;
+	dkim=pass header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=dSDjxoaJ;
 	arc=none smtp.remote-ip=158.69.130.18
 Received: from smtpout.efficios.com (smtpout.efficios.com [158.69.130.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06CFE606B570;
-	Fri, 13 Nov 2026 13:19:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 06CFE606B570
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A3B9C60A263A;
+	Fri, 13 Nov 2026 13:19:17 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A3B9C60A263A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=efficios.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=efficios.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=bDJyICoo
+	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.a=rsa-sha256 header.s=smtpout1 header.b=dSDjxoaJ
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=efficios.com;
-	s=smtpout1; t=1794575952;
-	bh=WHY+8I3fXBrwECRQRQwc27pmPFAuQe8kSc5abxVwo8A=;
+	s=smtpout1; t=1794575949;
+	bh=IUEMjQyKvdg75ReLfe0GUIqEXU/84tt1/W6uEXFVIFk=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=bDJyICooaKcDSek4/A4H+S+weKzQTQDleKQPO4COpfpcZOVV1ac9mO5nbp/hmwrV/
-	 AQVk1PDb7U7fYHLenbjMC3xnAy+P3hSG5uUwUDSNq70We787UQx/ZaMiBNmRdwf7mw
-	 VkZP66ATHNuO4m1MAB/whXO+4dOyg6pZ5NBUeexxKGMewN3gWdzbZ2XZqhthTNWHaX
-	 kvWZ0bwRDCRd0Ll2L/8NqJziOZdv2kNu/7CkgPzI1mpqFslGSd03KSZDYdmxYBqorq
-	 O9yAOCDKLLf1y6q155foRI21EXgT7N8THnQxxlukXlnQmMSf+y5BerbQYVD2ztJLX1
-	 TIrv4ikp/QPeQ==
+	b=dSDjxoaJDUtaYxgBtv1axfv9TiwhU3Kz4TiFYqtzCcvUt4wk1OfNjGMVl2MOLGXtO
+	 KpvFCgxE7HHsgfIZ4T2z3dCLqZwa4/1o0xn3QzEIb4ZKovuHEEGdAFCge26ASjLeko
+	 pvf1pZAhPXsjEkfmWwhEdsUU0AQJSWb0K3IRL1/1kQzAEzESW+6GY/yDpdrPTPlxlQ
+	 oqrMII91zxG1FCdb1zsPSgICx8HwZ6lkKzy5FynmnUU/IYMR+ghV6LVAa4Eou3wZzF
+	 +wlkSRBsq6uj4ojKGkiqMGQ91+G7HkLV+4xYqTgh/AKWbEBPiZs0na/xgBUFOiIdFy
+	 BRHjuuWfVaXHg==
 Received: from thinkos.internal.efficios.com (mtl.efficios.com [216.120.195.104])
-	by smtpout.efficios.com (Postfix) with ESMTPSA id 4jQyX00WW2zQ2n;
-	Fri, 13 Nov 2026 08:19:12 -0500 (EST)
+	by smtpout.efficios.com (Postfix) with ESMTPSA id 4jQyWx53cRzPxL;
+	Fri, 13 Nov 2026 08:19:09 -0500 (EST)
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 To: Peter Zijlstra <peterz@infradead.org>,
 	Ingo Molnar <mingo@redhat.com>
@@ -124,9 +124,9 @@ Cc: linux-kernel@vger.kernel.org,
 	"David S. Miller" <davem@davemloft.net>,
 	Masami Hiramatsu <mhiramat@kernel.org>,
 	linux-trace-kernel@vger.kernel.org
-Subject: [RFC PATCH 14/16] MAINTAINERS: Add the membarrier selftests to MEMBARRIER SUPPORT
-Date: Fri, 13 Nov 2026 08:19:01 -0500
-Message-Id: <20261113131903.157186-15-mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH 05/16] selftests/membarrier: Run the tests on nohz_full kernels
+Date: Fri, 13 Nov 2026 08:18:52 -0500
+Message-Id: <20261113131903.157186-6-mathieu.desnoyers@efficios.com>
 X-Mailer: git-send-email 2.39.5
 In-Reply-To: <20261113131903.157186-1-mathieu.desnoyers@efficios.com>
 References: <20261113131903.157186-1-mathieu.desnoyers@efficios.com>
@@ -141,29 +141,45 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The MEMBARRIER SUPPORT entry does not list the membarrier selftests.
-get_maintainer.pl does not report the membarrier maintainers for a
-change to these tests.
+A nohz_full kernel does not provide MEMBARRIER_CMD_GLOBAL. The tests
+skip everything when the query mask lacks this command. The other
+commands are available on such a kernel and are never tested there.
 
-Add tools/testing/selftests/membarrier/ to the entry.
+Skip only the MEMBARRIER_CMD_GLOBAL test.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 ---
- MAINTAINERS | 1 +
- 1 file changed, 1 insertion(+)
+ .../selftests/membarrier/membarrier_test_impl.h        | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 222b7fc2c3aa..2ee220ccc5e8 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -17435,6 +17435,7 @@ F:	arch/*/include/asm/membarrier.h
- F:	arch/*/include/asm/sync_core.h
- F:	include/uapi/linux/membarrier.h
- F:	kernel/sched/membarrier.c
-+F:	tools/testing/selftests/membarrier/
+diff --git a/tools/testing/selftests/membarrier/membarrier_test_impl.h b/tools/testing/selftests/membarrier/membarrier_test_impl.h
+index 4b9d1771916e..49f5fdb56dab 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test_impl.h
++++ b/tools/testing/selftests/membarrier/membarrier_test_impl.h
+@@ -97,6 +97,13 @@ static int test_membarrier_global_success(void)
+ 	int cmd = MEMBARRIER_CMD_GLOBAL, flags = 0;
+ 	const char *test_name = "sys membarrier MEMBARRIER_CMD_GLOBAL";
  
- MEMBLOCK AND MEMORY MANAGEMENT INITIALIZATION
- M:	Mike Rapoport <rppt@kernel.org>
++	/* A nohz_full kernel does not provide MEMBARRIER_CMD_GLOBAL. */
++	if (!(sys_membarrier(MEMBARRIER_CMD_QUERY, 0) & cmd)) {
++		ksft_test_result_skip("%s test: Command not available\n",
++				      test_name);
++		return 0;
++	}
++
+ 	if (sys_membarrier(cmd, flags) != 0) {
+ 		ksft_exit_fail_msg(
+ 			"%s test: flags = %d, errno = %d\n",
+@@ -356,9 +363,6 @@ static int test_membarrier_query(void)
+ 		}
+ 		ksft_exit_fail_msg("sys_membarrier() failed\n");
+ 	}
+-	if (!(ret & MEMBARRIER_CMD_GLOBAL))
+-		ksft_exit_skip(
+-			"sys_membarrier unsupported: CMD_GLOBAL not found.\n");
+ 
+ 	ksft_test_result_pass("sys_membarrier available\n");
+ 	return 0;
 -- 
 2.47.3
 
