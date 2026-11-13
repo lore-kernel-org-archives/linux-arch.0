@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794600059;
-	b=WC25/w89FLBa3H8wVLIpNSQ1AziNZZvhMXAa0AhUzYcV+ARvpUWWkq0hK9CYbAWgLV/b
-	 zaZOZTtalAH7QbHH0g2T2wnn0yWufmCrkgyfPsCi2aQWbMuc3I5o4IM1Rfi8+T4P4BXbp
-	 GnhuZ6kvpaluH+Kk6QkA23pKAxFHaQxV6LT9reeHWIhxDPFNaSKrpnciGOkA1Z6hpE9+b
-	 xB0UGfwLRl4rBelJYNT+xqhCtvSpwFRBjoL9ODhs5grC/Gxsa9bZzAgsfsP9+CoerqNdn
-	 mt1S1dejdqYAIp8FYhoWP1M4uy8aXjkB4yrzNtP5Ck1T8gdnqr6btaTaVYUmzzrDzZw==
+	t=1794601352;
+	b=nkuPIjnuf7bpHm6COEzAYz0qSYQ3OwQ34ALkAtPWxM6UsXvUt4eQGcxAv7r90/2Ufggf
+	 MjFMvYyvzNzJ/UXZbWOUankTgnvkBJ6bU6BhIMza88L0K8XmwhU3jLFRbFMCCAyEmwAtK
+	 0A+J1QWFaM+P6FebCQuiwoj9SYcR2WuFkh0JQzMiEmRxgA2wdABWLumqvMgaoGUp5/W5q
+	 cTZXDWIFyD9OmYZUP6+bEod1UqXv+dYELMttUseyNYjI/wrN1Us0Bw2+d+1eDVKyD+qBt
+	 6AsYX7MFNtjjPuPIpzmDse11Ta7T2BQdFd+Wl3QoalwmhQhSs/H8OUgM1KvvMK/ptaQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794600059;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794601352;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=cVUaiMaz3XMN9uwKkKZrpHW2DyS8HoLv5GhhqXeNd3c=;
-	b=HpA7dG5qM3s5sA9gayaROX2UKpq8TZ77uPpsgBJy/3d69EDWdXH0ODfYkxrHrBAD4coh
-	 q6qzPL3QPLkNPq56qwSz3sNtKuV5Agjm6X3MohOqrus+OGNIEMoZw+YxJEEmvjimvN9KR
-	 c7f8I1GOVnnTiOMsQrYwFZjh26giPcC5yyx9p7IuSZ5WiCDOvyMQOs6UW8QfnPhP2+yxy
-	 MW/Wt+1lvpmK0uHA24v9ZtT3PJA9SkFoKYsfVvk0K4J2Vk/yBZLKTm7WxtXFZXupuZAjl
-	 L6MR9u+1LZap2ccuT8SwcnHIT2eZKumOmN8azCPpvftbdn3M/+d67x/afkjHpq9V5jA==
+	bh=fZBLWHhKZStR4J0kgZ8KXl8AdK3ThP4v2+4JtoQHNqU=;
+	b=1zG4Ft3wvMZafI1QdJ1X2Ewo15+c/Gv+VIwX1pfg7VIyKUDuEHvpX+BNwkVwLBmQDsej
+	 scWl61qHdX7XQWi6xYYemUgMf38o2aG8mXu5CTYiJ959LVLIS/rJbOpPtlt7wAW8xQ5dx
+	 wEdKUdQiOyt/EsKM+hBlk7thcE0w8ZZ2LVw+RSdJKQxuqlnHVyZXP5SM0zx/HnvOapsA0
+	 i2eL5WypEjdS5m06d01w7B2qglTkRI1Udko15PbmjvFhOv1dIAfu29mNDvRZ/9dIiGocn
+	 KcomiKVSvm/hKwjcweR9A8dAHQ+4mrH9VjWVGe1zTbgIg5GoQAZumRUCUxXbldYTd1w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OyUCD7Uy;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eelJ0Ehg;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D789606A89F;
-	Fri, 13 Nov 2026 20:00:59 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA395606A327;
+	Fri, 13 Nov 2026 20:22:32 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=OyUCD7Uy
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E49AC1F000C4;
-	Fri, 13 Nov 2026 20:00:44 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eelJ0Ehg
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 725111F000CD;
+	Fri, 13 Nov 2026 20:22:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794600059;
-	bh=cVUaiMaz3XMN9uwKkKZrpHW2DyS8HoLv5GhhqXeNd3c=;
+	s=k20260515; t=1794601352;
+	bh=fZBLWHhKZStR4J0kgZ8KXl8AdK3ThP4v2+4JtoQHNqU=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=OyUCD7UyGbgQkY37EnEigD1L/mrS7PBtAgr+4NmGTZUelqoLujjnkQSl5X8ARX9MI
-	 +N/R6NXrTN7PcrCbmG/pn27YFyv29KKY0XQoMMAUfuHO8AlBL7bBkgke2RbJvLRPau
-	 gqlZKfWqdyCRLwVmQBvbVLOkIeDne2b24kKHimyfVWs7mXPP0YasHlDFJjkbRUClJ0
-	 B/2YPA2lbPXMYhcPkl6S0YHYVWhH4pYxJz/ZIFporIOHnC79l8MpxhfGy+VNxSydkm
-	 o5/gV4LFTaPbY5q4iab0I9lC5gCZrC/A7fMlWILAEbgb7ZUXgDiS+PGC1UtJqmTk9S
-	 k8m6JJ8gBDoYA==
-Message-ID: <6630ec25-3648-4d60-beb7-61572053318b@kernel.org>
-Date: Fri, 13 Nov 2026 21:00:42 +0100
+	b=eelJ0Ehg04DJnjRcI5vV8i/R2cvAgWEc4w7TDjR82Zqf9Mrurdi0U2ViM8LCDluqc
+	 oDQWu74h0bM84pqGElumjpFz2Z6u9BHuy/sxJFFgFwMeaeD/MWzz3Stu6qLLYiRPDr
+	 aLzekm0yKnWTs+ts5d0hdLYEGQYf2Nd07SIJmG2jXYSQ3RH0RbA/T48Ft618xXZgAt
+	 n3V2xlNky96ihS/K8lvBfqcAqh15I8CF3y6SLp+hqFk04XYUvRVwZAsCKb3zCzS/Ai
+	 Dhc5ck670LitBKhZiVAT8iWPM+6tXP43Vhy9sq+NYLD2fyDrbyelvLcmcX2Pli0xGs
+	 MZ0Petu9Db8YA==
+Message-ID: <835c18d0-bee3-41e8-aa46-05dc7c1ebc64@kernel.org>
+Date: Fri, 13 Nov 2026 21:22:18 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,45 +52,34 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 1/9] mm: limit pagecache folio refcount when mapping
- pages
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Jan Kara <jack@suse.cz>, Andrew Morton <akpm@linux-foundation.org>,
- Zi Yan <ziy@nvidia.com>, Baolin Wang <baolin.wang@linux.alibaba.com>,
- Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
- Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
- Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
- Kiryl Shutsemau <kas@kernel.org>, Matthew Brost <matthew.brost@intel.com>,
- Joshua Hahn <joshua.hahnjy@gmail.com>, Byungchul Park <byungchul@sk.com>,
- Gregory Price <gourry@gourry.net>, Ying Huang
- <ying.huang@linux.alibaba.com>, Alistair Popple <apopple@nvidia.com>,
- Peter Xu <peterx@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>,
- Song Liu <songliubraving@fb.com>, Rik van Riel <riel@surriel.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Alexander Viro
- <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
- Hugh Dickins <hughd@google.com>, Will Deacon <will@kernel.org>,
+Subject: Re: [PATCH 00/15] mm/hugetlb: various fixes
+To: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
+ Naoya Horiguchi <nao.horiguchi@gmail.com>,
+ Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>,
+ Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>,
+ Michal Hocko <mhocko@suse.com>, Rik van Riel <riel@surriel.com>,
+ Hugh Dickins <hughd@google.com>, Baolin Wang
+ <baolin.wang@linux.alibaba.com>, Vivek Kasireddy
+ <vivek.kasireddy@intel.com>, Dave Airlie <airlied@redhat.com>,
+ Jason Gunthorpe <jgg@ziepe.ca>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
+ Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
+ Randy Dunlap <rdunlap@infradead.org>, Peter Xu <peterx@redhat.com>,
+ Breno Leitao <leitao@debian.org>, Will Deacon <will@kernel.org>,
  "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
  <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>,
- Kevin Tian <kevin.tian@intel.com>, "Joerg Roedel (AMD)" <joro@8bytes.org>,
- Robin Murphy <robin.murphy@arm.com>,
- Steve Sistare <steven.sistare@oracle.com>, John Hubbard
- <jhubbard@nvidia.com>, "Jose A. Perez de Azpillaga" <azpijr@gmail.com>,
- Josef Bacik <josef@toxicpanda.com>, "David S. Miller" <davem@davemloft.net>,
- Eric Dumazet <edumazet@kernel.org>, Jakub Kicinski <kuba@kernel.org>,
- Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>,
- Neal Cardwell <ncardwell@google.com>, Kuniyuki Iwashima <kuniyu@google.com>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, fuse-devel@lists.linux.dev,
- linux-arch@vger.kernel.org, iommu@lists.linux.dev, netdev@vger.kernel.org,
- Chris Mason <mason@kernel.org>, stable@vger.kernel.org,
- Pedro Falcato <pfalcato@suse.de>
-References: <20261112-refcount_overflow_stable-v4-0-ad3deef0bd23@kernel.org>
- <20261112-refcount_overflow_stable-v4-1-ad3deef0bd23@kernel.org>
- <avdovRTVITLwuit_@casper.infradead.org>
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
+ Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+ luojiajun <luojiajun3@huawei.com>, Josef Bacik <josef@toxicpanda.com>,
+ stable@kernel.org, Chris Mason <mason@kernel.org>,
+ Daehyeon Ko <4ncienth@gmail.com>, stable@vger.kernel.org
+References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -137,140 +126,14 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <avdovRTVITLwuit_@casper.infradead.org>
+In-Reply-To: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/13/26 20:45, Matthew Wilcox wrote:
-> On Thu, Nov 12, 2026 at 11:53:20PM +0100, David Hildenbrand (Arm) wrote:
->> Being able to overflow the refcount is not really big news, but it's about
->> time that we do something about it because some modern technology might
->> find ways to abuse it :)
+On 10/28/26 21:13, David Hildenbrand (Arm) wrote:
+> These fixes almost finished me.
 
-Hi Willy,
-
-thanks for the review!
-
-Be aware that I want to get this fixed now asap. So I will push back against any
-bigger changes on this for now unless there are real issues to fix.
-
-I want to get this sent early next week to Linus.
-
-With future changes I am planning, mappings will no longer be an issue. I will
-then drop admin reserves (as the chance for DOS will go down drastically) and we
-can use the negative refcount as our limit.
-
-> 
-> Yes.  My primary worry is actually it finding a path where we forget to
-> put the refcount on a folio and that gets exploited into a UAF.  I'm not
-> sure the "reserve for root" aspect really helps recover from that, but
-> I'm not too opposed to it.
-> 
->> As a short-term solution, let's introduce two folio refcount limits:
->> one for ordinary consumers and one for admins. Leave some headroom
->> before the refcount goes negative, which we really don't want (having
->> the mapcount go negative is also not expected).
-> 
-> I don't think a negative refcount or mapcount is really a problem.  What
-> matters is that we don't get to zero from below (for the refcount)
-> or that we don't get to 0xf000'0000 (for mapcount).
-
-They are a problems in current code with both negative refcount and negative
-mapcounts.
-
-Nothing I want to sort out in this patch set.
-
-So if we reach a negative mapcount of refcount today, we messed up.
-
-> 
->> +/* Leave separate reserves for administrators and concurrent reference gains. */
->> +#define FOLIO_REF_COUNT_LIMIT		(INT_MAX - (1U << 26))
->> +#define FOLIO_REF_COUNT_ADMIN_LIMIT	(INT_MAX - (1U << 25))
-> 
-> I think these specific values will generate bad code.
-
-Again, we can worry about fine tuning once we have a proper fix in place.
-
-> 
->> +static inline bool folio_ref_count_over_limit(const struct folio *folio)
->> +{
->> +	const unsigned int ref_count = folio_ref_count(folio);
->> +
->> +	if (likely(ref_count < FOLIO_REF_COUNT_LIMIT))
->> +		return false;
-> 
-> I would replace this with a simple signed comparison against 0.
-
-As per above, this is something for the future.
-
-> 
->>  static inline void folio_get(struct folio *folio)
->>  {
->> -	VM_BUG_ON_FOLIO(folio_ref_zero_or_close_to_overflow(folio), folio);
->> +	VM_WARN_ON_FOLIO(folio_ref_count(folio) <= 0, folio);
->>  	folio_ref_inc(folio);
->>  }
-> 
-> And I would drop this hunk.
-
-Similarly, for the futue.
-
-> 
->> diff --git a/mm/util.c b/mm/util.c
->> index 80f6c714844f2..c9c3dc4b490fa 100644
->> --- a/mm/util.c
->> +++ b/mm/util.c
-> 
-> Now we have mm/folio.c, I think it should live in there.
-
-I can move it.
-
-> 
->> @@ -791,6 +791,32 @@ int folio_mc_copy(struct folio *dst, struct folio *src)
->>  }
->>  EXPORT_SYMBOL(folio_mc_copy);
->>  
->> +bool folio_ref_count_over_limit_slowpath(const struct folio *folio,
->> +		unsigned int ref_count)
->> +{
->> +	if (ref_count >= FOLIO_REF_COUNT_ADMIN_LIMIT)
->> +		goto over_limit;
-> 
-> Maybe let this go up to 0x8100'0000?
-> 
->> +	/* Background threads must not consume admin reserves. */
->> +	if (current->flags & PF_KTHREAD)
->> +		goto over_limit;
->> +	/* Neither must interrupt contexts on behalf of the interrupted task. */
->> +	if (!in_task())
->> +		goto over_limit;
->> +	/* Capability checks are not safe with IRQs disabled. */
->> +	if (irqs_disabled())
->> +		goto over_limit;
->> +	/* Use the task's credentials, which filesystem overrides cannot change. */
->> +	if (has_capability_noaudit(current, CAP_SYS_RESOURCE))
->> +		return false;
->> +
->> +over_limit:
->> +	pr_warn_ratelimited("folio:%p refcount:%d mapcount:%d mapping:%p reached refcount limit\n",
->> +			    folio, (int)ref_count, folio_mapcount(folio),
->> +			    folio_mapping(folio));
-> 
-> If it's worth doing folio->mapping, maybe also print folio->index?
-> In fact,
-
-I can do.
-
-> 
->         pr_warn("page: refcount:%d mapcount:%d mapping:%p index:%#lx pfn:%#lx\n",
->                         folio_ref_count(folio), mapcount, mapping,
->                         folio->index + idx, pfn);
-> 
-> might be worth pulling out into a mini helper from __dump_folio()?
-
-I want a pr_warn_ratelimited though.
-
-Again, thanks for the review, I want to get this fixed asap now.
+Muchun, Oscar, should I respin with an un-rfc of patch #14?
 
 -- 
 Cheers,
