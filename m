@@ -1,85 +1,85 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.219.54
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.160.171
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794678305;
-	b=eAszDllMJ1UH/cnoAcOqJ/qp3MPEdOQlm45uQWjrUE6oujnsccP3vlXPh/K5QuVgaPzQ
-	 qAvBPUFjI3LbsOYVkUBolGxnKY8aZkfZtRjN6cXehwSCTZP3mff3gycQ9aiE5I0t0a2qW
-	 ckPxts2Bxsjx4U5+Dh6dy8gUFQ73pRAVTcW5TzSPT7g/LiBgYJDYWqsX5DI7ahVOGhbvy
-	 xjnHTgI8DE3/XZHiL+OQe9FqBPz7aYa2QuJHVN0LZynrmhJ7W6PnOLZ7d/UkPsbxGIRl0
-	 Y7COdCgD8veBUzorRrtdoKh4EiPbHbcCazwJq+g4WOo8hTnffrAa3S2HauIGxDJmSBg==
+	t=1794679203;
+	b=STjxnQa+P83NfUhmtHsxx/S0yDifyhjpuNvkxAUZREv+VLDlV0d+nR0cBenrsX/GEmLm
+	 odyYq8TnYZePguJ6WHNwGjm2JwtJwSdjAZBHkH+V77In3AEeZnsjbGAzG6lD3RRzDIQjP
+	 C4xdZWnlu83Xh1nQdCMheQZEh0EFV6mbYgfQRZ7hiAuHcSvZMDb/4BIzPIJ7hdKEiB2n6
+	 OHFlU9/UpF/CY808GqsMnrZHr/bJXQSCLIQ2E7NFLq+vJ/FWe/q7gZmLhsEavXONaNodS
+	 ZNsQGJ6Hgx3Dp3yFFEy9CGOaSkWC8LNdR9Dr7NkHuf44v0EiZhWt1URrpMR3iFKEcpw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794678305;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794679203;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=ZNcZMolhjI9akx8wnIcso6bAnFZ7LtMgZRZy+seyfFc=;
-	b=GVu2XVwhbZTQNT1L+C+Hs7bNj+orVsb3pNR0SLZ0xcEPG6b7LnfBVV5d2hK094bNG8yd
-	 8a8wfpmkl0DFQ2D1XnmILCNq5j6nmhBKbNSzAablpdyY9U6s0RgA7h/IxUOZ0fE+2U482
-	 ADa5b5a/CuyWxZD3rVDQBZJkgm1+WxGzNHXDt+TFlb0NwPu9FpPFpZA065dxyY2HDr9n/
-	 DC57pyUljlmS5dNpZZlHIdn0xPrEhPa9pCYgqFkZmLO0xPKQm7jKoI1CRRKDBjpUm56TZ
-	 8QKeUe5DeRrfL30ZjmsxJO/YVrHEEb2sIFcmJMCsjKkMJvxHy/oJAMWPYZYG34W2ENg==
+	bh=/31rYS+RTknGml0ZJpQj3HlEE/4E8Z8X4z83aN0X9Bw=;
+	b=t54NDGgQnAcxGSqo+WzezzqPH4B/D6ZDP9p+bGp9dngLdGNkVHokffWC6nnEqOj7e5TU
+	 ZjmIxuTtuvMONob+lfypBJYuwCC999ZEoW6MrublcLhTNjPDZNsPt/iypSflA3Ugj1zBs
+	 GGYUzU0eQ24zniZKsMOTwfODWh05AZn2P0x4rNKqGNc+Y2TYV2opxBuvXePj0CZzbsGyu
+	 ftTjk3d5MogohDZUSyCVXhbLTspneCOXdm8KMveSJH50kzxuTrFpO8+MISTokgNP6XyzE
+	 a/wKLJOExkLEM7iQwVb9PCzDMGW99Sesz30U5IwSwD/QLWBuvZuQ1+UrDqTYCiU0MfA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b="MmWE3/tW";
-	arc=none smtp.remote-ip=209.85.219.54
-Received: from mail-qv1-f54.google.com (mail-qv1-f54.google.com [209.85.219.54])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=eFKbHIse;
+	arc=none smtp.remote-ip=209.85.160.171
+Received: from mail-qt1-f171.google.com (mail-qt1-f171.google.com [209.85.160.171])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F235B606A327
-	for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 17:45:04 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F235B606A327
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A942F606A338
+	for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 18:00:02 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A942F606A338
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=MmWE3/tW
-Received: by mail-qv1-f54.google.com with SMTP id 6a1803df08f44-91ecdaf14beso31462086d6.3
-        for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 09:45:04 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=eFKbHIse
+Received: by mail-qt1-f171.google.com with SMTP id d75a77b69052e-55c5b6584ceso5652231cf.2
+        for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 10:00:02 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1794678304; x=1795283104; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1794679201; x=1795284001; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=ZNcZMolhjI9akx8wnIcso6bAnFZ7LtMgZRZy+seyfFc=;
-        b=MmWE3/tWVbBtF8EcqqHy+PVeL5SSlcJKpP6VzS0tSTNZ2fAANN/mjeb2XKUMnYOGnt
-         fS7SPnLre/soNOeedBOj6usNp+QZWktQVRGGddD5xas5spd/gD61hYWBXaHU1f7LSdPo
-         bK8uKTvij0ptR88ShH5mhzY9iqEzp+SHQCjXzVtKMzPH8bnKh3tKLARb3tJTj5Xk84j+
-         57zNzCJH2LXVTRHwrBigzqWgZ2tlkMTHXah/csAHOyHHZ2Qpn/t9n7Prea0qhwuAyV70
-         tipj7gdjHgvDatjTm9WXPyj2RnA2biRVYdIFA6vArHMeWI3Lk1QNJoRZo1702R+InuiG
-         Pc1Q==
+        bh=/31rYS+RTknGml0ZJpQj3HlEE/4E8Z8X4z83aN0X9Bw=;
+        b=eFKbHIse9b3So+Vb3z6hrfoJA1N2APapW8mJ7i2EFoMQRcCmR+NEEgUdKI9HHlj6g6
+         Lva+HFJGVODnzNDRNQ+kDEtaU7zXTePFpo7lP+deuTueXmIt+iXaC6tkikE3WZqSyD4/
+         s39ceJW0dwEtp3SE2Cf69EpD8SYIs20fFyDyUgK80HH1ohgJY9z7DyatSQKVEei4Xx/d
+         X+tZ1YmB2pwLKGkFEIsQFc1hTkqCMc+47X3aKK7sXdz8cOg8BO+SGJspPb4MLlbIxd88
+         tXYXZsOosNho23tqr7Cnv55MLiM4vDx5E/RqMitrGguCOVxxzjwXmoyF2uzTPb2VmuTv
+         KQLg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794678304; x=1795283104;
+        d=1e100.net; s=20260707; t=1794679201; x=1795284001;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=ZNcZMolhjI9akx8wnIcso6bAnFZ7LtMgZRZy+seyfFc=;
-        b=FFyGwQ463wnsXb8V1clM0HToahbEpHf1vOXvfzwW62gxlZokYWbbN5SeZFdY83iMih
-         JdwTzHbbgT4w2nW2vK2AUtnKlXRTlErx+poityy6Gd3h4nwPstOP8XfCAmbs+mE/A8kf
-         XhkTXJTBDLwMeH7PAPfSHP20+7Nir1/HHb0h9srfFKbDsXGATIE/IOXsZapXYDU61kkM
-         +1RZ8rYwTL9q3IjTm1SDNFo/9HLiDQoIlgNUNT50YqtAqTPaCwWeAnGnmt9C3YOQWAFY
-         UFIuZQpRtMWnOAusCDIcovnULmE7KVbAS9qKzDKXDReh7WngLSprU9rNm4z1vQXR6M3L
-         aYLg==
-X-Forwarded-Encrypted: i=1; AL+hErHI6qHJspgNPzqk4BwBXiiz+IGX/YTUhs4XANnOAgdyo0fnsqO8Df8XYo6oZ6JjabIA/pXZm2qkwa2K@vger.kernel.org
-X-Gm-Message-State: APuU4Z9xfL369Kt6iEkq/A/jkwmgf0spN9ZH2qqoN16N/wZJmm7+unc4
-	3/SNGLLsFLh32OzBLSKoX5ED+1hTDYcf7sTPa2sZ2YWR9vSHnxjtTMBEeWbSZXro5x8=
-X-Gm-Gg: AYBFou3gDJd4szpPyLaB7lYfzC72gQF/fTWtDyVchMARBjNGqR4CLPpszP0jrJIxwEt
-	WB1kS3DC18QGMHk5CwMdK6YLP85rBdukJbqSyqkXz6Z2qV3Awez7JdFEnGj4dz1kLc84HpBMaGO
-	HmLlcJAcog5qFSzJWGzr3XYsvMgcbsghQU1YCxhDluOh/MELLbR7KGoL6TYBkGetpxZi2EXd7CS
-	rgX/E6IGU+pgTZW7JDoBB0BAGFalqbnlY7se5r1Si8DuVMe/Bhb79e79VLFIiRk17NrnPlFy9RS
-	QWr/9ClYDl92aNBvoVlbGpVNo0xzcPOIBs398gqIH0IhlIgrib9cCBgNKl7qsoPnkvDiiQPJd8a
-	XkZ2Cgi875hoBSvZ6JYkeRzZCWM98nASWTX4zZ95+9JNvD4pshCRxXckVhw/WlyHAkr/kJ26iYu
-	eLEP3o3Mjzec+oS6gs8FImOYIsryCaTTJRRv4HYFxYtNvIv1F6DHSTRt3/V1UmcAX6pEa7WzYy2
-	fObl1a4jvKLb6gukKtZAbvLNRlIHT8h2b1VuGdk5/6skLoIGaPIht/IWQ6YY0GRoz95PSUZFhEB
-	ctYaVSdR2GjQkzrPnCvgT9yPC8dNjd2zT4gt74PTfijSiWZm02xN2QYjUnAj+Cc5beeU8MwsAkf
-	9M95KRh0=
-X-Received: by 2002:a0c:f409:0:b0:91e:747c:f833 with SMTP id 6a1803df08f44-91f2424b367mr92045736d6.46.1794678303872;
-        Sat, 14 Nov 2026 09:45:03 -0800 (PST)
+        bh=/31rYS+RTknGml0ZJpQj3HlEE/4E8Z8X4z83aN0X9Bw=;
+        b=qK3EbTjnx77segVQVwKu0inkWbz/93z33jg5ciVaw5v6bQuX+poIHML8AvlIzXrgI5
+         rZuckSQ9xKY3/LgoOxcE/QyvfnN4QKADhm7l7+XDXh1yM9oAK4an/yXjhZ4qQxKebp4C
+         8ae3TLyyGD7Jx5vckiEZkF+ImVXyqM+CZwVM5NXvyz70QEdcxjIeQgiuWDBpMq4CI1v3
+         D8dsx658DSLqquxhSfQ6n12woC0HuHe9SFDx5vlcD0uRC8mEIRmsCM7wK+k1ZjMNz6dh
+         rJ6FxUoCoQ7tcLUOuAkVtO1pGTqg9BCxa/O0KAQUncVLFUuqeh++vixs5WlNtEmaze3x
+         Hfaw==
+X-Forwarded-Encrypted: i=1; AL+hErG2rAo+dim1YuBxDUfH1+YiXNY9EKuq8bgNiCAZB7wxI/mjQK/VlAbdsIEZWkcRZ/T8Zv9X7shVk3UE@vger.kernel.org
+X-Gm-Message-State: APuU4Z8RCZ+hJ5rCJDxdIt5P+oGWQycBR0CYnACbhYnIvg7o0O7z9L6q
+	XFmfN9zR5zb0fpMEaIRmwf1oRfVLEjZHUGHzxsNFrbUotdsqKl/QHm7CU//+gVaYB4Q=
+X-Gm-Gg: AYBFou2iWrFVfM1ZyZMwrLBwH/608hPhQ7dOv7U71rao5rNw21+BjRJrI9EBXWQckJt
+	c2JbNcLh6ebnN4oIY3VeNMjg52ByL+yGjCJ+VEuOZhqBEHJBch+HSfh33QSUgOU14sUKyjkCgsG
+	9+K5PGEopljrId9uiNzOLwOtXUWCl5TQBvSSH58LcLXeocS8pE87JHazMtI6q/yw5BmeIik/vEz
+	N5LhT5XbRSb7w4CXXxPdqXVmnKobw4Jgj//Xa0P2h8jxtpj0fNnyudPucowxFGMMZyqpiB8k3R0
+	J57Z4CsL1QWoxp1/QCFgJ6UkGdxrY6Me66nJVID4HOonHJvBrJ6Z+GkiGSuIXYewd15ENo0MdR6
+	cGyQGU/zwgRs+BLlJ0owmBu7DOGkXC/kk25Mj/vZwJSQAG/7r1lEKcGtzaYfx6ZY2EMuLMnspa7
+	tC4a7H1tQywLwCcm8boXgQSbeWf4uBc2k3CaaSFeci6/S+FFNpVt4rpNCt20xOMrc8g9u9Q+sU/
+	tHKZ/DGTCC2Hp3WuHYGPXGlgpF7wlEzLpfQIW3RRuaEKwe1HvXbIkYABIH9XcAHSPuablv+zE7O
+	dFq0tpfF4vvmTm7wHecIgyS4E9Zg7q1/WlzQj+qQ4Fn2hN1K1h1BXDLIMgjGy/4Z2hVsGc+dU63
+	04w50HMM=
+X-Received: by 2002:a05:622a:349:b0:55c:abad:a72c with SMTP id d75a77b69052e-55cc6d16ad3mr26820281cf.56.1794679201165;
+        Sat, 14 Nov 2026 10:00:01 -0800 (PST)
 Received: from [192.168.50.231] (pool-71-191-145-202.washdc.fios.verizon.net. [71.191.145.202])
-        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-91f23d73258sm47539586d6.24.2026.11.14.09.45.02
+        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-91f23d614b4sm47945926d6.18.2026.11.14.09.59.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 14 Nov 2026 09:45:03 -0800 (PST)
+        Sat, 14 Nov 2026 10:00:00 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -91,8 +91,8 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 12/15] mm/hugetlb: keep surplus folios that are
- reserved
+Subject: Re: [PATCH 13/15] mm/hugetlb: fix reservation leak on min_size=
+ mounts
 From: "Gregory Price (Meta)" <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
@@ -119,47 +119,88 @@ Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
  linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
  linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, 
- Chris Mason <mason@kernel.org>, stable@kernel.org
-In-Reply-To: <20261028-fixes_hugetlb-v1-12-a0a033db180f@kernel.org>
+ Chris Mason <mason@kernel.org>, stable@vger.kernel.org
+In-Reply-To: <20261028-fixes_hugetlb-v1-13-a0a033db180f@kernel.org>
 References: <20261028-fixes_hugetlb-v1-0-a0a033db180f@kernel.org>
- <20261028-fixes_hugetlb-v1-12-a0a033db180f@kernel.org>
-Date: Sat, 14 Nov 2026 12:45:02 -0500
-Message-Id: <179467830214.482102.2328406932805572650.b4-reply@b4>
+ <20261028-fixes_hugetlb-v1-13-a0a033db180f@kernel.org>
+Date: Sat, 14 Nov 2026 12:59:59 -0500
+Message-Id: <179467919954.482102.5381456550239958011.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
 On 2026-10-28 21:13 +0100, David Hildenbrand (Arm) wrote:
 > From: Chris Mason <mason@kernel.org>
 > 
-> free_huge_folio() may restore a reservation, but still returns the folio
-> to the page allocator if its node has surplus huge pages.
+> Failed allocations for CoW mappings can leak reservations on hugetlbfs
+> mounts with min_size= and no size=. The leaked reservations survive
+> unmount.
 > 
-> For example, start with no hugetlb folios and allow one surplus 2 MiB
-> folio:
+> HPG_restore_reserve makes free_huge_folio() restore the global
+> reservation without returning it to the subpool. This assumes the
+> reserve map holds the reservation. However, a CoW mapping may have no
+> reserve map, or the map may already account for another folio at the
+> same index.
 > 
->   1. Mount hugetlbfs with pagesize=2M,min_size=2M. This allocates and
->      reserves one surplus folio: free=1, reserved=1.
->   2. Create a 2 MiB file and write to a shared mapping of it. The fault
->      consumes the folio and its reservation: free=0, reserved=0.
->   3. Unmap the file and truncate it to zero. The mount's reservation is
->      restored, but the surplus folio is freed: free=0, reserved=1.
+> Commit 58db7c5fbe7d ("mm/hugetlb: fix avoid_reserve to allow taking
+> folio from subpool") allowed owner CoW allocations to consume subpool
+> reservations. Commit 51e1de00acdb ("mm/hugetlb: simplify
+> vma_has_reserves()") later extended this to CoW mappings without a
+> reserve map.
 > 
-> Besides losing a hugetlb folio that is required for a reservation, this
-> can also make available_huge_pages() underflow and cause other issues.
+> For example, with a subpool minimum of one page and a
+> MAP_PRIVATE|MAP_NORESERVE mapping:
 > 
-> Keep the folio in the pool if it is needed to cover reservations,
-> including any reservation we just restored.
+>                                       subpool       global
+>                                       rsv_hpages    resv_huge_pages
+>   1. Mount                             1             1
+>   2. Allocate using subpool reserve    0             0
+>   3. Free on error with flag set       0             1
+>   4. Allocate without a reservation    0             1
+>   5. Free and return to subpool        1             2
+> 
+> Call folio_clear_hugetlb_restore_reserve() for CoW mappings when
+> map_chg != MAP_CHG_REUSE, meaning no reserve-map reservation was consumed.
+> This lets free_huge_folio() return subpool reservations to the subpool
+> on error.
+> 
+> Do not set the flag again if region-cache allocation fails during
+> rollback: that would undo the flag clearing and skip returning the
+> reservation to the subpool. This also fixes the older case where setting
+> the flag invents a reservation for an unreserved allocation for a CoW
+> mapping.
+> 
+> The doc still mentions PagePrivate at various places: future work should
+> clean that up.
 > 
 > Fix generated by an LLM and sent by Chris Mason in private.
 > 
-> Fixes: 07443a85ad90 ("mm, hugetlb: return a reserved page to a reserved pool if failed")
-> Cc: stable@kernel.org
+> Fixes: 846be08578ed ("mm/hugetlb: expand restore_reserve_on_error functionality")
+> Fixes: 58db7c5fbe7d ("mm/hugetlb: fix avoid_reserve to allow taking folio from subpool")
+> Cc: stable@vger.kernel.org
 > Signed-off-by: Chris Mason <mason@kernel.org>
-> [ david: simplify comment and description ]
+> [ david: simplify comments and improve description; updated Fixes ]
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Was able to reproduce the issue and demonstrate the patch resolves it.
+Commit message is still hard to read :| (or maybe HugeTLB is just awful
+and no amount of massaging the message will ever help this).
 
-LGTM
+Maybe note - this is an accounting error only, the pages do not leak.
+
+Was able to reproduce the issue with a UFFDIO_COPY the provides an invalid
+invalid source address (src=0).
+
+1. Create the pool and mapping (hugetlbfs w/ pagesize=2M,min_size=2M)
+2. invalid UFFDIO_COPY  (kernel allocates, fails the, rolls back)
+3. Close uffd, cause a normal fault
+4. Unmap and truncate the file
+5. Remove the file and unmount
+
+                  Base                    Patch
+step 2:  total=2 free=2 rsvd=1     total=2 free=2 rsvd=1
+step 3:	 total=2 free=2 rsvd=2     total=2 free=2 rsvd=1*
+step 5:  total=2 free=2 rsvd=1     total=2 free=2 rsvd=0*
+
+Result looks correct to me.
+The code hurts my brain but looks reasonable.
 
 Tested-by: Gregory Price (Meta) <gourry@gourry.net>
 Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
