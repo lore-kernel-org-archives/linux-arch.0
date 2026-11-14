@@ -1,49 +1,74 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.70
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794625168;
-	b=HQP3ECwQKFDzs0ch36cAjqEeMuxFtyl0TuKcwAVXNmzEpZPYEsv9e4ONwn11lVQ9X8BZ
-	 oMe4GA7Xm9BovUVNG+rNMrjiuPoADgUk6nnlWGgOZv8LgAYeWWbG/cgMZcM6e+VRu4H4M
-	 hg20XnmWV5AifQ0gkeGg4Vgex/TgGOcT2KKmEYv8EXbFj06t47JiPJIz4ykLwI7o4f1Ym
-	 nGwPbjRIbsC9MNLWhTf1Sqw/iXsu73gmx5OaAGssBcakth1YvhSlqccvwynXedLZ4lveg
-	 mmo2kr2lRUSL50bha2X8OGNc39o4gRuEANg8lMqk9tN35eXiaQkgJG4IfZf21cbc/AA==
+	t=1794648885;
+	b=AyKKIeuEYCPQJsuh+X5pBVHDM+cUjRAVI8aSa+uBMhu3fkCElMDNNw8vOCOs39lPSHOd
+	 5mF8VYm0PtEpbbqH/Oz5880Gu16MfEUrEkFmYSB3LEAkCzoSriRgXoYlCSKT/nqZ5hEN8
+	 mVH+Pj+nXTvWZE79pT9/2WSOQzwrF1wnYwRSkEqMj1R5ABpUrXa6x7cl5QNGkYOibCbjC
+	 dVTxOVtOsMK6MMBrbBnKGY5Q7WqCIMdlDHgh0UvbxsASi0USUC+qhvKepCLU1+Yy0wqyP
+	 DPFYj/iHqrhlqTfrKnt+O+qrbgwFmh+l9xxMCj2Ud0c7qpX5iUOe1KYPl9WBf25MkoQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794625168;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:Content-Language:From:To:Cc:
-	 References:In-Reply-To:Content-Type:Content-Transfer-Encoding:
-	 X-Spam-Status:X-Spam-Checker-Version;
-	bh=NFb5ad8hqnTsa2E6F7F8LTT0h034t3fTlgBrnOuiBrM=;
-	b=mZ0AsyGw1rRvLZgL9VFVzsOu/K/7ACn9QW0hzSGpIbBF0ionN0IlGQzuD/0Z3ATZXcW7
-	 Etyg+voHrxG4w8VvpiCQV3VYxtoMGNSHOUH+tokrSbe/+ryJSResQ6OM4HP+o8Na6B2pq
-	 j4jAD4kJ2li+S/FoQQFpwpCBfxdwG2RNlR8JHO4y0xwyFW/MnT1kwtuP+hZxDaT2vbXee
-	 6hSoyG4nEhPswEMG0v379Tg/iNd4pYFFMKasKs0kFOQiOULxTdcSIeM/SV16MBgofkEbX
-	 QeYFu8G4VPqmhWpHfYzhPyD9AC6bzTqmeXeedrQ2DX2LvhZXHzztf7ni1U5e6BoAulA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794648885;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
+	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
+	bh=cYfB8ZYjzkbZTu8PkWr5VdyVYonCx+ZsO65KHqfQojE=;
+	b=lVaXn/oEz5zNZoi177Y3ezO8WIq/PgqTSQCVoFzgDPkhPNqRu/j6gehkugjNtsbuIKWw
+	 wkHcKxAbaOn35/+j4BhXSo7nI7UTYs6+QGngd0Pb+Ow9uD7ujCHJrdwI8nRHFXESZIY5B
+	 Ng1QVas4sHSFy4tPJ05xrWqdCjy9PoBTmaCZ1ixD6jzudrfExWqOgZBR6kiuJcDXB2ClO
+	 mmRrH+PkvL/vGPTNZ/hn7LEL2YlB4BECd4DNGtovpEwRNFk5jqlJKjBQwWdC7vIp98UBy
+	 xJ0YDKdFFY6tYUfcq9pggHz1kVQAlfbBB/eI8SMyjhLtj24zjX4LFMHAnSp1V6x8YcA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=QKdw25zN;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 22058606A323;
-	Sat, 14 Nov 2026 02:59:28 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 22058606A323
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=ITg0WODf;
+	arc=none smtp.remote-ip=209.85.218.70
+Received: from mail-ej1-f70.google.com (mail-ej1-f70.google.com [209.85.218.70])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 541DC606A331
+	for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 09:34:45 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 541DC606A331
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=QKdw25zN
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4E87620B7166;
-	Fri, 13 Nov 2026 18:59:22 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4E87620B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1794625162;
-	bh=NFb5ad8hqnTsa2E6F7F8LTT0h034t3fTlgBrnOuiBrM=;
-	h=Date:Subject:From:To:Cc:References:In-Reply-To:From;
-	b=QKdw25zNLEF8biGlipcQuqc/Hf1v1XGVvzmujIgi4qbe3v2Bp/stJfgVpyyz1S0n+
-	 5dqCxUmzoCa1rvBmYCH5orTcGYkqe3PYhlJk/aDZTQz9e/RxEPIFdByDG+wvr4jY0+
-	 gs1ssnMjFukTLsx9LHA1LY2agRF4FzOuDcZbn8bw=
-Message-ID: <7ebf7187-bf42-fc11-e89b-b1aba96539d2@linux.microsoft.com>
-Date: Fri, 13 Nov 2026 18:59:26 -0800
+	dkim=pass (2048-bit key, unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=ITg0WODf
+Received: by mail-ej1-f70.google.com with SMTP id a640c23a62f3a-c50a8e37286so120786866b.3
+        for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 01:34:45 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20260707; t=1794648884; x=1795253684; darn=vger.kernel.org;
+        h=content-type:cc:to:from:subject:message-id:references:mime-version
+         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=cYfB8ZYjzkbZTu8PkWr5VdyVYonCx+ZsO65KHqfQojE=;
+        b=ITg0WODfjiev4CXog2b9Top27p9acyqI1Fkp+RPBD6r7sYJZqI/EMHl8i8nfvu28O9
+         dUCQop6o6E2Gr/87u/0UbmggSi5NCyfqhTIrHZZ9kj0eQQToCTyvBNp/d27vac0bvCPD
+         r2WpWq4ODLLc1IpIs9MpZYNM4XyaHWGT+Pjf0nuE0ptmYbcQQ24ghSHFaFmasMm7blpJ
+         5PbfVkj5ydyYPDI0PxPy9Mx5/COg2jf4RAruRKhBDxV3osGEsZ2RwtiEbtey1x5Jcctb
+         XByyygKualSG+W9eCuD217I4RzkoA04BH4G0/h+C3EmObIc6kiVaAU213gFCHU6Ch4R1
+         Grzw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794648884; x=1795253684;
+        h=content-type:cc:to:from:subject:message-id:references:mime-version
+         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=cYfB8ZYjzkbZTu8PkWr5VdyVYonCx+ZsO65KHqfQojE=;
+        b=Yv+pgTTsNxshks5W+lEecRUWA4qDNBg3KgA/FHkERUZMvDMNHiXj8p31CER2XuEBqt
+         JK2PhR2WldTd815vjVUNxHiNfPIrS/vWxyueap0tqszqnQVd9kVp4lEg3PRI/J0L9het
+         35KKbSjc3PXNIsiEKco2ZRA3Fd6m/9YJUCO6Y3a/M2ZbwWnZPzwuVqMCYVOOY2rnEPQO
+         cQwO/cLWIPpabtzTJFxmfdn2ubJpQDiXM6zkOKlXOi/sEchqUpbYyo7r6IYLPmSdzonD
+         Z1rP34JdLeDcXJzt6E8A5rRKMocxlkKgIeMd1rqureXZdxZ192uBAMXVIACXqYRZki3i
+         E0Zg==
+X-Forwarded-Encrypted: i=1; AL+hErFNuWlgqNMhBn1e3OIswiHyGYNfM0twl1bu6J7r7GqM43mUc9LfQ+zmZLJHNVnsR0E8SzLexy14qDgy@vger.kernel.org
+X-Gm-Message-State: APuU4Z+9FotnysrYjmNsXeq9uxNuHrbwhq983zC6WmqrG43YNmxRoLsB
+	YGX2l4u4qRr90pTuy0ubIGvBpZ5j9cTfA+l6aEjzgBFU3HKyd9dd+3CYNQkDzmv8EdszLchT4mF
+	7WQPq01IvWBwodwCP8g==
+X-Received: from ejbgl17.prod.google.com ([2002:a17:906:e0d1:b0:c50:537a:6835])
+ (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a17:907:7b83:b0:c41:b4e4:7958 with SMTP id a640c23a62f3a-c5095dd7931mr418395066b.0.1794648883281;
+ Sat, 14 Nov 2026 01:34:43 -0800 (PST)
+Date: Sat, 14 Nov 2026 09:34:41 +0000
+In-Reply-To: <DMRP21FATCC0.ARAURXWV85JP@google.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,164 +77,70 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
- CCA Realms
-Content-Language: en-US
-From: Mukesh R <mrathor@linux.microsoft.com>
-To: Kameron Carr <kameroncarr@linux.microsoft.com>
-Cc: Michael Kelley <mhklinux@outlook.com>,
- "decui@microsoft.com" <decui@microsoft.com>,
- "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
- "wei.liu@kernel.org" <wei.liu@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
- "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
- "linux-arm-kernel@lists.infradead.org"
- <linux-arm-kernel@lists.infradead.org>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
- "mark.rutland@arm.com" <mark.rutland@arm.com>,
- "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
- "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
-References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
- <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
- <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
- <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
- <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
- <f74db23c-ee1d-e0b1-c463-55dad00f9c61@linux.microsoft.com>
-In-Reply-To: <f74db23c-ee1d-e0b1-c463-55dad00f9c61@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
+References: <20261110050202.529473-1-tarunsahu@google.com> <20261110050202.529473-9-tarunsahu@google.com>
+ <DMRP21FATCC0.ARAURXWV85JP@google.com>
+Message-ID: <9huzse13pxhq.fsf@tarunix.c.googlers.com>
+Subject: Re: [PATCH v4 08/19] kho: block: Add the feature header to blocks
+From: tarunsahu@google.com
+To: David Matlack <dmatlack@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
+	Mike Rapoport <rppt@kernel.org>, robin.murphy@arm.com, maz@kernel.org, will@kernel.org, 
+	Alexander Graf <graf@amazon.com>, seanjc@google.com, jgg@nvidia.com, loganodell@google.com, 
+	arnd@arndb.de, dwmw2@infradead.org, baolu.lu@linux.intel.com, 
+	Bjorn Helgaas <bhelgaas@google.com>, oupton@kernel.org, alex@shazbot.org, 
+	gle.com@google.com, pbonzini@redhat.com, 
+	Andrew Morton <akpm@linux-foundation.org>, kevin.tian@intel.com, joro@8bytes.org
+Cc: kvmarm@lists.linux.dev, linux-pci@vger.kernel.org, 
+	Pratyush Yadav <pratyush@kernel.org>, kexec@lists.infradead.org, kvm@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-arm-kernel@lists.infradead.org, 
+	skhawaja@google.com, sagis@google.com, linux-arch@vger.kernel.org, 
+	linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-On 11/12/26 16:46, Mukesh R wrote:
-> On 11/12/26 09:49, Kameron Carr wrote:
->> On 11/11/2026 6:43 PM, Mukesh R wrote:
->>> On 11/11/26 10:01, Michael Kelley wrote:
->>>> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
->>>>>
->>>>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
->>>>> to be marked as decrypted (shared) for confidential VM isolation types.
->>>>> This is already done for SNP and TDX isolation; extend the same handling
->>>>> to Arm CCA Realm guests so that the host hypervisor can access the
->>>>> shared hypercall buffers.
->>>>>
->>>>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
->>>>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
->>>>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
->>>>> Introduce a Hyper-V-specific helper following the established
->>>>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
->>>>>
->>>>> On architectures other than arm64 the weak default keeps the existing
->>>>> behaviour.
->>>>>
->>>>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
->>>>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
->>>>> ---
->>>>>    arch/arm64/hyperv/mshyperv.c   |  5 +++++
->>>>>    drivers/hv/hv_common.c         | 17 +++++++++++++----
->>>>>    include/asm-generic/mshyperv.h |  1 +
->>>>>    3 files changed, 19 insertions(+), 4 deletions(-)
->>>>>
->>>>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
->>>>> index 46ab2da..da6c3aa0 100644
->>>>> --- a/arch/arm64/hyperv/mshyperv.c
->>>>> +++ b/arch/arm64/hyperv/mshyperv.c
->>>>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
->>>>>        return hyperv_initialized;
->>>>>    }
->>>>>    EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
->>>>> +
->>>>> +bool hv_isolation_type_cca(void)
->>>>> +{
->>>>> +    return is_realm_world();
->>>>> +}
->>>>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
->>>>> index 31256cb..a60c92c 100644
->>>>> --- a/drivers/hv/hv_common.c
->>>>> +++ b/drivers/hv/hv_common.c
->>>>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>        u64 msr_vp_index;
->>>>>        gfp_t flags;
->>>>>        const int pgcount = hv_output_page_exists() ? 2 : 1;
->>>>> +    const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
->>>>>        void *mem;
->>>>>        int ret = 0;
->>>>>
->>>>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>         * online and then taken offline
->>>>>         */
->>>>>        if (!*inputarg) {
->>>>> -        mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
->>>>> +        mem = kmalloc(alloc_size, flags);
->>>>>            if (!mem)
->>>>>                return -ENOMEM;
->>>>>
->>>>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>            }
->>>>>
->>>>>            if (!ms_hyperv.paravisor_present &&
->>>>> -            (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
->>>>> -            ret = set_memory_decrypted((unsigned long)mem, pgcount);
->>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>>> +             hv_isolation_type_cca())) {
->>>>
->>>> Could this big "if" statement use "hv_is_isolation_supported()" instead
->>>> of explicitly testing for each CoCo VM type? I ask partly because
->>>> Mukesh Rathor has just submitted a patch [1] that introduces a new
->>>> function that does something almost exactly the same as
->>>> hv_is_isolation_supported() and uses it here.
->>>
->>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>>> +             hv_isolation_type_cca())) {
->>>
->>> With my change, this will become:
->>>
->>>          (hv_isolation_hw_cvm() || hv_isolation_type_cca())) {
->>
->> Any reason you wouldn't change hv_isolation_hw_cvm() to
->>
->>    return hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>      hv_isolation_type_cca()
->>
->> That would seem more logical to me.
->>
-> 
-> We could, I just don't know if on cca, the repeat hypercall has same
-> behavior. I was leaving that for the arm team. Anyways, I sent question
-> to the hyp team, if they say yes, i can update my patch to include that.
-> 
-> Thanks,
-> -Mukesh
+"David Matlack" <dmatlack@google.com> writes:
 
+> On Tue Nov 10, 2026 at 5:01 AM UTC, Tarun Sahu wrote:
+>> Precede struct kho_block_header_ser with struct kho_ser_hdr using
+>> DECLARE_KHO_SER. Each block in a block set starts with struct
+>> kho_ser_hdr followed by struct kho_block_header_ser. Serialized entries
+>> start immediately after the header payload at offset fhdr->size.
+>
+> This adds a feature header to every block in the set, but the layout it
+> describes is a property of the whole set: all blocks are written by the
+> same kernel with the same header.
+>
+> Blocks are only ever added and removed at the tail, so the head block
+> is stable for the lifetime of the set. I'd put a single set-wide
+> header in the first block only, e.g. a struct kho_block_set_ser with
+> its own feature header, and keep the per-block header to next and
+> count.
+>
+> entry_size (added in patch 2) is another set-wide property that belongs
+> there. All blocks in a set have the same entry size, so recording it in
+> every block is redundant, and restore has to check that the copies
+> agree.
+>
 
-Confirming, arm has same behavior and needs the fix also. So, we can def
-expand the check to include _cca.
+Yes, adding a ser_hdr to each block_header is unnecessary and also cause
+8 bytes to get added to every block. This can be solved like you said by
+adding it only to the first block. But this will make number of entries
+in block[0] to be less than blocks 1..N. I am not sure if that is
+acceptable but if it can be then we can avoid adding ser_hdr to each
+block. Same for entry_size which can be moved to the first block only
+like you suggested part of struct kho_block_set_ser.
 
-I just sent V1, renaming hv_isolation_hw_cvm() to hv_isolation_type_hw().
-If your patch goes after mine, you just need to add to your 0004*:
+> [...]
+>
+>>  		entry_size = ser->entry_size;
+>>  		bs->entry_size = entry_size;
+>> -		capacity = (KHO_BLOCK_SIZE - sizeof(*ser)) / bs->entry_size;
+>> +		capacity = (KHO_BLOCK_SIZE - fhdr->size) / bs->entry_size;
+>>  		bs->count_per_block = capacity;
+>
+> Nothing checks that the blocks agree. Each block's entries start at its
+> own fhdr->size, and count_per_block ends up being whatever the last
+> block implies. With a single set-wide header this can't happen.
 
-diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
-index 4fdc26ade1d7..67a16b4d2235 100644
---- a/arch/arm64/hyperv/mshyperv.c
-+++ b/arch/arm64/hyperv/mshyperv.c
-@@ -134,3 +134,8 @@ bool hv_is_hyperv_initialized(void)
-         return hyperv_initialized;
-  }
-  EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
-+
-+bool hv_isolation_type_hw(void)
-+{
-+       return is_realm_world();
-+}
+yes.
 
-
-OR, you could pick mine 0001-* and make it part of your series, and I
-can drop it from mine and make it dependent on yours. But mine is small
-enough that it has higher chances of going in first.....
-
-Thanks,
--Mukesh
-
+~Tarun
