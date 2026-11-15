@@ -1,88 +1,66 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=95.215.58.64
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794756862;
-	b=2ncpIkM4t3rFO6PmGP1795Stn99UMG1J1TlkZ4klGsdEBPtvuqPdgnYhCzUswyL3APHE
-	 XPlQp/qraLRJ2Z/glAXouNVkyixZKAFgZM4npoYinIzxszkTiz29eBUJNmiTAc4kaQf1R
-	 pFEZ1FmhhOCPYpPu4xqWQSvFY8cw7S2UPTIM88qS3ud49L+z1HFVosIcmW63b5t11MCve
-	 00erMQCXSB73kKPrta1pP8hm/yx4MRydrluRZPciY3eThcrbxbX47jEZrR+mFqU1yEMTR
-	 waoOtxcXNzb0gXJwyUlaNTkm0Kh22wDJAebDxutEoJX4cp3Z0Ghjh31mKDD0CCIKadg==
+	t=1794764143;
+	b=idFao+XZppSgvhpGPAUIn9o27Fpl7NuUGqBg/pdgFwtNZq6HO5136e3SINu2XGea6Dz0
+	 s9eNCJHPONYNNxz60tmIVp9xGUhB9jzfFjWZs0gwcQs1hcm/V8UdPUos4UvmVsZ7zWCg7
+	 PfG+yCnUJeDxXuKtFvP+GYnxBnTvSE/xC6NfvlrFbFXd/rSHk2rhgxNyKMTBPUjIO40PF
+	 7aHS5UkCI3C2FlQhMwmkeHH8O2EcvvaQxVnqqJb6PTyVW4pmtXsjW9CrDRx649s/yZAtO
+	 i+BDCGGVIDsJxcHIinGzc/7azR/BlcPlm8Ps54K8WKPHLhBnlfC7Un9UQknf0VkC3Jg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794756862;
-	h=DMARC-Filter:X-Envelope-To:DKIM-Signature:X-Envelope-To:Received:
-	 X-Mizu-Trace-ID:X-Migadu-Flow:From:To:Cc:Subject:Date:Message-ID:
-	 X-Mailer:In-Reply-To:References:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=D9eYfMQniN4MTERSNCoJWid+KzRgcjYDpVDX0WIaOcs=;
-	b=kKRvdk/1GFqZSOIv7We/Say8HTyS0ZTgX/q8Dh/WraXDjrgfeqMJI6tFAaVoXesZY7TF
-	 OkqY0IAPVo99u1aGkmsaTuiS0XZi6BawiBU2m+dgZ0YOcoB2aojPNEYIV1gUPor7dxSKR
-	 IdeON23T29ET1uvq9nEAPQNkxrJGvRJpm0NcVxhD3NdRdGPmFxo46epgomAZzXPZIE7iD
-	 k1XSR9agpACT3OMGgBcjULZlQJc9fM+jz01VjdCvpkQExjbo1aJ8RMsaHTqLzRATeugBq
-	 4qP6MY87iyVXB5v2cpzIO3QXckXDTC/wb1vIXTuYTB286Qt1hdFYYoSUtcpWN7cr2Qw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794764143;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=fcvhgN18/XYE74JlLdDetDkiu4aCL1FUsX9bNl85AkY=;
+	b=fNo/U1ljXr8yfOjSPQ4/lh4zjxqIb3lWLQZpddO6y35Txbpn6D3veHT00mSWWfvaWxh+
+	 JhgI+431rvcaVbpx78TdXu+0/GguawW18XFlo9RpPvwlkSbLoneqTvajPyo0T5ChozMBH
+	 xttxK+3II+1JvohqE1HY5Z0xWn8vC+DgmDIjhpZn3uh2trcOIQLPBdlOgRmPdkn6EieOb
+	 OIjWPDwpa43eGMjxzNu0SRFBRLbzZl+fw9AB7pAsiLh99MwTlWzBjyX4ROdReEVSJqDRh
+	 lGKAr8GgeNXWqFizZ9R+SlzaMEeysQb09hyhUTfY68xJkNPQRM5qs02R4KLQqJxuW+g==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.dev;
-	spf=pass smtp.mailfrom=linux.dev;
-	dkim=pass header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=QOQ5B2UQ;
-	arc=none smtp.remote-ip=95.215.58.64
-Received: from mta1.migadu.com (out-64.mta1.migadu.com [95.215.58.64])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="ddU/m/1O";
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8809606A31F
-	for <linux-arch@vger.kernel.org>; Sun, 15 Nov 2026 15:34:19 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E8809606A31F
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 406BB606A31F;
+	Sun, 15 Nov 2026 17:35:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.dev header.i=@linux.dev header.a=rsa-sha256 header.s=key1 header.b=QOQ5B2UQ
-X-Envelope-To: linux-arch@vger.kernel.org
-DKIM-Signature: a=rsa-sha256; bh=D9eYfMQniN4MTERSNCoJWid+KzRgcjYDpVDX0WIaOcs=;
- c=simple/simple; d=linux.dev;
- h=from:to:subject:date:message-id:mime-version:content-type; s=key1;
- t=1794756857; v=1; x=1795361657;
- b=QOQ5B2UQUdcw2pVPpUCjj4AzTtujU0vVL/9lS/ybwhefeK0OL1KDpz5YyyEQT32Tld+5tlWQ
- o/n1ZUi7xHptYeppnRU11jU6bGNnkp9pzXyYX6MkVDZSvWmAlB+LzYHsm6neXixTKCVmbTNhJco
- D3+nId2JmO73KCc4Zgw1eVec=
-X-Envelope-To: linux-arch@vger.kernel.org
-Received: by smtp.migadu.com with ESMTPS id d21ea3c6ecf23a6a;
-	Sun, 15 Nov 2026 15:34:17 +0000
-X-Mizu-Trace-ID: d21ea3c6ecf23a6a
-X-Migadu-Flow: FLOW_OUT
-From: Lance Yang <lance.yang@linux.dev>
-To: david@kernel.org
-Cc: will@kernel.org,
-	aneesh.kumar@kernel.org,
-	akpm@linux-foundation.org,
-	npiggin@gmail.com,
-	peterz@infradead.org,
-	arnd@arndb.de,
-	ziy@nvidia.com,
-	baolin.wang@linux.alibaba.com,
-	liam@infradead.org,
-	nico.pache@linux.dev,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	baohua@kernel.org,
-	lance.yang@linux.dev,
-	usama.arif@linux.dev,
-	kas@kernel.org,
-	ljs@kernel.org,
-	vbabka@kernel.org,
-	rppt@kernel.org,
-	surenb@google.com,
-	mhocko@suse.com,
-	jack@suse.cz,
-	zwisler@kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org,
-	mason@kernel.org
-Subject: Re: [PATCH] mm/huge_memory: flush dirty file PMDs before removing rmap
-Date: Sun, 15 Nov 2026 23:34:11 +0800
-Message-ID: <20261115153411.87967-1-lance.yang@linux.dev>
-X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20261113-dirty_file_pmd-v1-1-8c11f2a2e65f@kernel.org>
-References: <20261113-dirty_file_pmd-v1-1-8c11f2a2e65f@kernel.org>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ddU/m/1O
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C20351F000C7;
+	Sun, 15 Nov 2026 17:35:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794764142;
+	bh=fcvhgN18/XYE74JlLdDetDkiu4aCL1FUsX9bNl85AkY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=ddU/m/1Ov9hH52C17Sf1BxhZx39khyeZ73nswpSZtY3X610LZRBj0Idbdtnd8O4T/
+	 EN4L7mJHIP90IjKjPaVbuRABJRbCOFNs789jv1X/5x2xRUJV9rkbUsZCBa9T1q7cIu
+	 mXovLK/9jRwlwDkMfLKVRB6VcXBPkMhFXDlxbOv54EPM9joTvwF761sm+dzD5jiPKA
+	 ku00S0Tc0YtsZmBVrp36zvAcqfUSnx0FPUQpd4J20hQkwHNyXRghC2rIG3RrOXVC5u
+	 MOVkj0NIqYJuFV43NNl2an85+Dbj/v1rVbrpoXoYLzDFTOHSo1H/UsUmcXwD1o8oaK
+	 9mR1epb9dYlUQ==
+Date: Sun, 15 Nov 2026 19:35:29 +0200
+From: Mike Rapoport <rppt@kernel.org>
+To: Pasha Tatashin <pasha.tatashin@soleen.com>
+Cc: Tarun Sahu <tarunsahu@google.com>, robin.murphy@arm.com, maz@kernel.org,
+	will@kernel.org, David Matlack <dmatlack@google.com>,
+	Alexander Graf <graf@amazon.com>, seanjc@google.com, jgg@nvidia.com,
+	loganodell@google.com, arnd@arndb.de, dwmw2@infradead.org,
+	baolu.lu@linux.intel.com, Bjorn Helgaas <bhelgaas@google.com>,
+	oupton@kernel.org, alex@shazbot.org, gle.com@google.com,
+	pbonzini@redhat.com, Andrew Morton <akpm@linux-foundation.org>,
+	kevin.tian@intel.com, joro@8bytes.org, kvmarm@lists.linux.dev,
+	linux-pci@vger.kernel.org, Pratyush Yadav <pratyush@kernel.org>,
+	kexec@lists.infradead.org, kvm@vger.kernel.org,
+	iommu@lists.linux.dev, linux-arm-kernel@lists.infradead.org,
+	skhawaja@google.com, sagis@google.com, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v4 02/19] kho: block: Record the entry size in the block
+ header
+Message-ID: <avntYdLF2xvDh47A@kernel.org>
+References: <20261110050202.529473-1-tarunsahu@google.com>
+ <20261110050202.529473-3-tarunsahu@google.com>
+ <DMRK0PU0VCN3.15F59WLOQ05P4@soleen.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -92,63 +70,132 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <DMRK0PU0VCN3.15F59WLOQ05P4@soleen.com>
 
+On Tue, Nov 10, 2026 at 08:10:32AM -0500, Pasha Tatashin wrote:
+> On Tue Nov 10, 2026 at 12:01 AM EST, Tarun Sahu wrote:
+> > Subsystems using the KHO Serialization Blocks framework currently do
+> > not record the serialized entry size in the block header. The entry size
+> > is only known to individual callers, which must track and store it in an
+> > owning serialized data structure. If a newer source kernel adds fields
+> > to an entry, the changed entry size breaks the stride when an older
+> > target kernel iterates over blocks.
+> >
+> > Add an entry_size field to struct kho_block_header_ser. On the outgoing
+> > side, record bs->entry_size into every block header during allocation.
+> > During restoration, derive the entry stride directly from the block
+> > header instead of relying on caller-supplied dimensions. The
+> > kho_block_set_init() interface remains unchanged. A zero entry size,
+> > or one that differs between blocks of a set, is rejected during
+> > restoration.
+> >
+> > This change modifies the serialized layout of struct kho_block_header_ser
+> > and shifts the offset of serialized entries within preserved blocks.
+> > Bump KHO_FDT_COMPATIBLE from kho-v4 to kho-v5 so that pre-v5 and post-v5
+> > kernels cleanly reject mismatched handover state during boot. Also
+> > update the stale compatible string example in the documentation.
+> >
+> > Suggested-by: Pratyush Yadav <pratyush@kernel.org>
+> > Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+> > ---
+> >  include/linux/kho/abi/block.h          | 10 ++++----
+> >  include/linux/kho/abi/kexec_handover.h |  6 ++---
+> >  kernel/liveupdate/kho_block.c          | 32 +++++++++++++++++++++++---
+> >  3 files changed, 38 insertions(+), 10 deletions(-)
+> >
+> > diff --git a/include/linux/kho/abi/block.h b/include/linux/kho/abi/block.h
+> > index 36bdbaf9b3b8..a40b0906c821 100644
+> > --- a/include/linux/kho/abi/block.h
+> > +++ b/include/linux/kho/abi/block.h
+> > @@ -40,9 +40,10 @@
+> >  
+> >  /**
+> >   * struct kho_block_header_ser - Header for the serialized data block.
+> > - * @next:  Physical address of the next struct kho_block_header_ser.
+> > - * @count: The number of entries that immediately follow this header in the
+> > - *         memory block.
+> > + * @next:       Physical address of the next struct kho_block_header_ser.
+> > + * @count:      The number of entries that immediately follow this header in the
+> > + *              memory block.
+> > + * @entry_size: The size in bytes of each serialized entry in the block.
+> >   *
+> >   * This structure is located at the beginning of a block of physical memory
+> >   * preserved across a kexec. It provides the necessary metadata to interpret
+> > @@ -51,9 +52,10 @@
+> >  struct kho_block_header_ser {
+> >  	u64 next;
+> >  	u64 count;
+> > +	u64 entry_size;
+> >  };
+> >  
+> > -static_assert(sizeof(struct kho_block_header_ser) == 16);
+> > +static_assert(sizeof(struct kho_block_header_ser) == 24);
+> >  static_assert(!IS_ENABLED(CONFIG_64BIT) ||
+> >  	      __alignof__(struct kho_block_header_ser) == 8);
+> 
+> The above change goes away once my comment on the previous patch 
+> is addressed.
+> 
+> >  
+> > diff --git a/include/linux/kho/abi/kexec_handover.h b/include/linux/kho/abi/kexec_handover.h
+> > index 2f4fb9c63942..6f12f5037ea5 100644
+> > --- a/include/linux/kho/abi/kexec_handover.h
+> > +++ b/include/linux/kho/abi/kexec_handover.h
+> > @@ -41,7 +41,7 @@
+> >   *   restore the preserved data.::
+> >   *
+> >   *     / {
+> > - *         compatible = "kho-v3";
+> > + *         compatible = "kho-v5";
+> >   *
+> >   *         preserved-memory-map = <0x...>;
+> >   *
+> > @@ -62,7 +62,7 @@
+> >   *     };
+> >   *
+> >   *   Root KHO Node (/):
+> > - *     - compatible: "kho-v3"
+> > + *     - compatible: "kho-v5"
+> 
+> These are just examples, don't update them.
+> 
+> >   *
+> >   *       Identifies the overall KHO ABI version.
+> >   *
+> > @@ -90,7 +90,7 @@
+> >   */
+> >  
+> >  /* The compatible string for the KHO FDT root node. */
+> > -#define KHO_FDT_COMPATIBLE "kho-v4"
+> > +#define KHO_FDT_COMPATIBLE "kho-v5"
+> >  
+> >  /* The FDT property for the preserved memory map. */
+> >  #define KHO_FDT_MEMORY_MAP_PROP_NAME "preserved-memory-map"
+> > diff --git a/kernel/liveupdate/kho_block.c b/kernel/liveupdate/kho_block.c
+> > index 0d2a342ef422..9b148009085e 100644
+> > --- a/kernel/liveupdate/kho_block.c
+> > +++ b/kernel/liveupdate/kho_block.c
+> > @@ -16,6 +16,12 @@
+> >   * array of serialized entries. Multiple blocks are linked together via a
+> >   * physical pointer in the header, forming a linked list that can be easily
+> >   * traversed in both the current and the next kernel.
+> > + *
+> > + * Each block header also records the size of its entries. A newer kernel may
+> 
+> "newer kernel" does not make sense in the documentation comment, as any 
+> kernel can do that. I would suggest "outgoing kernel." 
 
-On Fri, Nov 13, 2026 at 06:15:26PM +0100, David Hildenbrand (Arm) wrote:
->Unmapping a file PMD can lose concurrent stores when it races with
->writeback. zap_huge_pmd() removes rmap and drops the PMD lock before the
->gather flushes the TLB. Writeback can then clean the folio while another
->CPU can still write through a stale writable TLB entry. Those stores do
->not fault and dirty the folio again. Filesystem DAX has the same problem
->with its dirty tags.
->
->Commit 5df397dec7c4 ("mm: delay page_remove_rmap() until after the TLB
->has been flushed") fixed the same race for PTEs by adding delayed rmap
->removal to the mmu_gather infrastructure. The PMD path still removes
->rmap before flushing.
->
->Flush the TLB under the PMD lock before removing rmap for dirty file
->PMDs. Skip the early flush at address-space teardown, when no users
->remain, and for mappings without writeback, including shmem and device
->DAX.
->
->Use tlb_can_delay_rmap() to share the PTE path's architecture checks.
->On s390, clearing the entry already handles TLB synchronization, and
->__tlb_remove_page_size() immediately drops the mapping reference, so
->rmap must be removed first. UP cannot have concurrent stores from
->another CPU while holding the page table lock. Make the predicate
->side-effect-free and set the gather's delayed_rmap flag when an entry
->is actually queued for delayed rmap removal.
+My understanding that here "newer" kernel refers to a newer kernel version
+rather than incoming or outgoing. So the docs should say something like
+"different kernel versions may have different size of the entry"
 
-Right, I'd expect tlb->delayed_rmap to mean the gather still has rmaps to
-remove :)
+> By the way, in this series you use the terms "source" and "destination"
+> kernel, whereas traditionally we have used "outgoing" and "incoming."
+> While both conventions work, it would be preferable to maintain
+> consistency.
 
->Queue the folio before the early flush, while the gather still has a
->valid range. Keep batching references and drain a full batch only after
->dropping the PMD lock. The early flush resets the gather's TLB state,
->so draining the batch does not flush that range again.
->
->Although writing to files through mmap is generally discouraged,
->unmapping such mappings may become slower: each dirty file PMD now
->requires a TLB flush under the PMD lock. Future work should properly
->extend the delayed-rmap machinery to PMDs and hold the PMD spinlock
->across multiple entries, so their TLB invalidations and rmap removals
->can be batched.
-
-Nice work!
-
->Fixes: 4b4bb46d00b3 ("dax: clear dirty entry tags on cache flush")
->Cc: stable@vger.kernel.org
->Reported-by: Kiryl Shutsemau <kas@kernel.org>
->Link: https://lore.kernel.org/linux-mm/aoWw_iKEDLjKL2jr@thinkstation/
->Reported-by: Chris Mason <mason@kernel.org>
->Suggested-by: Lance Yang <lance.yang@linux.dev>
->Suggested-by: Usama Arif <usama.arif@linux.dev>
->Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
->---
-
-Nothing jumped out at me, so:
-
-Reviewed-by: Lance Yang <lance.yang@linux.dev>
+-- 
+Sincerely yours,
+Mike.
