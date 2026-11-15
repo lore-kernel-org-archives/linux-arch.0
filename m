@@ -1,74 +1,89 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.71
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794724654;
-	b=Et0y0m6jtXulszKeVbe4QgqVr5rH7xj0kFTkJJJ9BJTc9q5DQ3oI0UjM2ab8HN5iuou6
-	 mU2wmAJWscpGCxXNnMt2npleYfedeIkLqExAE+OFINrf1suj+/rnbrvLeT+gD6fzWwWh5
-	 +KaoGSbQFAAGdu0oIgtMZvaRYTSQ04PGOdJIQKdyrqPI9RpdjKym99tY5xI7HieBnw1N/
-	 ii3+NhuTrVCtK8RPDul2vOMVNG8dwk8weRt/4GDtXIgGMz1FGe/rP7qaiWtMtG7nvvOpU
-	 FWw6D/VaGQBKsHlRDzbaaj+4WZqoq/sSA97FsNufK7cvlb3aCuvLFawewXr1dBMrO2w==
+	t=1794724744;
+	b=RfPXdTfAIy1ysjOFvtCTRQMxC+F3xOpE4hDmDl8rVT57PkmAljINPwPslLJGny4jBQCt
+	 eJhagj1Ge7cZZe0fxwGj8K8Xu2yazP7Gfpj03cJtkXUI3NBXM/DlB0QLA0IJhixNbBwjB
+	 mZaPefrO03klqZZk3fBQ5lPo3nN4C8/OZbq8axuE0wOyZjJ3FKc2MIgAmoQXCIgJNweNn
+	 Ai5W3gLl1eMXuxRTj3qqwVmVZJ6MQOuNU6uWF5ucCyOTVlfRTTDGD9BIzrMqznQE++/TE
+	 TV39guLR/nF1vFv2UhTy6olzozYW8q9xiOtLodUNl+4WYJAaUAVDKGv6hBkXITKA6dA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794724654;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
-	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
-	bh=aE92BuA/q+u7mWs8kchTDkcjs1m/i8lsv1ezZ7OruqU=;
-	b=E9uZxvlO2iPgSpdE7fzvIeNOyJZDQ2ZrG7vnyfG1gjMDCipalqzEMeSBuinzqi4Iq1Ms
-	 1gnr6xICoTHrv+sMSfw7fBDMR2vTSo8DbMc+EPk4g4aNmKlI/0CMWkjzQM++BDrGYwbaM
-	 MjLpsY+Jb5BatKBYsC8VDzUHcFWj847OQ7VL2uRiPxanyobD2c+kD0ZTe0r4bW+6nCYFB
-	 F3cm+BdM5nnKAKLWggyZycYFbXLsTIlogRUJ/qe7Rvl5c2FsgpdrtBQN7njRBtoBG0sy9
-	 jeznc/IFFHC6RIdVL1ByxLASlP7rvg1ttYhAR7LvIGI9Jr0qOcs+FMOTIwFlruMLEfA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794724744;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:
+	 Content-Transfer-Encoding:In-Reply-To;
+	bh=5uzNQjIqKu1Z5H5h4ULFcPsML/9M2qNB6yySUHBpd2Q=;
+	b=h/AP1EZHYqg1tUtXFrQDnze6+q1cmHPahHxpMrVoJED9C10jFUDrV+eTss2V+6e5Txo4
+	 uOtWg177eJ0EYJe3dNwCCMRkmcUdsrobpGfqTlGMbEV4fohtS5UrR9fnNWmDK7yiQKVSo
+	 lvXyluqIVz4JMkc15So0HpwtGomN7fS/5lCGSELj0kYIId9RfS2tDeV6eqBWc5dX+IEW3
+	 vJt/2AI2Tb7/xkrdWLn8j5QdiSbjFlOi02IpXFjszjANEkVaz0SeVJP4qM9YGASjJj+uF
+	 84fasrzTtew0nqHJb1nxrkIZORmmCKztn6nAvhCEDxjWL+1U7gyT/fNoFkBfW5wjJLw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=XLzHgoV3;
-	arc=none smtp.remote-ip=209.85.218.71
-Received: from mail-ej1-f71.google.com (mail-ej1-f71.google.com [209.85.218.71])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XY6g0QDN;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18155606A329
-	for <linux-arch@vger.kernel.org>; Sun, 15 Nov 2026 06:37:33 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 18155606A329
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06DB7606A323;
+	Sun, 15 Nov 2026 06:39:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=XLzHgoV3
-Received: by mail-ej1-f71.google.com with SMTP id a640c23a62f3a-c42888c50c4so127614566b.0
-        for <linux-arch@vger.kernel.org>; Sat, 14 Nov 2026 22:37:33 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1794724652; x=1795329452; darn=vger.kernel.org;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=aE92BuA/q+u7mWs8kchTDkcjs1m/i8lsv1ezZ7OruqU=;
-        b=XLzHgoV30EX3XK+IKPAkxf1NIb5iub/1+QP9OZESQPBT/nbZSwd+vhxPRSYjPTjEy8
-         6pNOTjUDI9xA9TM6UgpXg+rhOfPSJIgkglyhPEkwUDvSB9xqbwLBseo1rMmEJjTL2oUV
-         bMsRramqEqNAkvIFvyiaR5Dn1APgaZwx9nL9Tcoo0MdGVE4UZMCOPNcI/R6Fbh66hBnt
-         aK995BtGsljPmGs66zYNWiPNrNOhigAehP1DM+QN96lq0GSJ2OkQWmODo/4PTzveGJAW
-         7ufVF+ADmBv3OtDogn8ht793IGrIrf0wleGy5TY80sCBku0zeWx8+NOzMJ4DEq/wspYV
-         UCoA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794724652; x=1795329452;
-        h=content-type:cc:to:from:subject:message-id:references:mime-version
-         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=aE92BuA/q+u7mWs8kchTDkcjs1m/i8lsv1ezZ7OruqU=;
-        b=DpfwiqZ1KrpGEn6qmHFW8Sm8C6aEtnodfUfAkiEOkYK9qWZKB4SNa+u2tR4D1NBdam
-         68nONHKrEOM/lQijWQ7Wiv+KCF+GWkQ52Mu+C/48+Iii4GWsPzyEDuhT1Xg+0KVYRX03
-         YvpXcnbMKmLKg76lYWBL/nBdNq4YgDF3aeSqNNwKY4GZB12Oh/pAEYeLisziDt27RSHK
-         bum/UpObz98VVG6yS7COx6rN5q8zODzKG9SaGCANPp7e6G1Se5xtv3riOv4wcdnxnmZL
-         S1oLYACCXH+4OSRX8X3sWV2VwLhNaHv2VBaajPC+I4Ol4OgLtWvcQE4IuzLvLyV1QHSW
-         E7EA==
-X-Forwarded-Encrypted: i=1; AL+hErFj96FT9NXrnFiYVeukCuWVpAy6cwEQmihkhNve7t9EJ1WAoSNlhWLNZ/hF5ITMvJ0lcsQl7eCf4PXe@vger.kernel.org
-X-Gm-Message-State: APuU4Z/FuLhoQcORf2+mFX4gg/a4MH0nK78bchqvEKo9seYLThL7WvwI
-	r4qMkfwrnxoTrfUoTDbj2Nnh+bKvHQznoIi6y0IbY4qMF3OW2LZ8EXXwF6MHZ7M1RYXKWNCWj64
-	t32s1mmpjJPMu4U9tkw==
-X-Received: from ejbge24.prod.google.com ([2002:a17:907:9098:b0:c46:7bd3:aa06])
- (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
- 2002:a17:907:a714:b0:c42:5363:38dc with SMTP id a640c23a62f3a-c509637e20cmr533164966b.25.1794724652053;
- Sat, 14 Nov 2026 22:37:32 -0800 (PST)
-Date: Sun, 15 Nov 2026 06:37:31 +0000
-In-Reply-To: <DMROZB8DPEWD.W2BFC7JIBVZP@google.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XY6g0QDN
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9FF9C1F000C4;
+	Sun, 15 Nov 2026 06:38:50 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794724743;
+	bh=5uzNQjIqKu1Z5H5h4ULFcPsML/9M2qNB6yySUHBpd2Q=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=XY6g0QDNlp+U9PsTjMW6Z7U+4AKhATHLs5He0CZN49f2Nu0bcao4bAPuuwEsft6FI
+	 TWnoj+VGBoUPTmb0EJCJXCsTtwSE0k13bv5Te+OZ5Acn6pVLSE5i/fhLT5QGKgwaOk
+	 Ucb2W6afh0Q1yzMIuWl0IoyL1xjTDc8J5WHHCJWlw82oKPLfFptJE13O1Ok9X62IyP
+	 xkoneXTm1OtIXF7WSDiXJH8M/fRN/bG7+qbjc7kJUeud8mWA9cz/xm6XTt15y1BZge
+	 qGkeMJ/mOBJIxREW4t6uml5kStkcI3+UGIwjK5RYkeEIMSPndyRf3R1y4lpuaoL/kN
+	 M2jExDr2sEOLQ==
+Date: Sun, 15 Nov 2026 08:38:46 +0200
+From: Mike Rapoport <rppt@kernel.org>
+To: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
+Cc: linux-kernel@vger.kernel.org,
+	"Ritesh Harjani (IBM)" <ritesh.list@gmail.com>,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	=?iso-8859-1?Q?Bj=F6rn_T=F6pel?= <bjorn@kernel.org>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Dinh Nguyen <dinguyen@kernel.org>,
+	Donald Dutile <ddutile@redhat.com>,
+	Eric Chanudet <echanude@redhat.com>,
+	Heiko Carstens <hca@linux.ibm.com>, Helge Deller <deller@gmx.de>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	Kent Overstreet <kent.overstreet@linux.dev>,
+	Liviu Dudau <liviu@dudau.co.uk>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nadav Amit <nadav.amit@gmail.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Philippe =?iso-8859-1?Q?Mathieu-Daud=E9?= <philmd@linaro.org>,
+	Rick Edgecombe <rick.p.edgecombe@intel.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Sam Ravnborg <sam@ravnborg.org>, Song Liu <song@kernel.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>,
+	bpf@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org,
+	linux-mm@kvack.org, linux-modules@vger.kernel.org,
+	linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, loongarch@lists.linux.dev,
+	netdev@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org
+Subject: Re: [PATCH RESEND v8 11/16] powerpc: extend execmem_params for
+ kprobes allocations
+Message-ID: <avlTdlK9ErlqVRYl@kernel.org>
+References: <20240505160628.2323363-1-rppt@kernel.org>
+ <20240505160628.2323363-12-rppt@kernel.org>
+ <3f7af771-87a7-4ae7-9919-bc4c23bd31c9@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,78 +92,44 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-References: <20261110050202.529473-1-tarunsahu@google.com> <20261110050202.529473-3-tarunsahu@google.com>
- <DMROZB8DPEWD.W2BFC7JIBVZP@google.com>
-Message-ID: <9huzjymepplg.fsf@tarunix.c.googlers.com>
-Subject: Re: [PATCH v4 02/19] kho: block: Record the entry size in the block header
-From: tarunsahu@google.com
-To: David Matlack <dmatlack@google.com>, Pasha Tatashin <pasha.tatashin@soleen.com>, 
-	Mike Rapoport <rppt@kernel.org>, robin.murphy@arm.com, maz@kernel.org, will@kernel.org, 
-	Alexander Graf <graf@amazon.com>, seanjc@google.com, jgg@nvidia.com, loganodell@google.com, 
-	arnd@arndb.de, dwmw2@infradead.org, baolu.lu@linux.intel.com, 
-	Bjorn Helgaas <bhelgaas@google.com>, oupton@kernel.org, alex@shazbot.org, 
-	gle.com@google.com, pbonzini@redhat.com, 
-	Andrew Morton <akpm@linux-foundation.org>, kevin.tian@intel.com, joro@8bytes.org
-Cc: kvmarm@lists.linux.dev, linux-pci@vger.kernel.org, 
-	Pratyush Yadav <pratyush@kernel.org>, kexec@lists.infradead.org, kvm@vger.kernel.org, 
-	iommu@lists.linux.dev, linux-arm-kernel@lists.infradead.org, 
-	skhawaja@google.com, sagis@google.com, linux-arch@vger.kernel.org, 
-	linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <3f7af771-87a7-4ae7-9919-bc4c23bd31c9@kernel.org>
 
-"David Matlack" <dmatlack@google.com> writes:
+Hi Christophe,
 
-> On Tue Nov 10, 2026 at 5:01 AM UTC, Tarun Sahu wrote:
->> Add an entry_size field to struct kho_block_header_ser. On the outgoing
->> side, record bs->entry_size into every block header during allocation.
->> During restoration, derive the entry stride directly from the block
->> header instead of relying on caller-supplied dimensions. The
->> kho_block_set_init() interface remains unchanged. A zero entry size,
->
-> Since the entry size now comes from the block headers, incoming block
-> sets should not take an entry size at all. I pointed this out on the
-> PCI patch (16/19) as well. As is, every incoming path still calls
-> kho_block_set_init() with this kernel's (outgoing) entry size, which
-> kho_block_set_restore() then silently overwrites. That makes the
-> callers (e.g. pci_flb_retrieve() and the LUO session/file restore
-> paths) read as if they iterate incoming entries with the outgoing entry
-> size. kho_block_set_restore() should initialize the block set itself
-> from the incoming block headers, and the incoming paths should drop the
-> kho_block_set_init() call.
->
-I agree, responded to the PCI 16/19 patch.
+On Fri, Nov 13, 2026 at 03:36:01PM +0100, Christophe Leroy (CS GROUP) wrote:
+> Hi Mike,
+> 
+> Looks like I missed this change ...
+> 
+> Le 05/05/2024 à 18:06, Mike Rapoport a écrit :
+> > From: "Mike Rapoport (IBM)" <rppt@kernel.org>
+> > 
+> > powerpc overrides kprobes::alloc_insn_page() to remove writable
+> > permissions when STRICT_MODULE_RWX is on.
+> > 
+> > Add definition of EXECMEM_KRPOBES to execmem_params to allow using the
+> > generic kprobes::alloc_insn_page() with the desired permissions.
+> > 
+> > As powerpc uses breakpoint instructions to inject kprobes, it does not
+> > need to constrain kprobe allocations to the modules area and can use the
+> > entire vmalloc address space.
+> 
+> Using breakpoint means the segment must still be executable.
+> On book3s/32 VMALLOC segment is not executable, while module segment is.
+> 
+> See commit 6ca055322da8 ("powerpc/32s: Use dedicated segment for modules
+> with STRICT_KERNEL_RWX")
+> 
+> See report and fix at https://lore.kernel.org/all/ed03d290d440d579a81ae0b7de5243721291d903.1794543909.git.ritesh.list@gmail.com/
 
-> Please also add an accessor for the entry size, e.g.
-> kho_block_set_entry_size(). Users of the block set need it to check that
-> incoming entries are large enough for the fields they read, and that
-> the fields of a feature are within the entry.
+I'll take a look, thanks!
+ 
+> Christophe
 
-Sure, Will update it.
-
-> [...]
->
->> + * Each block header also records the size of its entries. A newer kernel may
->> + * append fields to an entry, so the kernel that writes a block and the kernel
->> + * that reads it can use different entry sizes. The reader steps through the
->> + * entries with the recorded size, so every entry is found, and it does not read
->> + * beyond the recorded size of an entry.
->
-> KHO blocks can't guarantee the last part. The iterator returns a void *
-> that the caller casts to its own struct, so it is up to the caller to
-> not read fields beyond the entry size. Please document that callers must
-> check the entry size before accessing fields that may not be present.
-
-Yes, I meant the same thing. by having a check on entry_size reader must
-prevent itself to read beyong the provded entry_size. I update the
-correct the documentation.
-
-Also, I realize tha, after checking the base fields using offsetofend,
-for any following new feature fields, a entry_size should also be
-compared against the readers offsetofend till this feature field for
-required fields. Incase reader does not have that field and
-kho_ser_validate passes, that means that field certainly is optional.
-
-I can add this also part of the documentation.
-
-~Tarun
+-- 
+Sincerely yours,
+Mike.
