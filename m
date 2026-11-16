@@ -1,49 +1,112 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=96.67.55.147
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794858805;
-	b=Zp+WToN2T3Cfk6z6uDfdXWLmNDvs5gazMXNkJXChTGZfSW/MXg3UJxRhd9iESTzY05rW
-	 RtXSyR+ZMHJR5T6ivJHvtT7tLjeF61U+4X5jnA8FN4H49Ex2jdUf2KyJd+fd9+FU0vTUF
-	 mL4NVS7/HdiJkK648yWnBmAOPR4Qzn1du8zeBL4Yomevlt2CkygTbzED0Of8b27pzKw8E
-	 GV0hDs0z6l+pb+vxa3gY9iT4/OawcUbBs9xORfRQek7BCo4Z3f5l3QyITin4C5KywFAZ6
-	 uisGV0GJmE+VJparNqT0qZ4tXofxtnFTG283az5esqsf/9xgqTeIUA2rR6GEQjhHMlg==
+	t=1794870153;
+	b=TkF9CV/AWA0UwwLsnHuf/3MAvlru4j1BK/KaKQgtfbt9EGWk8i9ZadW46uCWmuvv5q/7
+	 FUbR1vdaoIukRzaz9CBlSECrEISR12fcmEMxzXlx/fqdHsNlcGK5GNC/LF4EpwdPyvYDO
+	 cR7kdVCiGFRioIhn/EiyLGdZNXUdpWI/uB0hWQ71bKpIMeQOwF6fiDXaX0Lrr5GpXgpeu
+	 V2LQrSdM1ASquWauf5CjKls+gFVBLnEbmguW7oGWaVZGaljePJIKeyJpjQN1kcXRQtYRp
+	 MJKTx5FRF7OxfpXPwtmzb05oH3SC2FiT0RHg/81P4FrRJwWfVfW2/qzF/t4D8JF2yOQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794858805;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:To:Cc:References:Content-Language:
-	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
-	 X-Spam-Checker-Version;
-	bh=0W0YD2zGg/Ir8R1RY7KNc850yXIwuHO/SFxtm7fh/Lg=;
-	b=WgzmvX9EO9VLi7vmfZFjqkHzLOGSnF+k3bFLpmNDrKf+6Xh1uqamiWZ0vxSdie+6AMYS
-	 ZLe28OuRyn8W0My7qTMc1vmkuxJ3/iO5NHKw8CTQYJbJ+6X0vugNlX82Nl4lvcILC7fml
-	 erVdAD9vh+4BkrEOzXn+RiDZkylWgjJ6ha+J02rpQkY6PzwRMLuFuy7kfHeBVPEfUMcz1
-	 /yQA2bWcJ8cog2RU9S3mPcAZN7luJhrYYhDYeWqpDdUlwe4p04YdFeGUYOH0Wic/Uaeza
-	 p2+6nWZt4bTHz0iIWuLsLUFn3R2ZdcJW6Req4Hyegl18W0KuBbi0rK0qYLZVDQFN68g==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794870153;
+	h=DMARC-Filter:DKIM-Signature:Received:Message-ID:Subject:From:To:Cc:
+	 Date:In-Reply-To:References:Autocrypt:Content-Type:
+	 Content-Transfer-Encoding:User-Agent:MIME-Version;
+	bh=5WThR+UqE34o3lpC1ytNuiTjImnwIUnQa1repMccPxg=;
+	b=iRL4nRgr2TGL4+NkZKjCyl7T/dA+28c+3/GCsl7IIuSujRZm4os1ClF943s3DS6B/lK1
+	 8ujsTCW8y3xb1WrUIGe/YFyFy0ysQhYGJv3C6I5I85qqucdmRcnfVJdFmQ4B7SzHSUFqo
+	 6t5g8u9EzYmziJwUEvaWteirEZM0L9yWxRVYxmd3dq3Bq/jYkTDsArWyY8tshNltjWSPI
+	 hWDUYWbulmz7cvwd9VXn8UHehCGgXR3nbrV+Wb7dTsw6grcVdsb3ESFijMwzUaZFJE2al
+	 PYKfHXnRwM0Rc+kbj3eG7THfwmgNOW/gn5nEO7HIKY09J5lNgpreWep+ynVPVZuXgcA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=F3foXHRS;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 4D85E606A322;
-	Mon, 16 Nov 2026 19:53:25 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4D85E606A322
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	dmarc=pass header.from=surriel.com;
+	spf=pass smtp.mailfrom=surriel.com;
+	dkim=pass header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=RmszHc0C;
+	arc=none smtp.remote-ip=96.67.55.147
+Received: from shelob.surriel.com (shelob.surriel.com [96.67.55.147])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 475B7606A33F;
+	Mon, 16 Nov 2026 23:02:32 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 475B7606A33F
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=surriel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=surriel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=F3foXHRS
-Received: from [10.4.158.9] (unknown [4.194.122.144])
-	by linux.microsoft.com (Postfix) with ESMTPSA id C262320B7168;
-	Mon, 16 Nov 2026 11:53:12 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com C262320B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1794858798;
-	bh=0W0YD2zGg/Ir8R1RY7KNc850yXIwuHO/SFxtm7fh/Lg=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=F3foXHRSxF5RNkQ01Sjp4sDx88NP636u+exqnQWyx0deiwJr7eKILGLpYi6AQEdDP
-	 0PN5yj35zupNu981dy5mblCBWCSFBpPmPxMgXPnjIadfqSJcPkp9KhuBJyXp2/3pqS
-	 2i+uUGkyMkmBAmenMLPx18lg7lSZyufy1vcUoc3w=
-Message-ID: <5fddb57c-8805-4fbd-9e27-1c8654f29436@linux.microsoft.com>
-Date: Mon, 16 Nov 2026 11:53:15 -0800
+	dkim=pass (2048-bit key) header.d=surriel.com header.i=@surriel.com header.a=rsa-sha256 header.s=mail header.b=RmszHc0C
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=surriel.com
+	; s=mail; h=MIME-Version:Content-Transfer-Encoding:Content-Type:References:
+	In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender:Reply-To:Content-ID:
+	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
+	:Resent-Message-ID; bh=5WThR+UqE34o3lpC1ytNuiTjImnwIUnQa1repMccPxg=; b=RmszHc
+	0CnOPJyqg+tKPcBjBhz42YOx3X1P8KCM7qlREN/a2q0VePJ6bbwZ1XDxOMA+O3vEMeR5SpSV57ef0
+	rQ+EoIPicylm5jWyeIlqJWCrf1koFnPGUflTUl2VxKWaaXokosqmEamc85QY5RMdjkXoaY9LN77Gh
+	EZzUnQFmYrfzWalegBAAo3FNepH1iapFTh+8StCMtGkWYiRLlLlR5+xpqJYjFmqWnQHUQ2aell1PX
+	yxs95QLzbQofCYE0Uw54aJpcA6padqu7/yqPdz6LHSCbXxwd9jIesHqHgCoWykqOA8e1fqmLyBeeK
+	7daeliVGFLW0sTbeXP3XtYph3cBg==;
+Received: from [2601:18c:8100:a0e0:5a47:caff:fe78:8708]
+	by shelob.surriel.com with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
+	(Exim 4.99.5)
+	(envelope-from <riel@surriel.com>)
+	id 1xT57N-00000007mDE-0p4b;
+	Mon, 16 Nov 2026 22:24:05 +0000
+Message-ID: <b2262da0652b467673109d12b5e244c15255a925.camel@surriel.com>
+Subject: Re: [PATCH v2 02/15] mm/hugetlb: compare against persistent count
+ when freeing lowmem folios
+From: Rik van Riel <riel@surriel.com>
+To: "David Hildenbrand (Arm)" <david@kernel.org>, Muchun Song	
+ <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, Naoya
+ Horiguchi	 <nao.horiguchi@gmail.com>, Andrew Morton
+ <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Andy Whitcroft
+ <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>,  Michal Hocko
+ <mhocko@suse.com>, Hugh Dickins <hughd@google.com>, Baolin Wang
+ <baolin.wang@linux.alibaba.com>,  Vivek Kasireddy
+ <vivek.kasireddy@intel.com>, Dave Airlie <airlied@redhat.com>, Jason
+ Gunthorpe <jgg@ziepe.ca>,  Lorenzo Stoakes	 <ljs@kernel.org>, "Liam R.
+ Howlett" <liam@infradead.org>, Vlastimil Babka	 <vbabka@kernel.org>, Mike
+ Rapoport <rppt@kernel.org>, Suren Baghdasaryan	 <surenb@google.com>,
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan	 <skhan@linuxfoundation.org>,
+ Randy Dunlap <rdunlap@infradead.org>, Peter Xu	 <peterx@redhat.com>, Breno
+ Leitao <leitao@debian.org>, Will Deacon	 <will@kernel.org>, "Aneesh Kumar
+ K.V" <aneesh.kumar@kernel.org>, Nick Piggin	 <npiggin@gmail.com>, Peter
+ Zijlstra <peterz@infradead.org>, Heiko Carstens	 <hca@linux.ibm.com>,
+ Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev	
+ <agordeev@linux.ibm.com>, Christian Borntraeger
+ <borntraeger@linux.ibm.com>,  Sven Schnelle <svens@linux.ibm.com>, Arnd
+ Bergmann <arnd@arndb.de>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, Gerd Hoffmann	
+ <kraxel@redhat.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org,
+ 	linux-s390@vger.kernel.org, stable@kernel.org
+Date: Mon, 16 Nov 2026 17:24:04 -0500
+In-Reply-To: <20261116-fixes_hugetlb-v2-2-4dd9e94ea9ac@kernel.org>
+References: <20261116-fixes_hugetlb-v2-0-4dd9e94ea9ac@kernel.org>
+	 <20261116-fixes_hugetlb-v2-2-4dd9e94ea9ac@kernel.org>
+Autocrypt: addr=riel@surriel.com; prefer-encrypt=mutual;
+ keydata=mQENBFIt3aUBCADCK0LicyCYyMa0E1lodCDUBf6G+6C5UXKG1jEYwQu49cc/gUBTTk33A
+ eo2hjn4JinVaPF3zfZprnKMEGGv4dHvEOCPWiNhlz5RtqH3SKJllq2dpeMS9RqbMvDA36rlJIIo47
+ Z/nl6IA8MDhSqyqdnTY8z7LnQHqq16jAqwo7Ll9qALXz4yG1ZdSCmo80VPetBZZPw7WMjo+1hByv/
+ lvdFnLfiQ52tayuuC1r9x2qZ/SYWd2M4p/f5CLmvG9UcnkbYFsKWz8bwOBWKg1PQcaYHLx06sHGdY
+ dIDaeVvkIfMFwAprSo5EFU+aes2VB2ZjugOTbkkW2aPSWTRsBhPHhV6dABEBAAG0HlJpayB2YW4gU
+ mllbCA8cmllbEByZWRoYXQuY29tPokBHwQwAQIACQUCW5LcVgIdIAAKCRDOed6ShMTeg05SB/986o
+ gEgdq4byrtaBQKFg5LWfd8e+h+QzLOg/T8mSS3dJzFXe5JBOfvYg7Bj47xXi9I5sM+I9Lu9+1XVb/
+ r2rGJrU1DwA09TnmyFtK76bgMF0sBEh1ECILYNQTEIemzNFwOWLZZlEhZFRJsZyX+mtEp/WQIygHV
+ WjwuP69VJw+fPQvLOGn4j8W9QXuvhha7u1QJ7mYx4dLGHrZlHdwDsqpvWsW+3rsIqs1BBe5/Itz9o
+ 6y9gLNtQzwmSDioV8KhF85VmYInslhv5tUtMEppfdTLyX4SUKh8ftNIVmH9mXyRCZclSoa6IMd635
+ Jq1Pj2/Lp64tOzSvN5Y9zaiCc5FucXtB9SaWsgdmFuIFJpZWwgPHJpZWxAc3VycmllbC5jb20+iQE
+ +BBMBAgAoBQJSLd2lAhsjBQkSzAMABgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRDOed6ShMTe
+ g4PpB/0ZivKYFt0LaB22ssWUrBoeNWCP1NY/lkq2QbPhR3agLB7ZXI97PF2z/5QD9Fuy/FD/jddPx
+ KRTvFCtHcEzTOcFjBmf52uqgt3U40H9GM++0IM0yHusd9EzlaWsbp09vsAV2DwdqS69x9RPbvE/Ne
+ fO5subhocH76okcF/aQiQ+oj2j6LJZGBJBVigOHg+4zyzdDgKM+jp0bvDI51KQ4XfxV593OhvkS3z
+ 3FPx0CE7l62WhWrieHyBblqvkTYgJ6dq4bsYpqxxGJOkQ47WpEUx6onH+rImWmPJbSYGhwBzTo0Mm
+ G1Nb1qGPG+mTrSmJjDRxrwf1zjmYqQreWVSFEt26tBpSaWsgdmFuIFJpZWwgPHJpZWxAZmIuY29tP
+ okBPgQTAQIAKAUCW5LbiAIbIwUJEswDAAYLCQgHAwIGFQgCCQoLBBYCAwECHgECF4AACgkQznneko
+ TE3oOUEQgAsrGxjTC1bGtZyuvyQPcXclap11Ogib6rQywGYu6/Mnkbd6hbyY3wpdyQii/cas2S44N
+ cQj8HkGv91JLVE24/Wt0gITPCH3rLVJJDGQxprHTVDs1t1RAbsbp0XTksZPCNWDGYIBo2aHDwErhI
+ omYQ0Xluo1WBtH/UmHgirHvclsou1Ks9jyTxiPyUKRfae7GNOFiX99+ZlB27P3t8CjtSO831Ij0Ip
+ QrfooZ21YVlUKw0Wy6Ll8EyefyrEYSh8KTm8dQj4O7xxvdg865TLeLpho5PwDRF+/mR3qi8CdGbkE
+ c4pYZQO8UDXUN4S+pe0aTeTqlYw8rRHWF9TnvtpcNzZw==
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.60.2 (3.60.2-3.fc44) 
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -53,168 +116,27 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
- CCA Realms
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: Michael Kelley <mhklinux@outlook.com>,
- "decui@microsoft.com" <decui@microsoft.com>,
- "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
- "wei.liu@kernel.org" <wei.liu@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
- "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
- "linux-arm-kernel@lists.infradead.org"
- <linux-arm-kernel@lists.infradead.org>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
- "mark.rutland@arm.com" <mark.rutland@arm.com>,
- "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
- "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
-References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
- <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
- <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
- <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
- <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
- <f74db23c-ee1d-e0b1-c463-55dad00f9c61@linux.microsoft.com>
- <7ebf7187-bf42-fc11-e89b-b1aba96539d2@linux.microsoft.com>
-Content-Language: en-US
-From: Kameron Carr <kameroncarr@linux.microsoft.com>
-In-Reply-To: <7ebf7187-bf42-fc11-e89b-b1aba96539d2@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
-On 11/13/2026 6:59 PM, Mukesh R wrote:
-> On 11/12/26 16:46, Mukesh R wrote:
->> On 11/12/26 09:49, Kameron Carr wrote:
->>> On 11/11/2026 6:43 PM, Mukesh R wrote:
->>>> On 11/11/26 10:01, Michael Kelley wrote:
->>>>> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
->>>>>>
->>>>>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
->>>>>> to be marked as decrypted (shared) for confidential VM isolation types.
->>>>>> This is already done for SNP and TDX isolation; extend the same handling
->>>>>> to Arm CCA Realm guests so that the host hypervisor can access the
->>>>>> shared hypercall buffers.
->>>>>>
->>>>>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
->>>>>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
->>>>>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
->>>>>> Introduce a Hyper-V-specific helper following the established
->>>>>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
->>>>>>
->>>>>> On architectures other than arm64 the weak default keeps the existing
->>>>>> behaviour.
->>>>>>
->>>>>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
->>>>>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
->>>>>> ---
->>>>>>    arch/arm64/hyperv/mshyperv.c   |  5 +++++
->>>>>>    drivers/hv/hv_common.c         | 17 +++++++++++++----
->>>>>>    include/asm-generic/mshyperv.h |  1 +
->>>>>>    3 files changed, 19 insertions(+), 4 deletions(-)
->>>>>>
->>>>>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
->>>>>> index 46ab2da..da6c3aa0 100644
->>>>>> --- a/arch/arm64/hyperv/mshyperv.c
->>>>>> +++ b/arch/arm64/hyperv/mshyperv.c
->>>>>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
->>>>>>        return hyperv_initialized;
->>>>>>    }
->>>>>>    EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
->>>>>> +
->>>>>> +bool hv_isolation_type_cca(void)
->>>>>> +{
->>>>>> +    return is_realm_world();
->>>>>> +}
->>>>>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
->>>>>> index 31256cb..a60c92c 100644
->>>>>> --- a/drivers/hv/hv_common.c
->>>>>> +++ b/drivers/hv/hv_common.c
->>>>>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>>        u64 msr_vp_index;
->>>>>>        gfp_t flags;
->>>>>>        const int pgcount = hv_output_page_exists() ? 2 : 1;
->>>>>> +    const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
->>>>>>        void *mem;
->>>>>>        int ret = 0;
->>>>>>
->>>>>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>>         * online and then taken offline
->>>>>>         */
->>>>>>        if (!*inputarg) {
->>>>>> -        mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
->>>>>> +        mem = kmalloc(alloc_size, flags);
->>>>>>            if (!mem)
->>>>>>                return -ENOMEM;
->>>>>>
->>>>>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>>>            }
->>>>>>
->>>>>>            if (!ms_hyperv.paravisor_present &&
->>>>>> -            (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
->>>>>> -            ret = set_memory_decrypted((unsigned long)mem, pgcount);
->>>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>>>> +             hv_isolation_type_cca())) {
->>>>>
->>>>> Could this big "if" statement use "hv_is_isolation_supported()" instead
->>>>> of explicitly testing for each CoCo VM type? I ask partly because
->>>>> Mukesh Rathor has just submitted a patch [1] that introduces a new
->>>>> function that does something almost exactly the same as
->>>>> hv_is_isolation_supported() and uses it here.
->>>>
->>>>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>>>> +             hv_isolation_type_cca())) {
->>>>
->>>> With my change, this will become:
->>>>
->>>>          (hv_isolation_hw_cvm() || hv_isolation_type_cca())) {
->>>
->>> Any reason you wouldn't change hv_isolation_hw_cvm() to
->>>
->>>    return hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>      hv_isolation_type_cca()
->>>
->>> That would seem more logical to me.
->>>
->>
->> We could, I just don't know if on cca, the repeat hypercall has same
->> behavior. I was leaving that for the arm team. Anyways, I sent question
->> to the hyp team, if they say yes, i can update my patch to include that.
->>
->> Thanks,
->> -Mukesh
-> 
-> 
-> Confirming, arm has same behavior and needs the fix also. So, we can def
-> expand the check to include _cca.
-> 
-> I just sent V1, renaming hv_isolation_hw_cvm() to hv_isolation_type_hw().
-> If your patch goes after mine, you just need to add to your 0004*:
-> 
-> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
-> index 4fdc26ade1d7..67a16b4d2235 100644
-> --- a/arch/arm64/hyperv/mshyperv.c
-> +++ b/arch/arm64/hyperv/mshyperv.c
-> @@ -134,3 +134,8 @@ bool hv_is_hyperv_initialized(void)
->         return hyperv_initialized;
->  }
->  EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
-> +
-> +bool hv_isolation_type_hw(void)
-> +{
-> +       return is_realm_world();
-> +}
-> 
-> 
-> OR, you could pick mine 0001-* and make it part of your series, and I
-> can drop it from mine and make it dependent on yours. But mine is small
-> enough that it has higher chances of going in first.....
-> 
+On Mon, 2026-11-16 at 19:29 +0100, David Hildenbrand (Arm) wrote:
+> try_to_free_low() gets a target number of persistent folios, but
+> compares it with "nr_huge_pages", which includes surplus folios. As a
+> result, it can free lowmem folios below that target.
+>=20
+> For example, with two persistent folios and one surplus folio, a
+> target
+> of two can still end up freeing one persistent folio.
+>=20
+> Compare against persistent_huge_pages() instead. Convert the macro to
+> a
+> helper function and place it before try_to_free_low().
+>=20
+> Fixes: 7893d1d505d5 ("hugetlb: Try to grow hugetlb pool for
+> MAP_PRIVATE mappings")
+> Cc: stable@kernel.org
+> Acked-by: Muchun Song <muchun.song@linux.dev>
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-This patch set has already been applied to hyperv-next, so maybe you can
-rebase off that.
+Reviewed-by: Rik van Riel <riel@surriel.com>
 
--- 
-Regards,
-Kameron
+--=20
+All Rights Reversed.
