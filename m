@@ -1,73 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.133
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794810154;
-	b=NGwKtO9Fug+dSqXSO65Zcl1WtRH7W3c7DmY/LiH4H502ZiucfgxiTJzFZ2gjwL+zk4tw
-	 T9B/2dUalFM96ckFBcHDhNW1ItLJcsIZhlWnDsSOFwgo84ekGIHaPgDGSshQ3otuWWwZD
-	 6JD718haKEmI9rpZy8nIu3HSc+dh7XPZhLpVTBt0/DQWHZIU0+whNB1SnKcrHwit2xSaj
-	 eoEhhNToQDqBHp5wTUBIMCDgN3RRJArZWo5P2NlmHqtazkBPQBq7hDNQM6pddJRUDUfG1
-	 oPCNGehf3BkHN31w1cGKHIFjjFTbOYwXU1rtVIEsbNzhZUqYm31TyCyW6mGA7pWZpdw==
+	t=1794814380;
+	b=IMFoDlJJxf3P13OA/LlJRO98FoEFNx9x56vQwV1THuiqLHbxCG5FZ/55DvTgZQFex/rT
+	 UYNVJZI7Tj09dz7Bv7EZUWkeH+ycrJcs9g7uPMELfLjLNJRvIi1qfWo5m0A/mEDKmIunG
+	 A6L9ttz65H1yOkF7DfrZyISAfZTJfmSNHm/fXIJxKB0WicHlu13F6HeZQqwwYndrLD9Pn
+	 QvbCx4fSdQ+mSuipWpG/lmeNpDeeGZVQFgt/5dSNvtc+qyVHUTtxCWcKiVsbjtrV04ywD
+	 ljZC47IDNAen2Zvi7eTR7CtCs2lmfLXGe/5bB8IskkbdcLKXv+6Z2L8ShH1/D+sQb4w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794810154;
-	h=DMARC-Filter:DKIM-Signature:Received:Date:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 In-Reply-To:X-SRS-Rewrite;
-	bh=6JeNuagrKkhlsUC62EGh2fwcvgdbpoK+v8GV5W+tLck=;
-	b=vBNVL/w7xrxn2ZvHKt+LEodyfPgrBvOySu4f/YmEqSMVmPBwJ2yk3U3A1DJHfp6i5gZA
-	 yQ5wC3JeWsV7UIyHh7YbN/oySwqsP9TccxCYOeL/90uj5zNriUjjHxdflpE9oKG99h1bc
-	 wePEMU5RN4rPrA6s2qLi96J7xuoUukntSnFEg41+R1A740nnHFcg6GIaWFFDxAKHBWhWa
-	 AdvBzFIrhp3i5rOFCNdnj+qVsezKTCHTFygUDoNlAhgjzFpreNPlE/CgCaQNA6Q4dA0v8
-	 cCi9iJz3vnNeWipg+mXZrbSHkHoa+XsPSFgqamuQSZvSNLrEqOxbIsJqpxjyQuVG6ng==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794814380;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=1Lb0d+nlQPwj2uxwrjLTKUVhOeG90QM798BTau5rOQU=;
+	b=Ii14Ywu5EsRuLnqyT+fczMMdSq6nOqy/is/HaaG5R2RRGXTuss4H26Hs/ZJf5oye28rs
+	 752oWuNFgd9SBMq7TORq/TKhYTktpVXxCGc0f/7jaD/WCfmuzGukXzyitgDBNHo33wDmg
+	 7qeFO0W7e8eGUWcuAhRP2OaYS+8nyXpxfrCed3LZtl/rSIsPjf5/UP83JvaPiybMNARZe
+	 HFVxyhbyfRptq2B1LPn25QYfdXaXMyHmc4dn+l18/xQHh/+c1bZIdaJ+BLa8Xa5LQEift
+	 Gaq1Uz5BkxczalT84vVklFU+kL+ImltHHBKJDuRDonp7DzF/tjvyARzgwcjlTmuHc0g==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=infradead.org;
-	spf=none smtp.mailfrom=bombadil.srs.infradead.org;
-	dkim=pass header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=bombadil.20210309 header.b=0Qo6fj0m;
-	arc=none smtp.remote-ip=198.137.202.133
-Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=aIT7S67W;
+	arc=none smtp.remote-ip=115.124.30.133
+Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C709606A31C;
-	Mon, 16 Nov 2026 06:22:34 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6C709606A31C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=bombadil.srs.infradead.org
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 65D71606A31C;
+	Mon, 16 Nov 2026 07:32:57 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 65D71606A31C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.a=rsa-sha256 header.s=bombadil.20210309 header.b=0Qo6fj0m
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
-	:References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=6JeNuagrKkhlsUC62EGh2fwcvgdbpoK+v8GV5W+tLck=; b=0Qo6fj0mt3LEB3mIBoB9/wQaVm
-	kFs/i16knfl079NMYU4uyZebhhDFxOKi305wXed0a4HWXH3Kc8BhqNNXx75w2RS40bx3PUoXLHXmG
-	Avh5hSX26Gr6EDiraEumbwRARrg6A+0k5kaLuKdlhnNNRAAzOO52UJneaiuWTKXc2PJDKkod8R3uK
-	YpYrjsHJQpOVaKjucTUDF2HctDi9U78EKe5I8ouQ2GK9BW7idg/28OotLx5P5XaVwukChbpUV7V8s
-	zXKCzOnHiftCD1KhrY0aMCB8qXw3P8GlIgOR1bmFcIAw5MDy+e+BM5hIiH36IMXh3ejMZD3mMWNpX
-	G/9EyciA==;
-Received: from hch by bombadil.infradead.org with local (Exim 4.100.1 #2 (Red Hat Linux))
-	id 1xSq6j-00000001E8g-2jmY;
-	Mon, 16 Nov 2026 06:22:25 +0000
-Date: Sun, 15 Nov 2026 22:22:25 -0800
-From: Christoph Hellwig <hch@infradead.org>
-To: Pavel Popov <pavel.e.popov@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>,
-	Logan Gunthorpe <logang@deltatee.com>,
-	Arnd Bergmann <arnd@arndb.de>, Leon Romanovsky <leon@kernel.org>,
-	Lukas Wunner <lukas@wunner.de>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	Jim Chow <jim.chow@broadcom.com>,
-	Radu Rugina <radu.rugina@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Wei Liu <wei.liu@kernel.org>, Michael Kelley <mhklinux@outlook.com>,
-	Nathan Ciobanu <nathan.d.ciobanu@linux.intel.com>,
-	bcm-kernel-feedback-list@broadcom.com,
-	virtualization@lists.linux.dev, linux-hyperv@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v5 3/3] PCI/P2PDMA: Allow P2PDMA on Intel Xeon server CPUs
-Message-ID: <avqhIQ2krd1qgp6K@infradead.org>
-References: <20261111234439.4098-1-pavel.e.popov@intel.com>
- <20261111234439.4098-4-pavel.e.popov@intel.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=aIT7S67W
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1794814375; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=1Lb0d+nlQPwj2uxwrjLTKUVhOeG90QM798BTau5rOQU=;
+	b=aIT7S67WovzDeADTdzTC5uHCMJUj0JPN/oWtXIZK+F2DGHkeokGy0A1tCbRGCXVip6FSkXuyL7tGPpDFAM/OpNEI6c7KsUUTMVkuvsGTy52eAXJCB1mNk2DzQ8SyeA25WUazsJdUZooFFc9SecZ2HMfengSzapzfLImwMeKFP3s=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R211e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=28;SR=0;TI=SMTPD_---0XEnXkf5_1794814373;
+Received: from 30.74.144.137(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0XEnXkf5_1794814373 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 16 Nov 2026 15:32:53 +0800
+Message-ID: <4bbe4321-ab91-40e4-bd15-6428660d8ea9@linux.alibaba.com>
+Date: Mon, 16 Nov 2026 15:32:52 +0800
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -77,18 +53,79 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261111234439.4098-4-pavel.e.popov@intel.com>
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] mm/huge_memory: flush dirty file PMDs before removing
+ rmap
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>,
+ Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>,
+ Zi Yan <ziy@nvidia.com>, "Liam R. Howlett" <liam@infradead.org>,
+ Nico Pache <nico.pache@linux.dev>, Ryan Roberts <ryan.roberts@arm.com>,
+ Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
+ Lance Yang <lance.yang@linux.dev>, Usama Arif <usama.arif@linux.dev>,
+ Kiryl Shutsemau <kas@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Jan Kara <jack@suse.cz>, Ross Zwisler <zwisler@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, stable@vger.kernel.org,
+ Chris Mason <mason@kernel.org>
+References: <20261113-dirty_file_pmd-v1-1-8c11f2a2e65f@kernel.org>
+From: Baolin Wang <baolin.wang@linux.alibaba.com>
+In-Reply-To: <20261113-dirty_file_pmd-v1-1-8c11f2a2e65f@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Wed, Nov 11, 2026 at 04:44:39PM -0700, Pavel Popov wrote:
->  #ifdef CONFIG_X86
-> +/* Intel Xeon CPUs whose host bridges support p2pdma */
-> +static const struct x86_cpu_id p2pdma_intel_cpu_ids[] = {
 
-Why is this in drivers/pci/ instead of behind a clean abstraction in
-arch code?
 
-(and the fact that the CPU vendors still haven't managed to provide
-a firmware interface to expose the P2P capabilities is just insane)
+On 11/14/26 1:15 AM, David Hildenbrand (Arm) wrote:
+> Unmapping a file PMD can lose concurrent stores when it races with
+> writeback. zap_huge_pmd() removes rmap and drops the PMD lock before the
+> gather flushes the TLB. Writeback can then clean the folio while another
+> CPU can still write through a stale writable TLB entry. Those stores do
+> not fault and dirty the folio again. Filesystem DAX has the same problem
+> with its dirty tags.
+> 
+> Commit 5df397dec7c4 ("mm: delay page_remove_rmap() until after the TLB
+> has been flushed") fixed the same race for PTEs by adding delayed rmap
+> removal to the mmu_gather infrastructure. The PMD path still removes
+> rmap before flushing.
+> 
+> Flush the TLB under the PMD lock before removing rmap for dirty file
+> PMDs. Skip the early flush at address-space teardown, when no users
+> remain, and for mappings without writeback, including shmem and device
+> DAX.
+> 
+> Use tlb_can_delay_rmap() to share the PTE path's architecture checks.
+> On s390, clearing the entry already handles TLB synchronization, and
+> __tlb_remove_page_size() immediately drops the mapping reference, so
+> rmap must be removed first. UP cannot have concurrent stores from
+> another CPU while holding the page table lock. Make the predicate
+> side-effect-free and set the gather's delayed_rmap flag when an entry
+> is actually queued for delayed rmap removal.
+> 
+> Queue the folio before the early flush, while the gather still has a
+> valid range. Keep batching references and drain a full batch only after
+> dropping the PMD lock. The early flush resets the gather's TLB state,
+> so draining the batch does not flush that range again.
+> 
+> Although writing to files through mmap is generally discouraged,
+> unmapping such mappings may become slower: each dirty file PMD now
+> requires a TLB flush under the PMD lock. Future work should properly
+> extend the delayed-rmap machinery to PMDs and hold the PMD spinlock
+> across multiple entries, so their TLB invalidations and rmap removals
+> can be batched.
+> 
+> Fixes: 4b4bb46d00b3 ("dax: clear dirty entry tags on cache flush")
+> Cc: stable@vger.kernel.org
+> Reported-by: Kiryl Shutsemau <kas@kernel.org>
+> Link: https://lore.kernel.org/linux-mm/aoWw_iKEDLjKL2jr@thinkstation/
+> Reported-by: Chris Mason <mason@kernel.org>
+> Suggested-by: Lance Yang <lance.yang@linux.dev>
+> Suggested-by: Usama Arif <usama.arif@linux.dev>
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+> ---
+
+Make sense to me.
+Reviewed-by: Baolin Wang <baolin.wang@linux.alibaba.com>
