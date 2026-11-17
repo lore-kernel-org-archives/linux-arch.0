@@ -1,85 +1,85 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.160.173
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.160.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794904455;
-	b=jikbAvcVdi3v7vxM6H7c4kVcwVm/tsTaaxGXJFaV5rhcXn6rr9D2ooUCkoynNlbia30s
-	 yGWheni35Hlg/u38X86a8dSyMjsf6CB8y1oFbpXBAD5u79LZwtZOOPOqVXMctM28aBKSJ
-	 cL1zX5hHl1yEEUN+XpBYEVDZUZ8mFg4v8ak3dL3OJw7o/S+TnEi0IBEyF/B6oo6jJ24bc
-	 UXoCcQcLZFkF5vvv+098g2sDgv7Cdp3eL3Xjkchy3g6nuK6/4WM1nUeVkP/ZMuff+Jchh
-	 299SJ942eM5ejNGfdakF1oDTOAdNp3zCXBBu3p6/5F2r/OTJtJlBN5T2uSpYhYiKlKg==
+	t=1794904947;
+	b=YGVoNAYOgjROAnSJ4pCeL3XsyInXYLwmpRLRNdm9meiQ/TJoEas8OfquVXp7v9Ysd1ni
+	 yyC5TZo5txwR/Vm1LMMrxHEFW70xyHsDCOdznNpUZceE6F/eJUvB/wSUXtLlZfgBkuGnp
+	 zTANpa7z/ZRkFVdlm1Ak8EwaZYDBVip3N3AxDNw/5KVfvszATkf9NiLEWfi3GjJp1fvis
+	 RUT/7vI8RImekon9t8pTblSORFI0rMpJKpSemNVVrgVtQ3xiwTmTYaeaUZF+gmqW66XmZ
+	 l/JLIEKSIEVH9rKwjVddWH9cVLemlKaxmk94EMBYg6lcqSjLXRjSvJ2/VL8lRAKs7Kw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794904455;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794904947;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
 	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
-	bh=GlfPsRE+i3fF5U75sAmCvXCcdyZhOwjsZrTZwssWtpI=;
-	b=v4J9Z/ID1X/gLVN9hVFWbrHBCo7zMXIBhOE0bCXc89ntKFEV/AzD1XF+jZ0LnNBcn1Lm
-	 hnhIbgxvvDJmKEi829HGiPzlg2OASY5w3EfC9edhZzdaG+QENGAjJrupzF8Rt8yTVat44
-	 x38cpfwRhe/Na5Tjaor5I4EV59wj9K1mWIwI1XRK3RSrXENYIquT91myPw19AarTFZHJ4
-	 JHUpHVgNm40gzh32ftCqYjIHbq46CoDlCre2N7hvC69p6TdtWWUj5TVJPvyUf3l5R7zqd
-	 1OuCsdXY7gDKUWNcZOe732pIXR3MFHqk3o2qMvDKOCDgiwkmnRzPRPOiqoRHPled1mg==
+	bh=beHv4RWKzAGXqCj9AQIheRdqq9/SqD5ToQS6bWhTNyw=;
+	b=F+G6uQ8B2zuXA9m2rfKYPh8EnawACFqW2PAj4mYtHZ9hiCIYDZsnoP4T1YKtP6XZM0q5
+	 GcNyo4YI5FQrZn+gn/bk2dNi0SXUz2AaR9w8WZQ02QpuOv9+ciYR/c7Zdjf8z/LAhibpn
+	 68wxs8x7hAQNAxcvL8nac2uHchVDDSt6bQdep5h6mL/z2fbDwyRDXNSTlF3mEbl5jZknV
+	 Ni8DmNtD9B5iwjjbwwLI7JO4zdXNzUYIUQf/iqWsI2sZ4mCRz4WGGir0A6nV9Z4CMmGip
+	 9AC16HwrNA9akI1ZOPWBlFAOGuK2fTeLztVJs/AnokWgJivefa2jz8F3oFVOh4V1Hfg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=none header.from=gourry.net;
 	spf=pass smtp.mailfrom=gourry.net;
-	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Ajp9T7xx;
-	arc=none smtp.remote-ip=209.85.160.173
-Received: from mail-qt1-f173.google.com (mail-qt1-f173.google.com [209.85.160.173])
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=iz47Vl8v;
+	arc=none smtp.remote-ip=209.85.160.172
+Received: from mail-qt1-f172.google.com (mail-qt1-f172.google.com [209.85.160.172])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE949606A880
-	for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 08:34:12 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org CE949606A880
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC95F606A88E
+	for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 08:42:23 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org EC95F606A88E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=Ajp9T7xx
-Received: by mail-qt1-f173.google.com with SMTP id d75a77b69052e-5363c8de563so55807491cf.0
-        for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 00:34:12 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=iz47Vl8v
+Received: by mail-qt1-f172.google.com with SMTP id d75a77b69052e-55d3563e50eso28093701cf.0
+        for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 00:42:23 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gourry.net; s=google; t=1794904452; x=1795509252; darn=vger.kernel.org;
+        d=gourry.net; s=google; t=1794904943; x=1795509743; darn=vger.kernel.org;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:from:to:cc
          :subject:date:message-id:reply-to:content-type;
-        bh=GlfPsRE+i3fF5U75sAmCvXCcdyZhOwjsZrTZwssWtpI=;
-        b=Ajp9T7xxRJnckbguTgRPsP4gP7ggcnMM2Non8C+yfW5N1NAn2O0Q/Op51B10esi8KO
-         cT1QYNfljSecakvsb1tR/hbp5ii+N2C1SQRO5eg/t2RsutoaVZEBO63zdqgbyDS5QRZm
-         ilg7WysjeJtFO3ioc4r+QSX3DSDXEujufPRNTgaethlsDC0AKr9+o3fWAovz72E0sL8q
-         Yx8yRjXW9Qm4H7uIShTpYdjiG8t/jzEAMZsJrxdGZ4Zf3udWcZX/D3Ul54fwpj6boYBy
-         Fr7x5iY0EgzeW9DGxrXqMZIa3hxvoh5Ea3aHbyrHezwcgi997p7vTuXIwrmzmze6/thw
-         GHsw==
+        bh=beHv4RWKzAGXqCj9AQIheRdqq9/SqD5ToQS6bWhTNyw=;
+        b=iz47Vl8v6JkIKZg9UYfyENByJGkp8YiAPJZj5aT+ZIWJtz26JLkljfdgVeOeTUHKpi
+         fD+WdtGKspa4q2AxzmQeXoGQQk32iqFWo6zZZR3yDrVQ1vK/HbB3xBejTJBvr/T16oNW
+         P1H614T3EMYfwy+o6FHrygopJOeOGa1XEaxFCJNqvbCTcx8I1gaWn0iBhdTWEqp6pW7I
+         k8fPNOjH1RutKyHx2SDDsKfQoQn9h0StyHhNNC2VqNR0bEmdsDQA7kQxJTrh/gxuZqR+
+         kfMtR0Yh9a2YiCZc6WHAGleSyiuHDgem22R+ssBXM/t8XJBZxYGh+Byyuv/RtLwZWCxo
+         W/yA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794904452; x=1795509252;
+        d=1e100.net; s=20260707; t=1794904943; x=1795509743;
         h=message-id:date:references:in-reply-to:cc:to:from:subject
          :content-transfer-encoding:content-type:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=GlfPsRE+i3fF5U75sAmCvXCcdyZhOwjsZrTZwssWtpI=;
-        b=n5mHF0fjjyBWWxGp3e3QaauLRLIA9dFPClTUEsEbI/qtr7IgRkHO2ZgZXLO+a7g2+5
-         bKzzLT0QCPbZV53QErsfkYO7E6SVw2G0Fagxsm8M39oU46x3kZjZiFWj7mOZrLyalLwy
-         wF9ue3+xr5F43qMEnEEN+OMJtEDygqvzfWWAJzkj/mFsR8Sn+zGHV++vfgpesaHSAmjL
-         5pqhrTSAW7O3bKqWdpqN2YPg2dcAf3cdOWVc9jFSAXvx2/ppTq2HQwqylxhxnkIdh8Hi
-         GgjwR/ieYfPiDKTuFFZOa2hJzp7TJ7SuRpFuWJK2lSh72xep2oIq8f2f8BpIBwkCwIyz
-         7NDw==
-X-Forwarded-Encrypted: i=1; AL+hErElWJzNgRt7qnOQoKVOTJbpg31WmGKXKBGJ4tAPhCz4XHERuBn0JCaBqtQCxkgqtv+m+3GOlj2SlKSf@vger.kernel.org
-X-Gm-Message-State: APuU4Z9vxrWtgU/1cxOluNNRB5Od0kBUECUQnRTnuBOIf/x5/K5bDxdr
-	jlDJgHH+tTNcdILQgjAx+E2hizgqWl5rAMdIumFTZ3vj6imXOYqPl/Lk23fNNtdUNGw=
-X-Gm-Gg: AYBFou2IBgn3ttLZ7G7ufjveF7IPS74utQs6JMyUVrNW0Sef17BKVPYyx51k3PFUSmn
-	ASbe4Jlw9CNjaCbF8+y3wY7xQ5AmPnM8Qw9N9ly1TnRPrHyaKDGT0XXEa6Wexi6pmBrsIhy//1x
-	BDsLde1XEqDZCLeevfSCbfUhTv3f0q5MDVejtZ2GqLPp0UFRg3l4+I4FI8eIAxVSGauNUGT9qhZ
-	gjYMCYbX3u40LeBvuPgJRdEtdYwE+SVmDeI/cRv1qu/a95DAbVmLae8aWYn9ToIkZpUrPDDzzbu
-	+AxMY/k/7QnrjVN8pTxeMoAiK9EPlnFbUdbdVJY77acU4t3onvKQakP2wgGBPONkeGN7JkyQXq8
-	YrKGiICxvZiVMc6xqWeawQiEAulNDi/oAACKQReCP4thpK5U97bobNsoeT/Y74vNaFYITScNbac
-	QSeFzySf+nUBspQ84n505bK+Id4IouaVvHrV5vgnq9+QCQ8wtJPTotzrn77XWOmJyxV2uB00SVs
-	Oy1lb7kLvWfy4ve6OBeMcMmMzMoaewIopgiSGhP/S5bLC0qGuqcRnC256lsJ52TUxDYL999a9X6
-	5NzxRmnSWHKpEknuL9SGXiDQXGJJTjvjBFpIuWWRqBqB75Xhk1FUcz5aqDXf7RJzuavvQ/1Jw8J
-	qPYY7g7w=
-X-Received: by 2002:a05:622a:654:b0:55c:b6e8:bb92 with SMTP id d75a77b69052e-55cb6e8c1e8mr144922231cf.61.1794904451796;
-        Tue, 17 Nov 2026 00:34:11 -0800 (PST)
+        bh=beHv4RWKzAGXqCj9AQIheRdqq9/SqD5ToQS6bWhTNyw=;
+        b=i3SJ6W+Sb5uymvaegZSlLw1RR6i6PhAxFxXQKX+FH5e2EYSUjGFOF40mzugPDTOnUK
+         6RbkT8vZUNFdA7runJMFyb3XU+fiJ+dQskhhtu4IjmE6vQIGNGdV9/nK7nlb66QTWRfh
+         FEg2ttSmiI6f4CW5JmPUgxPfhUTDLaQEk3ZG8TC4IhE3qe9hNHjb60z6r6r+1Rgwzjlc
+         hsuauUYXbRu4CGJ4MgaR5ty9k62P4fv1Tm5dl4NdHqa3kkSFGDRVJAbZzZxdXdmAuYXW
+         am7wNpTWw6zv2t3ENrdFqdXs0ZDoZsY3feOR/kv2DcbMAiECFWJRhXABYik3rU9apnhV
+         wsVg==
+X-Forwarded-Encrypted: i=1; AL+hErFGI2J4GbFLAI8l/GQ2ZsP0DHEfcyk5yP3DwMFM2JLNdUKxxLgh2W2NifQEVTXx1X2ttsZPHp+zaJ1t@vger.kernel.org
+X-Gm-Message-State: APuU4Z+rYCtluflcj/klrXZO3bs7/ZcMCWPseHjXHGgMytBpJdmBnTyD
+	mC8/CAZc7jcba97mmjdjUB4n6Db+UF5Z2FkroU8RwWlHv971iJUUMgsoUVgRwZAeHCg=
+X-Gm-Gg: AYBFou0Z7+WXjIsjHah1kxXJOeEuaw5Tv5p8HSfSVgv0DM1izCQsvuOW1pTTrI2NyxF
+	8nwQ469iGie9uuCmQdnyJYGHgNcw4AvT5zaBNtI1yQ+GECqs/+dmhYbfZQoElYl44/8cfHCW11J
+	3JCOTcCgAh3KXyaZdst70bjyxA8LGG3I0cJoIlEP1L9IUxf0h59Bkev5UGMNMq5TSMlKR82SRpH
+	r1BOp0JORSZ/ytzF6VzsLMaSrMZTOofagNFLdWHSZ5vtPOmX3z8tKzz0Z5k3hbXGEGC7YqfHA3K
+	nvnPaE4EF2t7NK6jJdUAT3HxWnaNkjpWP6JCQyaPYC5nu98JNzReP6cuLKtA7DKdDVC7ceFVFrS
+	Npe2qlVwju2a7mITYAs/PNYh5wtwbjqvB4Ptk8D1Q+fK4nU0tokXc5HgbBqJlyA6pXQXbXAC94V
+	HqoQlB6eLnCl37Ph8VR9z8WvzD5A6ZhtktJx2ybbXrnh2qslrdl8uG2ZqKSeWswGHBp3OAyl2md
+	1gaIp3SrAytW8F+bKSxW185vK0GhXPbeDIORI+MBmVZMiyT0ipipT24DtawxvD2ds6SiOPXi9zk
+	/0llHWobh5GlcTBKecW93q8kC32vGRFcdzwdaH3un10d3MXNzdqeM03qgYwWkZ/Vhg7+Tvu2aVd
+	WlcqjCawyoDc1z4G8QEomqs2hciTr
+X-Received: by 2002:a05:622a:758e:b0:55c:5ebd:8823 with SMTP id d75a77b69052e-55c5ebd936dmr138487931cf.66.1794904942797;
+        Tue, 17 Nov 2026 00:42:22 -0800 (PST)
 Received: from [192.168.50.231] (pool-71-191-145-202.washdc.fios.verizon.net. [71.191.145.202])
-        by smtp.gmail.com with ESMTPSA id d75a77b69052e-55ace15ce7csm100171991cf.1.2026.11.17.00.34.10
+        by smtp.gmail.com with ESMTPSA id d75a77b69052e-55d37daf422sm44268211cf.15.2026.11.17.00.42.21
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 17 Nov 2026 00:34:11 -0800 (PST)
+        Tue, 17 Nov 2026 00:42:22 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -91,8 +91,8 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v2 09/15] mm/memfd: recheck the page cache before
- allocating a hugetlb folio
+Subject: Re: [PATCH v2 06/15] mm/hugetlb: fix mremap() racing with page
+ migration
 From: "Gregory Price (Meta)" <gourry@gourry.net>
 To: "David Hildenbrand (Arm)" <david@kernel.org>
 Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
@@ -118,41 +118,55 @@ Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
  Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>, 
  linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
  Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, 
- Josef Bacik <josef@toxicpanda.com>
-In-Reply-To: <20261116-fixes_hugetlb-v2-9-4dd9e94ea9ac@kernel.org>
+ linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, stable@kernel.org, 
+ Chris Mason <mason@kernel.org>
+In-Reply-To: <20261116-fixes_hugetlb-v2-6-4dd9e94ea9ac@kernel.org>
 References: <20261116-fixes_hugetlb-v2-0-4dd9e94ea9ac@kernel.org>
- <20261116-fixes_hugetlb-v2-9-4dd9e94ea9ac@kernel.org>
-Date: Tue, 17 Nov 2026 03:34:09 -0500
-Message-Id: <179490444979.482102.6690559604747930966.b4-reply@b4>
+ <20261116-fixes_hugetlb-v2-6-4dd9e94ea9ac@kernel.org>
+Date: Tue, 17 Nov 2026 03:42:20 -0500
+Message-Id: <179490494079.482102.4618915344813254218.b4-reply@b4>
 X-Mailer: b4 0.17-dev
 
 On 2026-11-16 19:29 +0100, David Hildenbrand (Arm) wrote:
-> A concurrent fault or PIN request can populate the page cache
-> after memfd_pin_folios() misses it in the page cache but before
-> memfd_alloc_folio() takes the fault mutex. The latter still tries to
-> allocate another folio and can return -ENOMEM even though the requested
-> folio is already cached.
+> Migration of anon hugetlb folios walks the anon_vma, so the file's
+> i_mmap_rwsem does not serialize it against move_hugetlb_page_tables().
 > 
-> In particular, hugetlb_reserve_pages() finds the existing reservation-map
-> entry and reserves nothing. If no global reservations remain,
-> alloc_hugetlb_folio_reserve() fails even when the pool has free pages,
-> effectively failing memfd_pin_folios().
+> There are various issues with that. Most importantly, move_huge_pte()
+> releases both page table locks before the TLB is flushed. Migration can
+> then find the destination entry and finish migration, reusing the old
+> folio while the TLB still has entries cached.
 > 
-> Recheck the page cache before reserving or allocating. If the folio is
-> present, drop the lookup reference and return -EEXIST so
-> memfd_pin_folios() retries its lookup.
+> Hold the anon_vma write lock across the move and the final TLB flush.
+> This also prevents concurrent rmap walks from missing entries moved
+> during rollback.
 > 
-> This is probably not worth backporting to stable.
+> When we must allocate a destination page table, flush the TLB before
+> dropping the anon_vma lock, then reacquire it after allocation.
 > 
-> Fixes: 89c1905d9c14 ("mm/gup: introduce memfd_pin_folios() for pinning memfd folios")
-> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Dropping the lock only works around lockdep: hugetlb folios are not
+> reclaimed or migrated by allocation compaction, but their anon_vmas
+> share the lock class used by ordinary anonymous memory. Having a
+> separate lock class for hugetlb's anon_vma (like already done for
+> i_mmap_rwsem via hugetlbfs_i_mmap_rwsem_key) requires more thought.
+> 
+> There is a concern that this can block page migration of anonymous
+> folios quite a while ... which is not really different to what happens
+> to page-cache folios today. If ever a problem, we can temporarily
+> release the lock.
+> 
+> So let's keep it simple for now.
+> 
+> It is a shame that hugetlb has to implement everything core-mm implements
+> in a different way that just screams for problems.
+> 
+> Fixes: 550a7d60bd5e ("mm, hugepages: add mremap() support for hugepage backed vma")
+> Cc: stable@kernel.org
+> Reported-by: Chris Mason <mason@kernel.org>
 > Acked-by: Muchun Song <muchun.song@linux.dev>
 > Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Reproduced using udmabuf to race and generated very consistent failures.
-
 Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 
 -- 
 ~Gregory
