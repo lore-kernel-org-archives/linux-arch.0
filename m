@@ -1,95 +1,85 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.51
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.222.170
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794894592;
-	b=klWLWfQ31fW8CCtfc/K1HJZocmFQjGawymmojOCTQhhb9BATv4nz71dvg5p+RI/ZSE5O
-	 Or9SKczvWEpGdt71YTOYLP7tHm/62B5lL7PH1BpHsFE15hyPnkNdISOt1by67zVasF11x
-	 5BHk4PnsVhd5ub4lpA2uOlZqvZWTc6YsKJHuXL9F4ZelH0pW+gvjZhErzcPKJK2p2denr
-	 RblIG2MIeH3UVTl1unuNeWWRpaBE4L1B3KoJ3409VGkFxsx1PtKJ4t4R+7vvsZjf/tNoh
-	 TVyAKbGwAZ4Baw8HvaQVUAhjXfNVSiPA6bHs5tC9NV78/b5bmzexpJAAioqkfI6A/+A==
+	t=1794903252;
+	b=ccLJ4B+3qx/cdv50wUZitrfVx7zLj0gpWbzeu2sWZONqMH8yfgw/pLXGbIByrkASvQsN
+	 1B3YE6grkdDx6bgdYQBWIWMblPY22hx0mokGB/DqC3v0cCtYTKmaQcXh/pnNiFoZDsklM
+	 YC0UHOqJu6gUZo/kgKYX4QevJHgZlxv2YQOlD7dGCWqd42jsruy919rYltI/xTO0s1TOB
+	 0l6/BgzsIquYU66hX5L7ftUhUh3fxhalsl9zQel1gAaRKFG/1SXcvIl2hCqji2mxI2ENx
+	 SLj2l1hPyPh8m2VUpmqwVvnbD1/3nJdgIp6H9CEOnWeWJK8ohUJc8Ej7mJnMIve+eRQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794894592;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794903252;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=eJPyKHP64G2eKzhiRICR4S2i28pJ2+2iaIFvgsyda0E=;
-	b=WUWLMMoIgqCV3RqQzg/ttNu5FWVG/89qUoaFukx6VkLI5dCYbf97THSP9mAITG5t7Cq6
-	 t5HaAXaFSc7u+Xug3qXc7uGL39Tp++38kJipugvrQfnqNJlfwY+WcVqnbFyAj94MraWLu
-	 +wIQcV0h75Sz/kLSOLkgj66SyI3PVwuP6AYkDeInRGb6WtCfyFvJKY1F3IyeJTmrasqyr
-	 JVGYPzrHQBnCxwQGmrYqQzOXslrpWLkuuUEOYQMTVyuvLEQAlR6lWaAX5IFWIe6+cAOii
-	 KWhXuqJzzaCEQd5h9kU8QOS4wauLmoU4PIf3McDJ/KmSCGRpxFQA/6xI5J3bDgGe/YQ==
+	 MIME-Version:Content-Type:Content-Transfer-Encoding:Subject:From:To:
+	 Cc:In-Reply-To:References:Date:Message-Id:X-Mailer;
+	bh=fpQH2XklQvxbA0SCPjoqZpnVJxorf9+kCLsX6Cm+jf4=;
+	b=xY3YN2vJ8GyTTiLJ/InCgiDWhSP3W2xCmhf+Bh2dYOsjz10F04bmz2qF2006tbyJIfIS
+	 sxjPwXVh3HDU5y32PWudIqy6CAq2W0qLwX3DnN2GaR8rxGCPJg7Kf534IcVr39oJGF5MJ
+	 NqsuN+e5j4j73j6DP5WBx8ls+s+fjVGqiFo8jEZtA8OG4AXLo1SkvAlXqc0rk/3gXMAnB
+	 Ybv3kMBRkIJoi1cCSsuob2mgB+3io6KGqR+/lwn4FEaV52mPfw9DD4qO/leKa8jdrI5oU
+	 46Kxjg2ZmZWuZ6wuAj36M/Meb0Y5Yfl0Os+opY01Nh4exYL4lJ3OvoYEL3miynvBUtw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=HvTlA8fr;
-	arc=none smtp.remote-ip=209.85.216.51
-Received: from mail-pj1-f51.google.com (mail-pj1-f51.google.com [209.85.216.51])
+	dmarc=none header.from=gourry.net;
+	spf=pass smtp.mailfrom=gourry.net;
+	dkim=pass header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=NdrTQgDT;
+	arc=none smtp.remote-ip=209.85.222.170
+Received: from mail-qk1-f170.google.com (mail-qk1-f170.google.com [209.85.222.170])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DD5A7606A329
-	for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 05:49:51 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org DD5A7606A329
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2562E606A32A
+	for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 08:14:11 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2562E606A32A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=gourry.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gourry.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=HvTlA8fr
-Received: by mail-pj1-f51.google.com with SMTP id 98e67ed59e1d1-3b3af93b85cso281469a91.1
-        for <linux-arch@vger.kernel.org>; Mon, 16 Nov 2026 21:49:51 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gourry.net header.i=@gourry.net header.a=rsa-sha256 header.s=google header.b=NdrTQgDT
+Received: by mail-qk1-f170.google.com with SMTP id af79cd13be357-94961d90b79so326292485a.3
+        for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2026 00:14:11 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1794894591; x=1795499391; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=eJPyKHP64G2eKzhiRICR4S2i28pJ2+2iaIFvgsyda0E=;
-        b=HvTlA8frczprnGV9oZERL7YtGJ4Kl7oX929awdw7jEyRTP1C6BtfVWQxkKK8MH5hWU
-         0uY5ker2kfrApUFLZg/cu+LALqGuaKZD0fIiOONWamxbJXqDyLIaw5O3780FvPrErR8C
-         3f2gnt9lq8A7Q0bUlRvehyE5liaY1nPoURDqmB2d74LSaOgN3y2iKmrvPeTKLU3RUX9p
-         ojw3cLNNzHt0naRZoneZ0YeZHfbPgzux9ZnAQcgFrCFdaNaYxqUa4elMXHeYG8NM371F
-         /R9M0RNn1M9ou4tqd/urU9i1xHCpfadHm6NTWvsJmr99+gF14D/oiQ1Hnr0gqwwUl4zo
-         pWAQ==
+        d=gourry.net; s=google; t=1794903251; x=1795508051; darn=vger.kernel.org;
+        h=message-id:date:references:in-reply-to:cc:to:from:subject
+         :content-transfer-encoding:content-type:mime-version:from:to:cc
+         :subject:date:message-id:reply-to:content-type;
+        bh=fpQH2XklQvxbA0SCPjoqZpnVJxorf9+kCLsX6Cm+jf4=;
+        b=NdrTQgDTSZJRgv4GdN3+kP3VmEnoZSusnjp5ffZS9k9eyYQpSxQhoC3GfRfguClSnz
+         0DVzDtsZInrKl12qDzqg13nTFAtzGBsQjqzQTHhzLLUP1zZAeaLKa/iqfCN2DJQ37GbC
+         C7e+IfQpzoHT3blg7XCXnJsRlkrpgUM9DfhBZR3MXAtnQmJeIF8p28Zj2cex5YMxMiMF
+         ZGrAkcgzIRkz5rO+sVH4bC1LRPebD9bsrU2VEwa27s6mbJZS1rij47J38S64RFyGJsih
+         NHmJZohuIqjDAFZVaJB4CRi2d/EjsvhHAdQCXJexjiVzPbPoT2s+IPYmZPyTNQb4Xw2J
+         mvYQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794894591; x=1795499391;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=eJPyKHP64G2eKzhiRICR4S2i28pJ2+2iaIFvgsyda0E=;
-        b=DwSgMPaZl0EJjzJOOM520x9KUeGwUyyMrFMN8tVwjWVUv0wVt715HmcpMyGfB3bE2j
-         idClphqRXDqMaDdgtxCzohfrGB1BpBBWrU4G9oqKNu5dBr8p6jIoAfJ8lUrT/tH7dJv6
-         mkWq8YdrbGWhZXC5oQN0BrUfQbhdrAy6rADJEB+MBSIL76nOgrcZLts51X/dL04b8lXd
-         ePTJUcKjjtMi4eC7Sj5C+5IK2EWe3gsfOB/jtoNCvwi6hR1vUYJndF28nn6FlwL+Ik1x
-         NcKBSxWx70vF1TR+KFakxI4XU8e9Xn5YBsfbq/dmKADMiqKNHHOa0ZAsCdSQo6NR8I6c
-         h+8w==
-X-Forwarded-Encrypted: i=1; AL+hErF8wj9mezdUpoh1HAukGhcv9loaesU8HcGJR14AwkDoEaDZnBNeLpbcEUD8riKKvOYzkRIpYdPqiUb1@vger.kernel.org
-X-Gm-Message-State: APuU4Z+IpkKydittWyPAHnZStCFxVOry4exEtKwb2WrkoTcWrqlJGBWW
-	ZKnwHeLplooa414NI8KImomyejN+mJKw9HaXVPeaSu3m6RdNdTRGuHff
-X-Gm-Gg: AZFdTZcmIt2j2/qZ+mZ8RYrxznNJgGfB6+TiVN+CJu2RTZ3gbisx6F82DH0FZGurr27
-	FD7eZ7vKKOEte5NxDMAsD1T5xNCVv+n7VPEoUi09or7IvGwGpgh2iZOvr7GNhB7trUJ6kqZnn6l
-	+oovoEiwT7KiyiOQ7S8vfaXIPANsT/iihm9qLCLKPO/y+lfPRIvISNQzNJm+82GePeMf7ORR+3H
-	rOk1w2pTkSIvuEZvLD8d8V005Zc5qUVkHgBmE81cnI2IqStwoREgRdg0kYjYJBq7FVMc2fSZle5
-	qyh4tMogVtbBmh2hf8P27p1efjbWv6K2TENg1iUoIxK7FwO2kbL3jPLn9AkdObh8+jfPuGCndJ6
-	rnEv6GDWPDEw86Ba8lRj28uniBaVurczXscECJApRjMGn5Ktm+D0YxxCr3iC1BasHo8hbzF0FYs
-	Fu2y5DkmOCDRY7MRWAY586NzfuUjygllAaWq0PyQgsWb6U/EoWRwGBrbjQIm1d42k14pVgy/Tfw
-	m8BnIOkI/utPWQTa1M1sq9MaJ/GSh8W8Whi1SDdSAYNQ5VxBoUzINAys5Xs/nVnmz6N6KNWzJlt
-	IW5+OldN5k0DaGlASIBuZtM+Tytujiq1rQ==
-X-Received: by 2002:a17:90b:1846:b0:3a4:6f38:f2a2 with SMTP id 98e67ed59e1d1-3b1b0a3e7bemr11245113a91.25.1794894590926;
-        Mon, 16 Nov 2026 21:49:50 -0800 (PST)
-Received: from arm-a100.. ([140.112.28.118])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3b3ab9f3c5dsm2313835a91.0.2026.11.16.21.49.48
+        d=1e100.net; s=20260707; t=1794903251; x=1795508051;
+        h=message-id:date:references:in-reply-to:cc:to:from:subject
+         :content-transfer-encoding:content-type:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=fpQH2XklQvxbA0SCPjoqZpnVJxorf9+kCLsX6Cm+jf4=;
+        b=jVyvxzggZidoyRGfqbTvtTkmpNs3qmcv4I6yhTJzv0RFbMMFTpu2M8uj99/OVUUd65
+         Qk2hZ70R7P33EvZN25iZ9HvSlwhbzR7vkwp7mYs+KzAnHBvy7p2CtExZ+9wZfeU0npBu
+         kURXZhoIut0LkTF37OTwrRChtY8kyuW8XziEP71/w+HHu83nkKSa4+ZKIPB2HZL7my18
+         KLnHAEfFp1EZJXHjk2+DOvHUcRod6/96aKKZ8FfQaY32nSPSyrsyXEPhxduqOg9vG/K8
+         iKZRw8E/K/SPe5TK1YdHLxYOBXEMIAtvPxmnpPRnrEH+WP/iCY3kJUktNi5pD/y8XrRv
+         hKDA==
+X-Forwarded-Encrypted: i=1; AL+hErEAsEby7GuvAO3qYuR3x8SU9ks2JTKldKDZJ3xoliQisRhOPmdtzHG3mjO/aIMKeO6FrLQU4jeYPdeB@vger.kernel.org
+X-Gm-Message-State: APuU4Z+m1Xun4c3Ds8QHoItfqWs2BHwOqpJPtNrFUydMXbmqhpt/hU5h
+	nbQvqULeR5dyRG3WlSYwXSm5gLi/2Vif7TI3GUUpSbGF4nmB5LrOXEln15YYjmmJMcw=
+X-Gm-Gg: AYBFou2wFwO4NrCXXIsB+/5Y9QiubxODRlaWi3Ff7hoqmmKAS7n2Mb46yhqSDlNT28t
+	mIVPISltVy1ZF6cc1wvRKC1WjuiLaUjCZzsx+2fw4/wci7ilOqyusZhXqFMlx4BDVzSji7JqtuU
+	dEQ4E4+GKqldUkmELf0P1w0fru9lRF0cH9N069CUG1CLwvqw11RjSRWgEIjmXiGOKml+vuHLWLE
+	dCmgUTaaE98xaQEUZYybwYWarCJJSdT6UoG1uvImMmeMvwjXh+nnFsB2N722EYNTrYCsPLT/K+b
+	jaxiW2T+i1xMammbPYbRwhqYuJFYlAVHfj3ThhxiKaloxBBH64siXSbE8OpLz8Z8FyIm59Io4+i
+	XxEF9/NBB7WITQTI0E6FQ1hWAffJdbTnhQQy5IlmpZxrL0uuutX0rkjGc1DKV1x+FsjCWLHS4mR
+	4e7wQAIfM5mIpj9Lk/ze79EeQehFJFDp795uMrUn1XhpMjxhIcF4HuUd1q2TVaMfuWgRBQg24Lv
+	DnJ3hewV50sC9uHTuj2TC1wH3G5rHsLFuc1KB+Ix4/+YUWptmbSNAjXl768hSqY92AXfTb7kDiw
+	Fsq/DnUltPf9GtvkqxkSjvQPZG8phfTFG6svbpe2tV5+tSJ11rhNGJxE+kr35M8EDDJHALcHR62
+	OC8TSHwM=
+X-Received: by 2002:a05:620a:2a06:b0:93e:b0c3:388d with SMTP id af79cd13be357-9494b9432demr2192163085a.11.1794903250936;
+        Tue, 17 Nov 2026 00:14:10 -0800 (PST)
+Received: from [192.168.50.231] (pool-71-191-145-202.washdc.fios.verizon.net. [71.191.145.202])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-9494c5fd154sm1021436485a.2.2026.11.17.00.14.09
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 16 Nov 2026 21:49:50 -0800 (PST)
-From: Tzu-Ching Yang <shingekinocore@gmail.com>
-To: Brian Cain <bcain@kernel.org>,
-	linux-hexagon@vger.kernel.org
-Cc: Yury Norov <yury.norov@gmail.com>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	llvm@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH] hexagon: bitops: use the compiler builtins for ffs(), fls() and ffz()
-Date: Tue, 17 Nov 2026 13:49:39 +0800
-Message-Id: <20261117054939.2126980-1-shingekinocore@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        Tue, 17 Nov 2026 00:14:10 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -99,204 +89,102 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v2 04/15] mm/hugetlb: account temporary folios
+ separately
+From: "Gregory Price (Meta)" <gourry@gourry.net>
+To: "David Hildenbrand (Arm)" <david@kernel.org>
+Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>, 
+ Naoya Horiguchi <nao.horiguchi@gmail.com>, 
+ Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, 
+ Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>, 
+ Michal Hocko <mhocko@suse.com>, Rik van Riel <riel@surriel.com>, 
+ Hugh Dickins <hughd@google.com>, 
+ Baolin Wang <baolin.wang@linux.alibaba.com>, 
+ Vivek Kasireddy <vivek.kasireddy@intel.com>, 
+ Dave Airlie <airlied@redhat.com>, Jason Gunthorpe <jgg@ziepe.ca>, 
+ Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, 
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+ Suren Baghdasaryan <surenb@google.com>, Jonathan Corbet <corbet@lwn.net>, 
+ Shuah Khan <skhan@linuxfoundation.org>, 
+ Randy Dunlap <rdunlap@infradead.org>, Peter Xu <peterx@redhat.com>, 
+ Breno Leitao <leitao@debian.org>, Will Deacon <will@kernel.org>, 
+ "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+ Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+ Alexander Gordeev <agordeev@linux.ibm.com>, 
+ Christian Borntraeger <borntraeger@linux.ibm.com>, 
+ Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>, 
+ linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+ Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org, 
+ linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, stable@kernel.org, 
+ Josef Bacik <josef@toxicpanda.com>
+In-Reply-To: <20261116-fixes_hugetlb-v2-4-4dd9e94ea9ac@kernel.org>
+References: <20261116-fixes_hugetlb-v2-0-4dd9e94ea9ac@kernel.org>
+ <20261116-fixes_hugetlb-v2-4-4dd9e94ea9ac@kernel.org>
+Date: Tue, 17 Nov 2026 03:14:09 -0500
+Message-Id: <179490324902.482102.8381563244741940633.b4-reply@b4>
+X-Mailer: b4 0.17-dev
 
-The hexagon inline asm for ffs(), __ffs(), fls(), __fls() and ffz() is
-not needed: Clang, the only compiler that builds hexagon kernels, emits
-the same ct0, cl0 and ct1 instructions for the compiler builtins, and
-unlike the asm, the builtins fold constant arguments. The asm dates
-from the 2011 port (a86a7ce30ac0, "Hexagon: Add bitops support"),
-before the builtin-based asm-generic helpers existed (048fa2df92c3,
-"generic: Implement generic ffs/fls using __builtin_* functions").
+On 2026-11-16 19:29 +0100, David Hildenbrand (Arm) wrote:
+> Hugetlb migration might have to allocate a temporary folio through
+> alloc_migrate_hugetlb_folio(). Such folios are currently accounted in
+> "nr_huge_pages" but not in "surplus_huge_pages". persistent_huge_pages()
+> can mistake them as persistent huge pages, as it merely calculates the
+> difference.
+> 
+> If set_max_huge_pages() shrinks the pool at the wrong time, it will turn
+> hugetlb folios into surplus folios until persistent_huge_pages() returns
+> the desired number.
+> 
+> After the migration (successful or unsuccessful) either the new (temporary)
+> folio or the old folio gets freed: this will reduce "nr_huge_pages" but
+> not "surplus_huge_pages", to undo what was done when allocating a
+> temporary folio.
+> 
+> This can result in having more surplus folios than actually allocated
+> folios:
+> 
+>   HugePages_Total:       0
+>   HugePages_Surp:        1
+> 
+> From then on persistent_huge_pages() returns garbage.
+> 
+> To fix it, add internal temporary counters and subtract them when
+> calculating persistent pool sizes. Update persistent_huge_pages() and add
+> persistent_huge_pages_node() to make the code easier to read.
+> 
+> Count migration targets and rejected surplus allocations as temporary.
+> Transfer the per-node temporary count along with the temporary flag on
+> migration, such that folio freeing will always do the right thing.
+> 
+> Take care of calling account_new_hugetlb_folio() only after setting the
+> folios to be temporary.
+> 
+> For now, keep temporary folios in nr_huge_pages, so HugePages_Total and
+> Hugetlb continue to include them and overcommit accounting remains
+> unchanged. The new temporary counters are internal for now and are not
+> exported to userspace.
+> 
+> Fixes: ab5ac90aecf5 ("mm, hugetlb: do not rely on overcommit limit during migration")
+> Cc: stable@kernel.org
+> Reported-by: Josef Bacik <josef@toxicpanda.com>
+> Acked-by: Muchun Song <muchun.song@linux.dev>
+> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
 
-Replace the asm with the asm-generic builtin helpers, and ffz() with
-the generic __ffs(~x), as arm64 does.
+My only commentary on this set is that "Surplus" is a horribly confusing
+name :|
 
-ffs(0) and fls(0) still return 0. __ffs() and __fls() now return
-unsigned int, which is as wide as unsigned long on hexagon, and ffz()
-returns unsigned int instead of long. __ffs(0), __fls(0) and ffz(~0)
-remain undefined.
+I was able to replicate Patch 4 and 5 bugs together pretty trivially
+with migrations, leaving the surplus counters out of sync.
 
-With Clang 17 to 23, the functions of a defconfig vmlinux shrink by 1972
-to 6068 bytes in total (scripts/bloat-o-meter -t). One helper in
-lib/find_bit.c gets worse: _find_last_bit() executes one instruction
-more per call that finds a bit, because LLVM rewrites 31 - clz as 31 ^
-clz once it knows clz < 32, and the hexagon backend keeps the xor, which
-needs the 31 in a register, instead of sub(#31, Rs) [1]. A few 1 <<
-ffz() sites also grow by a few instructions, as LLVM rewrites that
-expression too [2]. __find_nth_bit() executes two fewer, and the other
-helpers that find_bit_benchmark calls the same number.
+Nice to see these accounting bugs finally fixed, we've seen them in
+production for far too long without an obvious resolution.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Link: https://lore.kernel.org/all/affe7da1-41aa-4710-bee0-5e3c2b8a8dfc@app.fastmail.com/
-Link: https://github.com/llvm/llvm-project/issues/236764 [1]
-Link: https://github.com/llvm/llvm-project/issues/236765 [2]
-Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
----
-I have no hexagon hardware, and mainline does not boot in QEMU yet. On
-Brian's out-of-tree bcain/hexagon-qemu-virt branch (dc370baa041d,
-v7.3-rc1 plus 24 patches) with this patch on top, qemu_defconfig plus
-the ffs and bitops KUnit tests and find_bit_benchmark, built with Clang
-17 and 23, boots under qemu-system-hexagon from qualcomm/qemu hex-next
-with -M virt,hvm=on (and under -M qcs6490-cdsp with the prebuilt H2
-hypervisor); the KUnit tests pass before and after, with the same
-.config on both sides. Under -M virt,hvm=on, with a TCG plugin that
-writes the same bitmaps into both kernels before each test and counts
-the executed instructions without interrupts, find_bit_benchmark's
-find_last_bit executes one instruction more per iteration,
-bitmap_find_next_zero_area_off 36 more on the random bitmap through its
-find_last_bit() calls, find_nth_bit and test_bitops' fns() two fewer,
-and the other tests the same.
+Tested-by: Gregory Price (Meta) <gourry@gourry.net>
+Reviewed-by: Gregory Price (Meta) <gourry@gourry.net>
 
-Under qemu-hexagon (user mode), the old and new helpers return the
-same values for every defined 32-bit input, and fls64() and __ffs64()
-for selected 64-bit inputs, with Clang 17 to 23 at -O2 and -Os.
-
-defconfig (also with the KUnit tests and find_bit_benchmark, with -Os
-and with -mv73) and allmodconfig were built with Clang 17 to 23 before
-and after, with the same .config on both sides: same W=1 warnings, no
-calls to __ctzsi2(), __clzsi2() or ffs(), and a smaller bloat-o-meter -t
-total in every defconfig-based vmlinux. allmodconfig does not link with
-Clang 17 and 18, before or after: ld.lld before 19.1.5 rejects the calls
-in head.S as out of range.
-
-Instructions of each helper in a test function that only returns its
-result (return included), built with the kernel's flags by Clang 17
-to 22 at -O2 and -Os; Clang 23 adds an allocframe to both rows:
-
-            ffs  __ffs  fls  __fls  ffz
-  asm         6      3    4      4    3
-  builtin     5      2    3      3    2
-
-The instruction saved is the copy of the result to r0: the asm's
-early-clobber output ("=&r") cannot share the argument's register.
-
-In packets, only ffs() takes one more than the asm (4 -> 5): with
-df5e4db805d5 ("hexagon: disable the LLVM packetizer") applied, each
-instruction of the builtin version gets a packet of its own, while
-the asm is bundled by hand. Without that workaround, which linux-next
-does not have yet, ffs() goes from 6 instructions in 3 packets to 5
-in 2.
-
-Against the bcain/hexagon-fixes branch of bcain/linux.git
-(0304683b4c43); also applies to next-20261113 and to bitmap-for-next.
-
- arch/hexagon/include/asm/bitops.h | 100 ++----------------------------
- 1 file changed, 5 insertions(+), 95 deletions(-)
-
-diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
-index b23cb13833af..975328172b7c 100644
---- a/arch/hexagon/include/asm/bitops.h
-+++ b/arch/hexagon/include/asm/bitops.h
-@@ -194,101 +194,11 @@ arch_test_bit_acquire(unsigned long nr, const volatile unsigned long *addr)
- 	return retval;
- }
- 
--/*
-- * ffz - find first zero in word.
-- * @word: The word to search
-- *
-- * Undefined if no zero exists, so code should check against ~0UL first.
-- */
--static inline long __attribute_const__ ffz(int x)
--{
--	int r;
--
--	asm("%0 = ct1(%1);\n"
--		: "=&r" (r)
--		: "r" (x));
--	return r;
--}
--
--/*
-- * fls - find last (most-significant) bit set
-- * @x: the word to search
-- *
-- * This is defined the same way as ffs.
-- * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-- */
--static inline __attribute_const__ int fls(unsigned int x)
--{
--	int r;
--
--	asm("{ %0 = cl0(%1);}\n"
--		"%0 = sub(#32,%0);\n"
--		: "=&r" (r)
--		: "r" (x)
--		: "p0");
--
--	return r;
--}
--
--/*
-- * ffs - find first bit set
-- * @x: the word to search
-- *
-- * This is defined the same way as
-- * the libc and compiler builtin ffs routines, therefore
-- * differs in spirit from the above ffz (man ffs).
-- */
--static inline __attribute_const__ int ffs(int x)
--{
--	int r;
--
--	asm("{ P0 = cmp.eq(%1,#0); %0 = ct0(%1);}\n"
--		"{ if (P0) %0 = #0; if (!P0) %0 = add(%0,#1);}\n"
--		: "=&r" (r)
--		: "r" (x)
--		: "p0");
--
--	return r;
--}
--
--/*
-- * __ffs - find first bit in word.
-- * @word: The word to search
-- *
-- * Undefined if no bit exists, so code should check against 0 first.
-- *
-- * bits_per_long assumed to be 32
-- * numbering starts at 0 I think (instead of 1 like ffs)
-- */
--static inline __attribute_const__ unsigned long __ffs(unsigned long word)
--{
--	int num;
--
--	asm("%0 = ct0(%1);\n"
--		: "=&r" (num)
--		: "r" (word));
--
--	return num;
--}
--
--/*
-- * __fls - find last (most-significant) set bit in a long word
-- * @word: the word to search
-- *
-- * Undefined if no set bit exists, so code should check against 0 first.
-- * bits_per_long assumed to be 32
-- */
--static inline __attribute_const__ unsigned long __fls(unsigned long word)
--{
--	int num;
--
--	asm("%0 = cl0(%1);\n"
--		"%0 = sub(#31,%0);\n"
--		: "=&r" (num)
--		: "r" (word));
--
--	return num;
--}
-+#include <asm-generic/bitops/builtin-__ffs.h>
-+#include <asm-generic/bitops/builtin-ffs.h>
-+#include <asm-generic/bitops/builtin-__fls.h>
-+#include <asm-generic/bitops/builtin-fls.h>
-+#include <asm-generic/bitops/ffz.h>
- 
- #include <asm-generic/bitops/lock.h>
- #include <asm-generic/bitops/non-instrumented-non-atomic.h>
-
-base-commit: 0304683b4c43048082483e9445fdd0691d088431
 -- 
-2.34.1
+~Gregory
 
