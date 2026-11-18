@@ -1,95 +1,150 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=40.93.198.15
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795030603;
-	b=1dYF5GG4zLimrCKAjg/M6HWjLhKWU0USvpn/VecsgRzmQWps8pyDgcCVHHIcAKxnRezx
-	 8+F2qmDlSD9ojkQmH/RojNTwl6xfFZSB/0guO+Qx5coS/RSXx0ryPaAin1PIh4WJnMguQ
-	 auWmk/k1nhxxX/rGgtZjRFOWgkC72FivGViHNzfv94rsx0vhvTMyaqQ9sRPJqhlLb0XUr
-	 U5+Ket6GncVG3zQ1NAsvQA6L3dJJBjs3iOWDBsDueEfvmmcr4u4aPLd4N1bkehPqExqh4
-	 B58mTykshr3Oqm0goRxIoRZL3SyJlGLMYfbGbA1TyRS4l+5WWRvRcHHZGRfb/4xOtEg==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795030603;
-	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:Content-Type:Content-Disposition:
-	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
-	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
-	 X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=2 smtp.remote-ip=52.101.83.29
+ARC-Seal: i=3; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1795038145;
+	b=ckLkSjzvNdiSuqpYjtJfcUJde93LZMSYiosU1HZ19Cw7Nwkj9P8usHkk2Sjdn9ebsbh9
+	 o/H4Hqy01r0/y1FB5y6UGXsaka4dEfiHgMBBiqI4hi69PbeJWghS8iWVQtbPua8aHcici
+	 mpl+F8QT+uFRolUUUpFofPe1ZHkXcgb23RBPOX4JbF6jm9iW9m5ThTqJ7Rfrhzmq4T8C8
+	 clFjMisrsE/ZL0+CGckUbsbN3Q985frXyRHIlFQhNf8FG/Mwl2PDPiC1Owrr+W5dQLDU4
+	 rqWGSTE1Zw7snu+OtKZU8gonJ74l5yPqK2QQ7iLFvdO+eNbtYwaFXNJ/5xTr1udt0dA==
+ARC-Message-Signature: i=3; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795038145;
+	h=DMARC-Filter:DKIM-Signature:Received:Received:
+	 X-MS-Exchange-Authentication-Results:Received-SPF:Received:
+	 DKIM-Signature:Authentication-Results-Original:Received:Received:
+	 Message-ID:Date:User-Agent:Cc:Subject:To:References:Content-Language:
+	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:
+	 X-ClientProxiedBy:MIME-Version:X-MS-TrafficTypeDiagnostic:
+	 X-MS-Office365-Filtering-Correlation-Id:x-checkrecipientrouted:
+	 NoDisclaimer:X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
+	 X-Microsoft-Antispam-Untrusted:
+	 X-Microsoft-Antispam-Message-Info-Original:
+	 X-Forefront-Antispam-Report-Untrusted:X-Exchange-RoutingPolicyChecked:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStamped:
+	 X-EOPAttributedMessage:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStripped:
+	 X-MS-PublicTrafficType:X-MS-Office365-Filtering-Correlation-Id-Prvs:
 	 X-Microsoft-Antispam:X-Microsoft-Antispam-Message-Info:
 	 X-Forefront-Antispam-Report:
 	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
 	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
-	 X-MS-Exchange-CrossTenant-Network-Message-Id:
-	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
 	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
+	 X-MS-Exchange-CrossTenant-Network-Message-Id:
+	 X-MS-Exchange-CrossTenant-Id:
+	 X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp:
+	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
 	 X-MS-Exchange-CrossTenant-FromEntityHeader:
-	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
-	 X-MS-Exchange-CrossTenant-UserPrincipalName:
 	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=jc/Bg5KeNWPzRZfBZFQHFFsfcct4miIggNr3HlsGPnk=;
-	b=k+5b9CMb4dqMNQbdPjGpNW+amfF3ZdPP5fe7cnwetQvRuXT2Hwm9aAL/OLTgLszEYzia
-	 rsofHkkMZS01qbmxsx0I9dpFeda8OUjJFLuPL5nAF6VD9pmMPHoW42/+RRfIJMYpKuovv
-	 NEkLu1xjgTPiYRWbcDKvpbZdXJznu0vnxjwX+ctf1MDq2Gm3WP0DX9/QmonjBpLEkRfrC
-	 9nl7I6X1ZcOh5XhCwdZNGDgeDu88Z+RWe/sbfbPXZ2W4NKmxvE6QDlXS9I3mBPZPyQlfH
-	 zTVszvMiTtIvaQXiOEQuHY1pWfH+N9SnK1sFPyL3AAZ2lu5LSvQVtryVyxK3B6wFkCw==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=nvidia.com;
-	spf=fail smtp.mailfrom=nvidia.com;
-	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=s7G4VDYN;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=40.93.198.15
-Received: from CY7PR03CU001.outbound.protection.outlook.com (mail-westcentralusazon11010015.outbound.protection.outlook.com [40.93.198.15])
+	bh=iWkougLfY8DBu/z7WG2F7sgZM3/v0HMzoh0y03bZqiE=;
+	b=XfYSwmEj9aZqDFAA2PqVKEc6jNE0qfiAwHKEbliTou9nHNGpiokMBtBUaIe63mIe8YiZ
+	 m65ezXpQLLs3oqLtUR9Q9xAZmPq4LSRz4q7HZ/QtlOVVOaw+GKoBPdlAfIhq1/HSG+syp
+	 KekaIGwlyBN3BVLIcOEfVJlZdLypjchrsYsLqYvvQeLj0xTAjy4b615T0UUBnXYcG+d/X
+	 oPUDKZVYYKBuF7oBxqvPud8nw68SbUL6h4WM+dS3uQphoomMFKZyq2LbYf3w73cFCysBW
+	 oLRJvbveienwETpjOG7F2D50osCl96xLZTxKH3rr3ksRCKGxMvW3hVsDLASw7NfXQew==
+ARC-Authentication-Results: i=3; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=selector1 header.b=KKCV8xwO;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=selector1 header.b=KKCV8xwO;
+	arc=pass header.oldest-pass=2 smtp.remote-ip=52.101.83.29
+Received: from GVXPR05CU001.outbound.protection.outlook.com (mail-swedencentralazon11013029.outbound.protection.outlook.com [52.101.83.29])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0E4E6073D4D;
-	Wed, 18 Nov 2026 19:36:42 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D0E4E6073D4D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 323F4606A32A;
+	Wed, 18 Nov 2026 21:42:23 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 323F4606A32A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=s7G4VDYN
+	dkim=pass (1024-bit key, unprotected) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=selector1 header.b=KKCV8xwO;
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=selector1 header.b=KKCV8xwO
+ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
+ b=WOdyakrMeDLsk/6pW/kszbIXTec4jL6PMT/N5gGALKoyBJfRH5rKDydo1/HemTwQqm05XBluImCrO/e5sZky64UJkQIbJHpezKWe7DZAiqfirL073lzCkoWdhYZz3cXhHNQG3Nez8j9iAz4yjOxNGR8eNAhGuly8yFs8bGUBf5xfsU6NbOpLxnzb21kZ/Vbt4I7j0FsEwM24OJ3RckIgblOVXuTPzmsI0oFxDwk8VIF+OV3lxQ3wjDC63WoclHrADTwgH+vsa++qKpcV3zPtZckqdE51otDkZgwPLGYwjT4DVqhKu0XrevAS4YBRzBp7wDMvz5l9Zu1xgzaw2XBkzA==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=iWkougLfY8DBu/z7WG2F7sgZM3/v0HMzoh0y03bZqiE=;
+ b=nAawEQXitKJUGga4DF2UVoqBydOVBqGWCcddvpIAplsJwTfUNlZMStH1WmYrl+t82vew11q2XisZnsU0F6ETy2oJhnw1WRZpwFjGy5Yr5jrdHcF1sj3cN7tAw7M1pIUGt2PFFk+XNAUehnnYVXGFQVYKS6jXSTKj79XKkNYluyafa8tixEnc5EcvG80PGDNhd23662femXRDrNfaN7dVwLjsqrSXNFvk2qoxmK1jrRE+9rzm4n3mCoU5cwhQkGuQMYGLdzzxiQ5wlhhUZO4SfxSiXyE/dIKceDoZnCRvnKk9H7fObZClmaUNt4w9SpF1F5ky6WvcM4pA6hFCLYcuQw==
+ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
+ 4.158.2.129) smtp.rcpttodomain=linux-foundation.org smtp.mailfrom=arm.com;
+ dmarc=pass (p=none sp=none pct=100) action=none header.from=arm.com;
+ dkim=pass (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
+ spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
+ dmarc=[1,1,header.from=arm.com])
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=iWkougLfY8DBu/z7WG2F7sgZM3/v0HMzoh0y03bZqiE=;
+ b=KKCV8xwOwHfsUyt8ejeT4EufBv68xUd9JaM7fpJgnh9CDx0tOBAI7+CeDuUWQHAjIuu5blR3C4kEtmuulrtpkyVyNoLwNyH08vZB7a4MJmL26sMBJtVy10WUifTzuBAMqFUd35iDHDXA6dBURv3SoLCC0APwUQJjTev4e2+O7FI=
+Received: from AS4P190CA0030.EURP190.PROD.OUTLOOK.COM (2603:10a6:20b:5d0::20)
+ by DB9PR08MB7724.eurprd08.prod.outlook.com (2603:10a6:10:393::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.615.10; Wed, 18 Nov
+ 2026 21:42:19 +0000
+Received: from AMS0EPF00000568.eurprd02.prod.outlook.com
+ (2603:10a6:20b:5d0:cafe::20) by AS4P190CA0030.outlook.office365.com
+ (2603:10a6:20b:5d0::20) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.615.14 via Frontend Transport; Wed,
+ 18 Nov 2026 21:42:19 +0000
+X-MS-Exchange-Authentication-Results: mx.microsoft.com 1; spf=pass (sender IP
+ is 4.158.2.129) smtp.mailfrom=arm.com; dkim=pass (signature was verified)
+ header.d=arm.com;dmarc=pass action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
+ client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
+Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
+ AMS0EPF00000568.mail.protection.outlook.com (10.167.242.118) with Microsoft
+ SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.615.4
+ via Frontend Transport; Wed, 18 Nov 2026 21:42:18 +0000
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=tu0+WJkoImunbS4q83J5GgsSAxqyyEAzisZYkVmIbvT2sz440+gZZdkiLWX7sNRKMeiCLtzDAUCyY6FLWyabedAcr60bamS920D7U6L+zPtijAduomZ+LB87l9Sg+mTdTT5y/fFB5lATebLrEjMKh8HuZPrYIm1S0vkodlhFyKUlmFNQX/lALY/PnD+l6mffvMcVThJyF1Ylvesflq7uj7kBQnL84tM5634wUHlczj+rrq5HEH82mesBI++T+xMmX40ye3xuniKGfugun/MOuw5FPc7aleWY94qiE5JjmC9vzy+BoCVv+SmJtdurQ+jYGDkjyVDFPxtpEQgkyPm3Jw==
+ b=XAqA/pr6WB8BIbERXYfdJmKVzu5YPoHq5rMSQ6/X6ph8kTiafLZVgdPQvNzXwxyn4NDwD13Lan3uqXcywBpsgXZXJ8L9RnHRUsstznE6DM5t5dl33yOOnbepRGPi4GJ4kDIOwEWMKe25YZctiIqUDtO13svWSycQ5yPXjz/1EV5xi7+USpldG9uP/fu4XCgzNAffLWRErZlq1JdqKzIWimNc1XAL1wB5DtA3CCyRgkj5qfK2g2oIpC1VnmNFVRvjiiiDZ4ABW4GTjH8M/83bgUkDLf9U9bycn+i+DfUU3tAPSZgtIMohukrHDCyN/iBjVi9IsJqljl0AoU75y3TvjQ==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=jc/Bg5KeNWPzRZfBZFQHFFsfcct4miIggNr3HlsGPnk=;
- b=GVhArOv13iqud6VXyvQ3ElNtS+i2gtze1ilm2eRdoRnI5Xhsoi+4s0qGziyvau43HPdCfkHddzLgwGEncrwCMpLFzGhkwQBkIkhRrJBhf9mueY2Y3036icCopk5/8JGd2/a00Kcaa1wmM1V/ux5f2mUBZXrJ6u3/SzQ4sPhbTq38/scMXpMXs+d7z9x5yYnOOFs5kBriAChleaYO2bP/OibUoy0Kg0CthtCAZLa0WhcpEjA1Vgls+a8TSLRrodtu/kYHkIIWAoddO9e5phBfm53icKjV2f+xxDI6JY1GAF6i87YCDqT9GNT55QaaoXLk6xrxylRUD2nLCUvUXb1Zkw==
+ bh=iWkougLfY8DBu/z7WG2F7sgZM3/v0HMzoh0y03bZqiE=;
+ b=NUTvhx2ZNG6Um0O0lk+ZRmyeH3Y5gFt76ZUb+wqVA7r73Z1FI1mj4qdC+V3iJsWNqvo8pBHEWPEARch0Ca69h/R+pD6XHYL6LmIIpTn8dSxuj6PIY9w2dV6+hMkR3wwK5K4YWoJpyhjwzSkf4buVk9gLy95RUzGiRnijDqyamg3r6AYBeSX+dYNB/MFybMlqPLRNgxuqpknDpyGC2hk1NFltyzeYgcM+5RsqWzuujkTxZwXsf0p7gf2ApZHlbXWnuvL6+1ZYGCnM53NJcv8Yr4JQV87WHqoeqmM/T1ES8lO6BTd+6M9brmZ38OoRWg+jNfwGmKlKirIWUz9JI3fisQ==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=jc/Bg5KeNWPzRZfBZFQHFFsfcct4miIggNr3HlsGPnk=;
- b=s7G4VDYNLkpWex0i827vzfEmgi5NzlD+cUCp4Oigj4haZ4TOyhBWKf1QTErjiE+cZsoQcrEnT1qEV8mz3HM/v3eICVzFIr3DQJyE+CqKDbIHeVpSb3KeYb+kbkldefrrzfz3uEyMFLnjfazUcIo8oqOz/tVRTxyQ1N0Oo7Mk5gbuwQyJ2i7c6gKbjt5DN3c5DhAFH9+aVwmfPIjPmgsU0CCGpIPZ9RrJrDPyNtpnIi8M1LYNCtFY0Sl08FauKY8nH++ov/ndgVKX8GwJcPIKSAqo1o+ukFVUIE1FPIT61NSimN86w1B6sugy2FM6fGDJatse/Q0dOS0ng+0td/In3w==
-Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from LV3PR12MB9356.namprd12.prod.outlook.com (2603:10b6:408:20c::21)
- by CH3PR12MB9023.namprd12.prod.outlook.com (2603:10b6:610:17b::12) with
+ bh=iWkougLfY8DBu/z7WG2F7sgZM3/v0HMzoh0y03bZqiE=;
+ b=KKCV8xwOwHfsUyt8ejeT4EufBv68xUd9JaM7fpJgnh9CDx0tOBAI7+CeDuUWQHAjIuu5blR3C4kEtmuulrtpkyVyNoLwNyH08vZB7a4MJmL26sMBJtVy10WUifTzuBAMqFUd35iDHDXA6dBURv3SoLCC0APwUQJjTev4e2+O7FI=
+Authentication-Results-Original: mx.microsoft.com 1; dkim=none (message not
+ signed) header.d=none;dmarc=none action=none header.from=arm.com;
+Received: from GV2PR08MB9229.eurprd08.prod.outlook.com (2603:10a6:150:d5::21)
+ by DB9PR08MB9828.eurprd08.prod.outlook.com (2603:10a6:10:45f::6) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.615.14; Wed, 18 Nov
- 2026 19:36:37 +0000
-Received: from LV3PR12MB9356.namprd12.prod.outlook.com
- ([fe80::1c36:31b4:c420:6286]) by LV3PR12MB9356.namprd12.prod.outlook.com
- ([fe80::1c36:31b4:c420:6286%4]) with mapi id 15.21.0615.012; Wed, 18 Nov 2026
- 19:36:35 +0000
-Date: Wed, 18 Nov 2026 14:36:21 -0500
-From: Yury Norov <ynorov@nvidia.com>
-To: Tzu-Ching Yang <shingekinocore@gmail.com>
-Cc: Brian Cain <bcain@kernel.org>, linux-hexagon@vger.kernel.org,
-	Yury Norov <yury.norov@gmail.com>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	llvm@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] hexagon: bitops: use the compiler builtins for ffs(),
- fls() and ffz()
-Message-ID: <av3-Nf01tdGw62lh@yury>
-References: <20261117054939.2126980-1-shingekinocore@gmail.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261117054939.2126980-1-shingekinocore@gmail.com>
-X-ClientProxiedBy: BY3PR10CA0009.namprd10.prod.outlook.com
- (2603:10b6:a03:255::14) To LV3PR12MB9356.namprd12.prod.outlook.com
- (2603:10b6:408:20c::21)
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.615.10; Wed, 18 Nov
+ 2026 21:41:44 +0000
+Received: from GV2PR08MB9229.eurprd08.prod.outlook.com
+ ([fe80::4dea:4c1:9d33:db7f]) by GV2PR08MB9229.eurprd08.prod.outlook.com
+ ([fe80::4dea:4c1:9d33:db7f%7]) with mapi id 15.21.0615.009; Wed, 18 Nov 2026
+ 21:41:43 +0000
+Message-ID: <959a843d-f579-4aa7-8299-c6e9c5d03812@arm.com>
+Date: Wed, 18 Nov 2026 21:41:41 +0000
+User-Agent: Mozilla Thunderbird
+Cc: usama.anjum@arm.com, Andrew Morton <akpm@linux-foundation.org>,
+ David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ Ryan Roberts <ryan.roberts@arm.com>, Will Deacon <will@kernel.org>,
+ Mark Rutland <mark.rutland@arm.com>,
+ Anshuman Khandual <anshuman.khandual@arm.com>, Zi Yan <ziy@nvidia.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Samuel Holland <samuel.holland@sifive.com>, Peter Xu <peterx@redhat.com>,
+ linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v3 0/9] mm: distinguish HW PTE pointers from SW PTE value
+ pointers
+To: Catalin Marinas <catalin.marinas@arm.com>
+References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
+ <avtAQCkvRr1xkxMF@arm.com>
+Content-Language: en-US
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+In-Reply-To: <avtAQCkvRr1xkxMF@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-ClientProxiedBy: LO4P123CA0366.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:600:18e::11) To GV2PR08MB9229.eurprd08.prod.outlook.com
+ (2603:10a6:150:d5::21)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -99,263 +154,176 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: LV3PR12MB9356:EE_|CH3PR12MB9023:EE_
-X-MS-Office365-Filtering-Correlation-Id: df2c0a65-6ffd-4f8a-d029-08df45ab4150
+X-MS-TrafficTypeDiagnostic:
+	GV2PR08MB9229:EE_|DB9PR08MB9828:EE_|AMS0EPF00000568:EE_|DB9PR08MB7724:EE_
+X-MS-Office365-Filtering-Correlation-Id: bdcc6a8e-d352-48b4-6ac5-08df45bcd1ca
+x-checkrecipientrouted: true
+NoDisclaimer: true
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam-Untrusted:
+ BCL:0;ARA:13230040|23010399003|366016|1800799024|376014|7416014|22082099003|18002099003|6133799003|3023799007|261028144727099003|56012099006|4143699003|11063799006|261026140227099003|261102123227099003|261026121527099003|261022105027099003|261021123027099003|261021121427099003|261022075727099003|261009223027099003|10067099003;
+X-Microsoft-Antispam-Message-Info-Original:
+ l3P0q8zyjDOhnDMdWr4OjxOkPek2/d6R7l73n2dxMg1nhGnxUxMpXwfUN+TP7DWHTf6qkeCwEIRu/elBqSMUWm+u6LGJTNc2Ep5lUfAHHbtC7nugeD60U9n/sjqyKl90SX8eClA4zknHGsylw7xLSKX8cJ6v+NmpE1yxyWnAJWBfmfcv9tnNuNnAqP8OFhFT/JKy0skit1m/tuESwXPIg9inYwP+iMBvshceQKaTV1AnILH7fmFyWHXVH6bvDkFS5GOMi5gTY3EiulyDipqpifbnoUTsOxhJNvTg+1WaKQ6vh33hBiuY+vyXR1qZkUiaIEsxgpQu/BKHJ892TqyDAOtJmf1folRCw7+h2y+CF1UciuNQ43rzTh7F1dJza3IZXs/Alv3hxtnY4n6XFYRJenztFKMNLzl4hWpbC5P8JEgCTZykmlR8b7egrrIhnxAX5SZZWtdWj/DlR8pMOXCZoL3974rGDD2t/nPf8miV2lAiSAgrZHzj6mtnAwQW063fpPB2weyxEuBmrZUwFi/pRVlcK8KWOj1bXi8WMFvVuGJCCwOp2k3pXzhyQGj8Bc5uGsucUGynJ+nTfgXLH1fEgbYa9oqCvi5ZhQfETIfGlQc=
+X-Forefront-Antispam-Report-Untrusted:
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:GV2PR08MB9229.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(366016)(1800799024)(376014)(7416014)(22082099003)(18002099003)(6133799003)(3023799007)(261028144727099003)(56012099006)(4143699003)(11063799006)(261026140227099003)(261102123227099003)(261026121527099003)(261022105027099003)(261021123027099003)(261021121427099003)(261022075727099003)(261009223027099003)(10067099003);DIR:OUT;SFP:1101;
+X-Exchange-RoutingPolicyChecked:
+ u3iQJ3ZkHpXIb4elOaAy+2lusnBVKbeXa1M1X9Px+5c290cjp6T17sL2D3E/UMKPteER4ch6TyW2nXvxSbW9KR/RxfGC3NfGk1RmSbiZNanal63MY7cA/p0ZkqoNsGY8w78DrrQvnH+RNOuaEdBdFAzXkA8hNOPpRjgafzqnAFicnRpKa1MTkW4AGqZpAjORNNShAL5soAHhdh7Av6wMxpWSQRU6yxEMuJDFGo7vTHLgMBP4YLXeogQ5+CLlodq5AZwuW9FsxId2IJ0rYuAS9u2WylLsAryjGxsLlqJnqFALE/HrLtQRk5IJCBH7tPyJ1M5RNEZhAl9T/2O8vfFAUA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DB9PR08MB9828
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped:
+ AMS0EPF00000568.eurprd02.prod.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id-Prvs:
+	1962b341-d478-4c3a-cea1-08df45bcbca1
 X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|10070799003|366016|1800799024|23010399003|11063799006|56012099006|22082099003|18002099003|6133799003|10067099003|261009223027099003|261021121427099003|261028144727099003|261026140227099003|261026121527099003|261022105027099003|261022075727099003|261021123027099003|261102123227099003|3023799007;
+	BCL:0;ARA:13230040|376014|7416014|1800799024|36860700016|82310400026|14060799003|35042699022|23010399003|18002099003|22082099003|261009223027099003|6133799003|3023799007|13003099007|11063799006|4143699003|56012099006|261102123227099003|10067099003|261026121527099003|261026140227099003|261022075727099003|261028144727099003|261021121427099003|261022105027099003|261021123027099003;
 X-Microsoft-Antispam-Message-Info:
-	3a6fWcaEva7x0iGWf2FVla5m5nN3OWHnZ0/KdZV0+0U3POyKYp5EWZuTW9bZlsT9O5Qwy+uX4Sa1JE1i/OA5EH5ZiPOFahTG2gp3KYBDqzROCZK2SzqJz5rttM2LMvYJKrwhzn4sF4nxmHB5VGvKXUASbDOTYfue+4oYD9JhlwYLOwkGB6SNuATN7hPpAdouM9aoESeX5WpqAjX+E+wAl/qdedDs8zfgN2KrQAoC28kqw0+icH4u4wAOVjkOuwfo5E9soAUDejimcB2dURPo0ZRBy8rPAmuNDkZQdyVD1YAeE//f5vZ3O5yP/Q4+5hPD7Qa+0hhUGuK1UUo0keE2aKfbBEJQusDPKxAJzuJM0WNj7YqVm8s80U3R+8Qfk67d7ixv4S4TWiaVuxMdGc9/b7LmP/GC8EFHW7KkPQymmKSdHwS+/GJ7tbWxbWzmDNiEgOZLwLSQ1gdIwdC9kwRU48/UdrxarswVF6uE+6nrd4Jt8Idk+ATFendAgwN9nihQIy8+VcOQhRX5zUaSIWm0+BDqLQxIS60RDmYMFiMM4mxNEaDgWpJVJbAmSBNlGIiBao1IJ98qorAITj3F6PcfN8gtnCMEEYXnGZV+TUVDycg+9I6WrtBLr0UKXDDJvw2I0CghtLuNsPVetH13mX6mRjr1VFY4nq3tQL7wRPA21Ko=
+	PRoI86T+ONOOgXMjPnfxy3Zssm8/O2RF7n6luSS1iIl4w5LznUVZscSSJH+SUxtPoLO7IGyYQLwnZ8WGE8TTsAOxD7PCapaaRwGdjAsacE99mbqfNdxR6r9lztLfJeTCf2WqV3aEIvvVTv0TFMSDKs7o+UAy+WJcdhl1+WWoDtdGFPSEZd7/i+d0toYzJYeRDS9Dx6ENHNlNYUSQZ8i1l9wZj2+lK5Lt1m7yXamVuY/j05D0DJGtTiadXCFFwbSRlX04KQj7PJAZXm37eWZqDq+REvVc9FA3Zx7uyQO4H1Yol3DZ1P7sN0E2E2ASJjyRtow2DX1VLNhIE/x97bkcRj4pgKLvay6kD2XZ3xSf26XSbHBnANU39Gd0FMM2Y0arc5bxv3FLIR+WVNURxhW5DdImiiBBgQpyeSPo0sCLoHGHSeBwbjsW/rr+rSNrhYIBzodBoelXXwb+pb8P9BTu/5GifDqc92QZVtpNOaN8uO4G4+3Jq/qjhD+mqx4qwvhvC8ncvS3uRDGaDd3Myk9PtijDistct6p266VS5U5PTM4sWgWtOzd4G+J5nYmJIVb7iRIP7LtPgMyIEYIxtRxSQICb0uqujqUYW/WWAE+6LIateJoFMFjHXFTW3tVOaXC6QdNrz+VTIOTRDn/cXQV4Ng==
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV3PR12MB9356.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(10070799003)(366016)(1800799024)(23010399003)(11063799006)(56012099006)(22082099003)(18002099003)(6133799003)(10067099003)(261009223027099003)(261021121427099003)(261028144727099003)(261026140227099003)(261026121527099003)(261022105027099003)(261022075727099003)(261021123027099003)(261102123227099003)(3023799007);DIR:OUT;SFP:1101;
+	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(36860700016)(82310400026)(14060799003)(35042699022)(23010399003)(18002099003)(22082099003)(261009223027099003)(6133799003)(3023799007)(13003099007)(11063799006)(4143699003)(56012099006)(261102123227099003)(10067099003)(261026121527099003)(261026140227099003)(261022075727099003)(261028144727099003)(261021121427099003)(261022105027099003)(261021123027099003);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?iTYSSNKUN1OQ9VmZvzTH1WwI+rURVDi2E3UTW47J1lb5BCI4ZGYI39ycFZue?=
- =?us-ascii?Q?vd2tSzG/ZmOvfBdx/Ph24oQbReXdZR9Dn7g+RK2wzbyNU/cO7NSURQo8dhJI?=
- =?us-ascii?Q?BmPxHHFRUKAeSAAZyZeWmVLndpJdMRPP7OD/JAYggzClt0Un1fSnN5RC7ynf?=
- =?us-ascii?Q?Q2HzIftRIt+b/vw/7uo8bnYTfA2KZz4YCl/R1MWDoVSjiC6CbKQSe4F+b3EK?=
- =?us-ascii?Q?lTm7ph59PG7QIv8ZAZWfq1D3OnAMUUFSSqi4uF1ewPXg0sue62dSmOe2jY+Y?=
- =?us-ascii?Q?ocM+nRqbx7L6YrbkFFIIGMDEyLbASaFsp6KT7b0mYG2MrYgN3YadMs+uQPG6?=
- =?us-ascii?Q?sPfM7Dat+39OBpKr/ipnBQngHr+sHmpJsvXjBCL5Bx4sr2wLvf74he4rnswA?=
- =?us-ascii?Q?2Md3T65jSo0vykNdOTiwoIAHa9wH9NMix09yhLTyF8yBrzTAKuKD6C/0pcm6?=
- =?us-ascii?Q?2JIQXFIntvosvEBhGcsySniQF5nBu3RbUEU8tAbLNJ/SujB6M/vlxTSBsoLn?=
- =?us-ascii?Q?6YLEQAjM8AwXONuHSdLtuIAXkB7qpiuALqy5lAwvdoIlbwZDcMI2sz+S9ms7?=
- =?us-ascii?Q?Fe2XbMnDshTp35P4MVQDdwX/lD4hfQaPDOoINWSxl5WYcHZsCdKKZZAeS9GU?=
- =?us-ascii?Q?Hedk1pNJyvkxb1x/Rp41RVoYGdaFVir8dh9EqsVkQ1ENN/pHyBssQYawcr2K?=
- =?us-ascii?Q?8cU4pa/8xNTAH9Jec1BSUKtjNq/1EI2TJT7iTnAlbXUhA6YhkHJKz9fxxmTZ?=
- =?us-ascii?Q?CCNiGjnA9Yk/rKjNArq9lV5fwqIAsdw72SCsIWFhi5jNuovPhQQmiKqj0Xqu?=
- =?us-ascii?Q?CzeZ8mlazj5JqGu9EY+v+eLBc14MbOzE+hvjwcE9ZBHh27v4bT1bYw3dLtr+?=
- =?us-ascii?Q?uGqJLJuXQaj5TYLWeLrooXEH6uG0stg12eVvf8nyE6dffAujKOL+B8Yw9349?=
- =?us-ascii?Q?YgBYR1PU/DfqWeT4owd81UA4pGtyeDh2lJMkdH+d2FDz987HsAh5QHybx8JE?=
- =?us-ascii?Q?At87TEo+i7/pdz25Ik9XNdniiy1coWwgOyCUFvtaEb6uB5brm2ATUuexI30O?=
- =?us-ascii?Q?3RkkHb3H3uuGRfHysoY+gY+shgEuvQbQSy+K8mBgnvhT0QTFtumJlS+RmAQb?=
- =?us-ascii?Q?zPlqm1btNyKv7GdGoAw/jgIJhOktnR4LwlhcUm7W+eT8TbuAkD7tFAS0CikM?=
- =?us-ascii?Q?M5OvIc4lXV0G58QqBXOFH993PpbtObAyr/YjXWB8b0cIEtbBMxbbtwMAtZYH?=
- =?us-ascii?Q?qbIGMjfKMl6afaGqsUMcuqQcEUcetyY3clUbheB/8hBL6Qkau3OHvSraWfLE?=
- =?us-ascii?Q?P5OxFhcCsTyW+SkZeindy+B6/aYSkNcnbd+7i/VT3kgD9VRSYH9VSG1HgpzI?=
- =?us-ascii?Q?p+AppbvC+oWpjyPwCfqeVMMWmcXsHayYVsYoOEvO/nslvN75PY/+BA4GgKy2?=
- =?us-ascii?Q?9QzL+/N+iqEfbuoQcWW+xpwl/SHofJIIBnBr7s2bMaqNnNE33vWAAW71TR8B?=
- =?us-ascii?Q?XQ2rxE4vBvGzXrNw+Ri4+Ra1cxUZ122tCwZ1/pIDBQAMDxkLUTuM2JEqx+Gg?=
- =?us-ascii?Q?WerO5jC469EpF/Wl5syqyzbsW7inKjuzF9k/YFyTZCchAe9nWSUMkUUkZAwl?=
- =?us-ascii?Q?ML0HtdICb0P5z+WkB8KgfK+i5wNHDMDs7k3WKLsiDWfT1pynhMQ7tcTexu2j?=
- =?us-ascii?Q?VrhsdqKxRhuw3ZynBNUxXD0OHtZItxIPArnUe2k5ImPvUPrSgCRAc2SF3rAD?=
- =?us-ascii?Q?iarBQsP6llgoBHPnlO1FAxcsF8nPknzOnp2buwn0uFQjFWv0m2FB?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: df2c0a65-6ffd-4f8a-d029-08df45ab4150
-X-MS-Exchange-CrossTenant-AuthSource: LV3PR12MB9356.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Nov 2026 19:36:35.1171
+	R+LssrseZTZoeqW9j/43RnvxG5Qv3banTtyuccdEjGKMwjNVrslgzTnN1DcsNU3TPx4FbnN7oJnI3KabrsxtKPijz2Qh93uNB/FEO6lC40LOcElBLYRLYcB/EbEPrVkeWJbcyuauUUBlEJ+mDBRc21lqKjwoNDchpljtqOIV/Ykh9reHePOzyrLrlg+4C044GfCF8BDbT7+Z67woUZobhORuPjf8FheTk/GlKZ3cBS4zZkcw8YiYV5nsMWjW8UVDQcxLqSFDyMOJnelVGAttJ60rGxgqvrhjTs2o4/SgsYZh2HXK6nA9fZTFdvqFQsIWTFavGYN0d+oM//t0iBcB6A/BMQlqWUAv4Jvhswn87oPNudIw4GnrT4atQumtaG9I6c2Su2LsyFpkOOc27fQ0Ma+P0STmFX7kiA74ORwvz5v9hnpmtLObjFBTVbNgvGyV
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Nov 2026 21:42:18.4802
  (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: itz2/uwg8B7/MwXn8ZIYn3zTjIT4Xq1FBJs9BuW2r1fhlIJ+2w4ZzzBhYSbfvNI0N9fUoYUMsgxarCiIuMvn2A==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR12MB9023
+X-MS-Exchange-CrossTenant-Network-Message-Id: bdcc6a8e-d352-48b4-6ac5-08df45bcd1ca
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
+X-MS-Exchange-CrossTenant-AuthSource:
+	AMS0EPF00000568.eurprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DB9PR08MB7724
 
-On Tue, Nov 17, 2026 at 01:49:39PM +0800, Tzu-Ching Yang wrote:
-> The hexagon inline asm for ffs(), __ffs(), fls(), __fls() and ffz() is
-> not needed: Clang, the only compiler that builds hexagon kernels, emits
-> the same ct0, cl0 and ct1 instructions for the compiler builtins, and
-> unlike the asm, the builtins fold constant arguments. The asm dates
-> from the 2011 port (a86a7ce30ac0, "Hexagon: Add bitops support"),
-> before the builtin-based asm-generic helpers existed (048fa2df92c3,
-> "generic: Implement generic ffs/fls using __builtin_* functions").
+On 16/11/2026 5:41 pm, Catalin Marinas wrote:
+> Hi Usama,
 > 
-> Replace the asm with the asm-generic builtin helpers, and ffz() with
-> the generic __ffs(~x), as arm64 does.
+> (trimmed the Cc list, some lists reject it as too many recipients)
 > 
-> ffs(0) and fls(0) still return 0. __ffs() and __fls() now return
-> unsigned int, which is as wide as unsigned long on hexagon, and ffz()
-> returns unsigned int instead of long. __ffs(0), __fls(0) and ffz(~0)
-> remain undefined.
+> On Tue, Sep 22, 2026 at 06:12:28PM +0100, Muhammad Usama Anjum wrote:
+>> pte_t currently describes both a software PTE value and an element stored
+>> in a PTE table. Consequently, pte_t * can point either to a software PTE
+>> value, often a stack copy, or to a PTE-table slot. The compiler cannot
+>> distinguish these cases. A value pointer can therefore be passed to an
+>> interface that expects table storage, while table storage can be read by
+>> direct dereference instead of the architecture accessor.
+>>
+>> This series begins a staged conversion at the PTE level. It introduces
+>> hw_pte_t as the element type for PTE-table storage and converts generic
+>> MM to use hw_pte_t *. Software PTE values remain pte_t. Interfaces that
+>> intentionally return a value through pte_t *, such as install_pte,
+>> remain value interfaces; the relevant parameters are named ptentp to
+>> make that distinction explicit.
 > 
-> With Clang 17 to 23, the functions of a defconfig vmlinux shrink by 1972
-> to 6068 bytes in total (scripts/bloat-o-meter -t). One helper in
-> lib/find_bit.c gets worse: _find_last_bit() executes one instruction
-> more per call that finds a bit, because LLVM rewrites 31 - clz as 31 ^
-> clz once it knows clz < 32, and the hexagon backend keeps the xor, which
-> needs the 31 in a register, instead of sub(#31, Rs) [1]. A few 1 <<
-> ffz() sites also grow by a few instructions, as LLVM rewrites that
-> expression too [2]. __find_nth_bit() executes two fewer, and the other
-> helpers that find_bit_benchmark calls the same number.
+> [...]
 > 
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Link: https://lore.kernel.org/all/affe7da1-41aa-4710-bee0-5e3c2b8a8dfc@app.fastmail.com/
-> Link: https://github.com/llvm/llvm-project/issues/236764 [1]
-> Link: https://github.com/llvm/llvm-project/issues/236765 [2]
-> Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
+>> PMD, PUD, P4D and PGD storage are deliberately out of scope. They can be
+>> converted in later series after the PTE boundary is agreed, avoiding the
+>> PMD-specific cases that made an all-level conversion difficult to
+>> review.
+> 
+> I looked at this (and the arm64 counterpart) and I'm not fully convinced
+> it's worth the effort (but I won't oppose it if the mm folk decide to go
+> this route).
 
-Reviewed-by: Yury Norov <ynorov@nvidia.com>
+I've found direct interest from s390 as well as arm64 devs other than us.
+We all want a sustainable solution.
 
-Would you like me to move it with the other bitops material, or leave
-it to Brian?
+> 
+> First, I'd like to see all such on-stack p*d pointers addressed as a
+> prerequisite (e.g. fix pmd_populate() in __split_huge_zero_page_pmd()).
+> If for some reason we deem pmd not fixable, I don't like half (or
+> quarter) baked solutions just addressing the pte.
 
-> ---
-> I have no hexagon hardware, and mainline does not boot in QEMU yet. On
-> Brian's out-of-tree bcain/hexagon-qemu-virt branch (dc370baa041d,
-> v7.3-rc1 plus 24 patches) with this patch on top, qemu_defconfig plus
-> the ffs and bitops KUnit tests and find_bit_benchmark, built with Clang
-> 17 and 23, boots under qemu-system-hexagon from qualcomm/qemu hex-next
-> with -M virt,hvm=on (and under -M qcs6490-cdsp with the prebuilt H2
-> hypervisor); the KUnit tests pass before and after, with the same
-> .config on both sides. Under -M virt,hvm=on, with a TCG plugin that
-> writes the same bitmaps into both kernels before each test and counts
-> the executed instructions without interrupts, find_bit_benchmark's
-> find_last_bit executes one instruction more per iteration,
-> bitmap_find_next_zero_area_off 36 more on the random bitmap through its
-> find_last_bit() calls, find_nth_bit and test_bitops' fns() two fewer,
-> and the other tests the same.
+Only pmd pointers conversions may require careful review and some discussion.
+Other remaining p*d would be straight forward again. I think if I convert
+everything, we'll have 30-35 patches for generic side only. It would a little
+time consuming to rebase that again and again.
+
+I think, a simpler plan can be to post the pmd pointer conversion series
+as well  in the open to get better acceptance of this overall effort.
+
 > 
-> Under qemu-hexagon (user mode), the old and new helpers return the
-> same values for every defined 32-bit input, and fls64() and __ffs64()
-> for selected 64-bit inputs, with Clang 17 to 23 at -O2 and -Os.
+> Second, we could add a run-time page table check, at least for pmd/pte.
+> Something like below, gated by CONFIG_PAGE_TABLE_CHECK or
+> CONFIG_DEBUG_VM (untested and not entirely sure about using
+> PageTable()):
 > 
-> defconfig (also with the KUnit tests and find_bit_benchmark, with -Os
-> and with -mv73) and allmodconfig were built with Clang 17 to 23 before
-> and after, with the same .config on both sides: same W=1 warnings, no
-> calls to __ctzsi2(), __clzsi2() or ffs(), and a smaller bloat-o-meter -t
-> total in every defconfig-based vmlinux. allmodconfig does not link with
-> Clang 17 and 18, before or after: ld.lld before 19.1.5 rejects the calls
-> in head.S as out of range.
+> static inline void pgtable_ptr_check(struct mm_struct *mm, const void *p)
+> {
+> 	if (object_is_on_stack(p)) {
+> 		WARN_ON_ONCE(1);
+> 		return;
+> 	}
+> 	if (mm != &init_mm && virt_addr_valid(p))
+> 		WARN_ON_ONCE(!PageTable(virt_to_page(p)));
+> }
+
+s390 already has CONFIG_STRICT_MM_TYPECHECKS, but that only provides type
+checking for page-table values. It cannot distinguish a pointer to
+page-table storage from a pointer to a copied value. Consequently, direct
+dereferences still appear in generic code and can bypass s390’s
+architecture-specific handling. They have been trying to fix [1] differently.
+
+RISC-V has independently encountered the same problem. Some RISC-V
+platforms must transform page-table entries whenever they are read from
+or written to hardware page tables, so generic code must consistently
+use the architecture accessors. They were trying to fix it [2].
+
+These requirements are therefore not specific to arm64. The aim of this
+work is to provide architecture interfaces for manipulating page-table
+storage correctly and to make accidental bypasses compile-time errors.
+Architectures that do not require special handling can retain the generic
+representation and trivial accessor implementations.
+
 > 
-> Instructions of each helper in a test function that only returns its
-> result (return included), built with the kernel's flags by Clang 17
-> to 22 at -O2 and -Os; Clang 23 adds an allocframe to both rows:
+> You already have some coccinelle patches to make the conversion. Could
+> we turn them into a coccicheck to detect new uses? With LLM reviews like
+> Sashiko, we can probably catch new uses violating the requirement (we
+> need to document it).
+
+Coccinelle can identify common syntax, but cannot reliably distinguish the     
+meaning of two pointers when both are pte_t *.
+
 > 
->             ffs  __ffs  fls  __fls  ffz
->   asm         6      3    4      4    3
->   builtin     5      2    3      3    2
+> LLMs and coccicheck won't catch all abuses nor does this series prevent
+> one from declaring hw_pte_t on the stack.
+
+By using Coccinelle and LLMs we can still get regressions which arch-es
+have been doing over the year.
+
+hw_pte_t * makes accidental violations compilation errors in every build.                                                                                          
+Deliberately declaring hw_pte_t on the stack remains possible, but is explicit                                                                                     
+and reviewable. (RFC of this series has info on why we aren't using opaque
+objects.)
+
 > 
-> The instruction saved is the copy of the result to r0: the asm's
-> early-clobber output ("=&r") cannot share the argument's register.
+> Once the above are in place, I'd look again at these patches and see
+> whether they improve code clarity and are worth the churn.
 > 
-> In packets, only ffs() takes one more than the asm (4 -> 5): with
-> df5e4db805d5 ("hexagon: disable the LLVM packetizer") applied, each
-> instruction of the builtin version gets a packet of its own, while
-> the asm is bundled by hand. Without that workaround, which linux-next
-> does not have yet, ffs() goes from 6 instructions in 3 packets to 5
-> in 2.
+> Maybe an argument in favour of these patchsets is future dynamic support
+> for FEAT_D128, we'd need to separate the software representation of a
+> pte from the hardware one but we've done this before (arm32 non-LPAE has
+> different representations).
+
+Yes, that's also the big motivation of this work. We don't want to depend on
+the config options to turn on/off features. Arch should be able to turn on/off
+code based on the cpu features.
 > 
-> Against the bcain/hexagon-fixes branch of bcain/linux.git
-> (0304683b4c43); also applies to next-20261113 and to bitmap-for-next.
+> That said, patch 2 (naming the software PTE value pointers ptentp) could
+> go in independently. Same for David's suggestion on patch 5 to replace
+> the huge_ptep_clear_flush() stub with a plain declaration.
 > 
->  arch/hexagon/include/asm/bitops.h | 100 ++----------------------------
->  1 file changed, 5 insertions(+), 95 deletions(-)
+> Thanks.
 > 
-> diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
-> index b23cb13833af..975328172b7c 100644
-> --- a/arch/hexagon/include/asm/bitops.h
-> +++ b/arch/hexagon/include/asm/bitops.h
-> @@ -194,101 +194,11 @@ arch_test_bit_acquire(unsigned long nr, const volatile unsigned long *addr)
->  	return retval;
->  }
->  
-> -/*
-> - * ffz - find first zero in word.
-> - * @word: The word to search
-> - *
-> - * Undefined if no zero exists, so code should check against ~0UL first.
-> - */
-> -static inline long __attribute_const__ ffz(int x)
-> -{
-> -	int r;
-> -
-> -	asm("%0 = ct1(%1);\n"
-> -		: "=&r" (r)
-> -		: "r" (x));
-> -	return r;
-> -}
-> -
-> -/*
-> - * fls - find last (most-significant) bit set
-> - * @x: the word to search
-> - *
-> - * This is defined the same way as ffs.
-> - * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-> - */
-> -static inline __attribute_const__ int fls(unsigned int x)
-> -{
-> -	int r;
-> -
-> -	asm("{ %0 = cl0(%1);}\n"
-> -		"%0 = sub(#32,%0);\n"
-> -		: "=&r" (r)
-> -		: "r" (x)
-> -		: "p0");
-> -
-> -	return r;
-> -}
-> -
-> -/*
-> - * ffs - find first bit set
-> - * @x: the word to search
-> - *
-> - * This is defined the same way as
-> - * the libc and compiler builtin ffs routines, therefore
-> - * differs in spirit from the above ffz (man ffs).
-> - */
-> -static inline __attribute_const__ int ffs(int x)
-> -{
-> -	int r;
-> -
-> -	asm("{ P0 = cmp.eq(%1,#0); %0 = ct0(%1);}\n"
-> -		"{ if (P0) %0 = #0; if (!P0) %0 = add(%0,#1);}\n"
-> -		: "=&r" (r)
-> -		: "r" (x)
-> -		: "p0");
-> -
-> -	return r;
-> -}
-> -
-> -/*
-> - * __ffs - find first bit in word.
-> - * @word: The word to search
-> - *
-> - * Undefined if no bit exists, so code should check against 0 first.
-> - *
-> - * bits_per_long assumed to be 32
-> - * numbering starts at 0 I think (instead of 1 like ffs)
-> - */
-> -static inline __attribute_const__ unsigned long __ffs(unsigned long word)
-> -{
-> -	int num;
-> -
-> -	asm("%0 = ct0(%1);\n"
-> -		: "=&r" (num)
-> -		: "r" (word));
-> -
-> -	return num;
-> -}
-> -
-> -/*
-> - * __fls - find last (most-significant) set bit in a long word
-> - * @word: the word to search
-> - *
-> - * Undefined if no set bit exists, so code should check against 0 first.
-> - * bits_per_long assumed to be 32
-> - */
-> -static inline __attribute_const__ unsigned long __fls(unsigned long word)
-> -{
-> -	int num;
-> -
-> -	asm("%0 = cl0(%1);\n"
-> -		"%0 = sub(#31,%0);\n"
-> -		: "=&r" (num)
-> -		: "r" (word));
-> -
-> -	return num;
-> -}
-> +#include <asm-generic/bitops/builtin-__ffs.h>
-> +#include <asm-generic/bitops/builtin-ffs.h>
-> +#include <asm-generic/bitops/builtin-__fls.h>
-> +#include <asm-generic/bitops/builtin-fls.h>
-> +#include <asm-generic/bitops/ffz.h>
->  
->  #include <asm-generic/bitops/lock.h>
->  #include <asm-generic/bitops/non-instrumented-non-atomic.h>
-> 
-> base-commit: 0304683b4c43048082483e9445fdd0691d088431
-> -- 
-> 2.34.1
+
+This is one time churn for multiple kinds of benefits.
+
+[1] https://lore.kernel.org/linux-s390/e50fb51d-72ac-4ace-b532-5cf32ecd80f1@kernel.org
+[2] https://lore.kernel.org/all/20251113014656.2605447-7-samuel.holland@sifive.com/
+
+-- 
+Thanks,
+Usama
