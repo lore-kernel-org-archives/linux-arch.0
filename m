@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795128224;
-	b=atNIR0l9n+an7JrDlRSAE/d3HsnsfOl48c1CtMj0N4Ck6hv973RXvuxlBnVPqAhLlAAT
-	 86kLgYtkJRZh+mRoz5uUl5M2BfRZOwa2g5rsJK8SiCIVdf/3oA8sjvbR6VWEwY5vG6uST
-	 jAkap2i+Y5BZaF6a/DFKKeLxbuD5olw9PorSlXSLiCrGJdt9bJMvqWJZs3Wbz/XE2OzaX
-	 4D5nm7yOGkYPxxGnrZ19ladgDSJagSy9jZHf7zBRCk/+XZJhaSY3E2pG2kQMrkqeK/dbJ
-	 Lw+uJH3iRCyJmtOTdO1dA2OtI3Y+lfibN9Hk/lAKV5u8GpGNHI13l1PbJtAAnpPP7Mw==
+	t=1795128232;
+	b=CTPN9L0bs2GCwMl2RZcvVhk0ciNhd5VMrA2TTGJIBUoQE3cgxoTWOhg+F97IYmeCpu+Y
+	 SXdKfYgarZ41P0E9DM8fkxUSBltKfJ9GdW9KzVQIA3/SODjBmtt+Ld6miujCgPCkzsHEo
+	 /JSv+mf7phPwG3PtAqUg68QYbEbCI726xwKAs35lx0uwyctiTxQ4t9yOW22fwfq0bDeGx
+	 3o3ViqHkeTDrZT+J6h/8azV5QJFzNKedYO61nMknhoqy7eHBePgNxzuBNbC9z1uQEG2T1
+	 0SObBpLfIzFEZlGAOjzDS1nNXvH8sFj+QWhF7qMzyA4zsuCB78a9heqaJXJxwxQrqjA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795128224;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795128232;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=zRQovrukGv04cJ+t7fEPlO9r8OAb8ireDPkh8aF4iko=;
-	b=PvYzvykLOIUO3ht60Kj2puEwId+SbyXhdr78xcTdITVLz2izKrF/7ozAm/SvfU3SYrC+
-	 ixQMcrcpFqrgSO0N3hu/bdQHMBhcWHNNm1T5KGb71DwRNth1qd130S2gIPA9KUs9h+Y/Q
-	 O6WViVpE4NnM0Dq4/iOpeMmbDP6jb6cUDf3FbP3vmfekam7mWjYRhuf0OuQ82+cO+5vGb
-	 R39xImHHz4NxKSIsAdAO44kIDEU8qLaLiYOMq+dQ3Cgc6YKAQJBZH4QW6Wd/GLQju9499
-	 9w47pLxARA0mlULY0cls473xrZIPW0uqg7XFJ/ExG9qc8mXzQJ+sMjiOFB7OyvinEDw==
+	bh=PPc6X12QD2WGk+0rx20RHiBwFPirneFugf7ZxndZfj4=;
+	b=lPf7zqE1Ig/eyqnsRaWhDG/KbP5zBsiOFEcVw/f05Jl/DVGj6i2/kqAJd1OrVYsbme7G
+	 JFKqg/SqUO4fBrW9X5fTrAm33X2thq5usJKV9nyEBmK0LvbFe/9k14oC08LM4hRKA7Uon
+	 FsvJ2yPhQgyaGEawuSlJtdLM8CRuar8/Ow2tmwE4jhCeyZugP4OX+Cr4NitwvnA2NdPBs
+	 ZiAB8TVaq+8Di2+Gn15CbLXdhcHRIOPkE52MsoHDDxxWdOJfqw1y0UnlNuBPC2HqFMQUK
+	 YvVBUZyZTr8NbdWbl+UcR0rqR+5WExYKq4F0qhsB7Dut2CydmCIuHF522eDyr7eLcwg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=IqAmwIAD;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Nls9+NC+;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 380D360A2607;
-	Thu, 19 Nov 2026 22:43:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 210D0606A325;
+	Thu, 19 Nov 2026 22:43:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=IqAmwIAD
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 1444F1F000C6;
-	Thu, 19 Nov 2026 22:43:43 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Nls9+NC+
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id E9D5D1F000C6;
+	Thu, 19 Nov 2026 22:43:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795128223;
-	bh=zRQovrukGv04cJ+t7fEPlO9r8OAb8ireDPkh8aF4iko=;
+	s=k20260515; t=1795128231;
+	bh=PPc6X12QD2WGk+0rx20RHiBwFPirneFugf7ZxndZfj4=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=IqAmwIADSCvztT4Xn5UwJrs8o5NaXnyeHoN0NceR94mxjJtP2Ow8aOP7YOjZyXGfJ
-	 OFWly6MoIVQK86qBzpj57ETRgv3ZdXjULpBBNzh0qHnfqfxXRi1yc+R/bwaSsvCBU1
-	 LQdrUFTCpcp2YKRXovU5VVGtljsldJ3CvAzCHpxCl4crYnVJEfnajIlZCOkiylRRVj
-	 wPJ2wn9THlW/zIXMvk+APK0dUC6DJXDqAjWbbsCKSFDt2KCBLEDk8ybBHu1e9vqMWn
-	 n55aNTP5IQtAZ8mO4KyGIeoNVZrfMPWXSFOptCjotNs/q6nL1I0YvGRdkGf+IG2CZN
-	 2hG47lWkJCO6A==
+	b=Nls9+NC+jPxJH+ylhTtYG2RiRETSIYO+HjpUXY9ef4CcJxkDE4CkPLHxHdDUW2Tmj
+	 752KbGp0rM99OWj5cyTa3wSxeelbeRoB78h0qW1yErVRDU1I1+Ud43kPcUQiDijFMH
+	 HCiZeURym1/VTQJ3Ewob1zRPOMUIiakm1SipjrDUzO0Z6sfGqzXa30wu5zkrnX7dsp
+	 it4NxW5Z+GetL0aBY8tAas+aPg46L7FMI/M3eUGUkgDDF3eZ5E+Tq1VuUe2fYurSMP
+	 OZIkNr0BU1GNEJfvJlyVXrAe4LEUj4rnODSc1MejhGXa9CQFYAwM1VRp9wwp8nsVbB
+	 UM2WYYdP8rTAw==
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: linux-fsdevel@vger.kernel.org
 Cc: Jarkko Sakkinen <jarkko@kernel.org>,
@@ -130,9 +130,9 @@ Cc: Jarkko Sakkinen <jarkko@kernel.org>,
 	Will Deacon <will@kernel.org>,
 	Yoshinori Sato <ysato@users.sourceforge.jp>,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: [RFC PATCH v4 03/14] rootns: Track init lifecycle via copy_process() and pid_namespace
-Date: Fri, 20 Nov 2026 00:43:01 +0200
-Message-ID: <20261119224312.1037966-4-jarkko@kernel.org>
+Subject: [RFC PATCH v4 05/14] rootns: Add ROOTNS_WAIT ioctl
+Date: Fri, 20 Nov 2026 00:43:03 +0200
+Message-ID: <20261119224312.1037966-6-jarkko@kernel.org>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20261119224312.1037966-1-jarkko@kernel.org>
 References: <20261119224312.1037966-1-jarkko@kernel.org>
@@ -147,176 +147,148 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-A root namespace needs to record its init thread group's PID when
-bootstrapped and capture its exit status once all processes in the root
-namespace have terminated, without serializing normal fork() and exit()
-paths inside the container.
+wait4() and waitid() only allow a parent or subreaper to collect exit
+status, so an external manager holding a rootns file descriptor cannot
+wait on a rootns init process forked by another process or observe exit
+status multiple times across observers.
 
-Commit the bootstrap child reaper, bind pid_ns->rootns, and wake waiters
-in copy_rootns() after attach_pid(PIDTYPE_PID), and invoke exit_rootns()
-from zap_pid_ns_processes() after the root namespace's PID namespace has
-killed and reaped all member tasks.
+Add the ROOTNS_WAIT ioctl and struct rootns_wait_args to wait freezably
+and interruptibly on a rootns file descriptor until its init thread group
+exits and report the recorded wait status. Return the init TGID
+translated into the caller's active PID namespace, 0 for WNOHANG while
+running, or -ECHILD if init was never started or is not visible to the
+caller.
 
 Co-developed-by: David Howells <dhowells@redhat.com>
 Signed-off-by: David Howells <dhowells@redhat.com>
 Signed-off-by: Jarkko Sakkinen <jarkko@kernel.org>
 ---
- include/linux/pid_namespace.h |  4 ++++
- include/linux/rootns.h        | 15 ++++++++++++++
- kernel/fork.c                 |  3 +++
- kernel/pid_namespace.c        |  2 ++
- kernel/rootns.c               | 38 +++++++++++++++++++++++++++++++++++
- 5 files changed, 62 insertions(+)
+ include/uapi/linux/rootns.h | 26 ++++++++++++++++++++++
+ kernel/rootns.c             | 44 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+)
 
-diff --git a/include/linux/pid_namespace.h b/include/linux/pid_namespace.h
-index b20baaa7e62b..6fd959f4d0d4 100644
---- a/include/linux/pid_namespace.h
-+++ b/include/linux/pid_namespace.h
-@@ -15,6 +15,7 @@
- #define MAX_PID_NS_LEVEL 32
+diff --git a/include/uapi/linux/rootns.h b/include/uapi/linux/rootns.h
+index bd643bdfb43c..3fd215185398 100644
+--- a/include/uapi/linux/rootns.h
++++ b/include/uapi/linux/rootns.h
+@@ -8,6 +8,7 @@
+ #define _UAPI_LINUX_ROOTNS_H
  
- struct fs_pin;
-+struct rootns;
+ #include <linux/ioctl.h>
++#include <linux/types.h>
  
- #if defined(CONFIG_SYSCTL) && defined(CONFIG_MEMFD_CREATE)
- /* modes for vm.memfd_noexec sysctl */
-@@ -45,6 +46,9 @@ struct pid_namespace {
- 	struct user_namespace *user_ns;
- 	struct ucounts *ucounts;
- 	int reboot;	/* group exit code if this pidns was rebooted */
-+#ifdef CONFIG_ROOTNS
-+	struct rootns *rootns;
-+#endif
- 	struct ns_common ns;
- 	struct work_struct	work;
- } __randomize_layout;
-diff --git a/include/linux/rootns.h b/include/linux/rootns.h
-index 3f59415efadb..0557ce75195d 100644
---- a/include/linux/rootns.h
-+++ b/include/linux/rootns.h
-@@ -13,6 +13,8 @@
- struct file;
- struct nsproxy;
- struct pid;
-+struct pid_namespace;
-+struct task_struct;
- struct user_namespace;
+ /**
+  * enum rootns_flags - Flags for rootns()
+@@ -24,6 +25,16 @@ enum rootns_flags {
+ 	ROOTNS_ALL_FLAGS	= 0x00000003,
+ };
  
- enum rootns_state {
-@@ -41,6 +43,9 @@ struct rootns {
- struct rootns *get_rootns(struct rootns *c);
- void put_rootns(struct rootns *c);
- bool is_rootns_file(struct file *file);
-+void copy_rootns(struct task_struct *tsk, struct pid *pid,
-+		 struct rootns *rootns);
-+void exit_rootns(struct pid_namespace *pid_ns, struct task_struct *tsk);
- #else
- static inline struct rootns *get_rootns(struct rootns *c)
- {
-@@ -55,6 +60,16 @@ static inline bool is_rootns_file(struct file *file)
- {
- 	return false;
- }
++/**
++ * struct rootns_wait_args - Arguments for %ROOTNS_WAIT
++ * @flags: Wait options (0 or %WNOHANG).
++ * @status: Output wait status of rootns init in waitpid(2) format.
++ */
++struct rootns_wait_args {
++	__u32 flags;
++	__s32 status;
++};
 +
-+static inline void copy_rootns(struct task_struct *tsk, struct pid *pid,
-+			       struct rootns *rootns)
-+{
-+}
+ #define ROOTNS_IOCTL_MAGIC	0xB9
+ 
+ /**
+@@ -41,4 +52,19 @@ enum rootns_flags {
+  */
+ #define ROOTNS_GET_NSFD		_IO(ROOTNS_IOCTL_MAGIC, 0x01)
+ 
++/**
++ * DOC: ROOTNS_WAIT
++ *
++ * ``ioctl(rootnsfd, ROOTNS_WAIT, &args)`` waits interruptibly (unless
++ * ``WNOHANG`` is set in ``args.flags``) until ``rootnsfd`` reaches
++ * ``ROOTNS_DEAD``, then writes the recorded exit status of ``rootns`` init
++ * into ``args.status``.
++ *
++ * Returns the caller-visible TGID of ``rootns`` init on success, ``0`` if
++ * ``WNOHANG`` is set and the ``rootns`` has not terminated, or ``-1`` with
++ * ``errno`` set to ``ECHILD`` if init was never started or is not visible in
++ * the caller's active PID namespace.
++ */
++#define ROOTNS_WAIT		_IOWR(ROOTNS_IOCTL_MAGIC, 0x02, struct rootns_wait_args)
 +
-+static inline void exit_rootns(struct pid_namespace *pid_ns,
-+			       struct task_struct *tsk)
-+{
-+}
- #endif /* CONFIG_ROOTNS */
- 
- #endif /* _LINUX_ROOTNS_H */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 5efceb8d58a7..08fc28ad1eed 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -83,6 +83,7 @@
- #include <linux/fs_struct.h>
- #include <linux/magic.h>
- #include <linux/perf_event.h>
-+#include <linux/rootns.h>
- #include <linux/posix-timers.h>
- #include <linux/user-return-notifier.h>
- #include <linux/oom.h>
-@@ -2576,6 +2577,8 @@ __latent_entropy struct task_struct *copy_process(
- 					  &p->signal->thread_head);
- 		}
- 		attach_pid(p, PIDTYPE_PID);
-+		if (thread_group_leader(p))
-+			copy_rootns(p, pid, NULL);
- 		nr_threads++;
- 	}
- 	total_forks++;
-diff --git a/kernel/pid_namespace.c b/kernel/pid_namespace.c
-index 127a5fd23e70..081c27aa85bd 100644
---- a/kernel/pid_namespace.c
-+++ b/kernel/pid_namespace.c
-@@ -24,6 +24,7 @@
- #include <linux/sched/signal.h>
- #include <linux/idr.h>
- #include <linux/nstree.h>
-+#include <linux/rootns.h>
- #include <uapi/linux/wait.h>
- #include "pid_sysctl.h"
- 
-@@ -280,6 +281,7 @@ void zap_pid_ns_processes(struct pid_namespace *pid_ns)
- 		current->signal->group_exit_code = pid_ns->reboot;
- 
- 	acct_exit_ns(pid_ns);
-+	exit_rootns(pid_ns, me);
- 	return;
- }
- 
+ #endif /* _UAPI_LINUX_ROOTNS_H */
 diff --git a/kernel/rootns.c b/kernel/rootns.c
-index 3bbf7677080e..bde7cf4baebe 100644
+index d9ef68d603a2..5f03b6ba4a54 100644
 --- a/kernel/rootns.c
 +++ b/kernel/rootns.c
-@@ -183,3 +183,41 @@ bool is_rootns_file(struct file *file)
+@@ -115,6 +115,45 @@ static long rootns_get_nsfd(struct rootns *rootns, unsigned long nstype)
+ 	return nsproxy_open_namespace(rootns->ns, rootns->user_ns, nstype);
+ }
+ 
++static long rootns_wait(struct rootns *rootns, void __user *uarg)
++{
++	struct pid_namespace *pid_ns = task_active_pid_ns(current);
++	struct rootns_wait_args args;
++	long ret;
++
++	if (!uarg)
++		return -EINVAL;
++	if (copy_from_user(&args, uarg, sizeof(args)))
++		return -EFAULT;
++	if (args.flags & ~WNOHANG)
++		return -EINVAL;
++	if (READ_ONCE(rootns->state) == ROOTNS_INIT)
++		return -ECHILD;
++
++	if (!(args.flags & WNOHANG)) {
++		ret = wait_event_freezable(rootns->waitq,
++					   READ_ONCE(rootns->state) == ROOTNS_DEAD ||
++					   READ_ONCE(rootns->state) == ROOTNS_INIT);
++		if (ret)
++			return ret;
++	}
++
++	scoped_guard(spinlock, &rootns->lock) {
++		if (rootns->state == ROOTNS_INIT)
++			return -ECHILD;
++		if (rootns->state != ROOTNS_DEAD)
++			return 0;
++		ret = pid_nr_ns(rootns->init_pid, pid_ns);
++		if (ret <= 0)
++			return -ECHILD;
++		args.status = rootns->exit_code;
++	}
++
++	if (copy_to_user(uarg, &args, sizeof(args)))
++		return -EFAULT;
++	return ret;
++}
++
+ static long rootns_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
- 	return file->f_op == &rootns_fops;
+ 	struct rootns *rootns = file->private_data;
+@@ -122,6 +161,8 @@ static long rootns_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	switch (cmd) {
+ 	case ROOTNS_GET_NSFD:
+ 		return rootns_get_nsfd(rootns, arg);
++	case ROOTNS_WAIT:
++		return rootns_wait(rootns, (void __user *)arg);
+ 	default:
+ 		return -ENOIOCTLCMD;
+ 	}
+@@ -132,6 +173,8 @@ static long rootns_compat_ioctl(struct file *file, unsigned int cmd,
+ 				unsigned long arg)
+ {
+ 	switch (cmd) {
++	case ROOTNS_WAIT:
++		return rootns_ioctl(file, cmd, (unsigned long)compat_ptr(arg));
+ 	case ROOTNS_GET_NSFD:
+ 		return rootns_ioctl(file, cmd, arg);
+ 	default:
+@@ -327,3 +370,4 @@ SYSCALL_DEFINE1(rootns, unsigned int, flags)
+ 
+ 	return fd;
  }
 +
-+void copy_rootns(struct task_struct *tsk, struct pid *pid, struct rootns *c)
-+{
-+	if (likely(!c || !is_child_reaper(pid)))
-+		return;
-+
-+	scoped_guard(spinlock, &c->lock) {
-+		if (c->state != ROOTNS_FORKING)
-+			return;
-+		ns_of_pid(pid)->rootns = get_rootns(c);
-+		WRITE_ONCE(c->init_pid, get_pid(pid));
-+		WRITE_ONCE(c->state, ROOTNS_RUNNING);
-+	}
-+	wake_up_all(&c->waitq);
-+}
-+
-+void exit_rootns(struct pid_namespace *pid_ns, struct task_struct *tsk)
-+{
-+	struct rootns *c = pid_ns->rootns;
-+	struct task_struct *leader;
-+	int status;
-+
-+	if (!c)
-+		return;
-+
-+	leader = tsk->group_leader;
-+	status = (tsk->signal->flags & SIGNAL_GROUP_EXIT) ?
-+		 tsk->signal->group_exit_code : leader->exit_code;
-+
-+	scoped_guard(spinlock, &c->lock) {
-+		c->exit_code = status;
-+		WRITE_ONCE(c->state, ROOTNS_DEAD);
-+	}
-+
-+	pid_ns->rootns = NULL;
-+	wake_up_poll(&c->waitq, EPOLLHUP);
-+	put_rootns(c);
-+}
 -- 
 2.47.3
 
