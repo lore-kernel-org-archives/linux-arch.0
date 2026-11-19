@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795107528;
-	b=NiBdMh/8Xr6tac28oBdFnq2tpEk4UGnpLrWgSdHdGQnWBEzwLhENHOSatvHQNK4Z6k0z
-	 m2JKN6ImXa+k9MnF8sRy5dQIVz7D4ywqsYkdp2WxcRFw3S3a1PHx0ums64EmnF4caVhyU
-	 j+G7eVwYNtwSzu2mHn3oJkIozMnx/3l/C6p4BvW+JIbO9KJZMYYEDQ33totxnABT/UgLN
-	 xicXHUG2oqPPnvtACrzueZb4OgJykjFiftlNHoZ2RBQKS4hb8f9OwNPcGSb0IAeNTsBHr
-	 JLiFD3mf53F31FWSFEIRLQkAKl/TqPwIPSWTqCqd9VNUAzQ/A0ITssbdVNZirnHUfzg==
+	t=1795107639;
+	b=OI2wA8ARVr9V6rto6v1+rVuV1GpBJ/NGNjH356WhD+PsBf+ZKNRw2Gr3q7N5Kn4fiDeG
+	 uA0FTIRgoXUi8Rog7NhDrATM1LftfAZAMrksnI06uZPI9JI0sCpnQfZsRaePkUL6n4i7L
+	 6isd4w/vEibEz5OXpBWu46sdwiDrbtO9OTya8/0r7KcVu1qN+dGxZHvLDuoTfgrxTPfZ7
+	 A6iDE3ypoEvRPX/I/noXxyawiqp1jewSVKKbIMO0rt5T/VtH7WQsV6Old2Q4mwkgqDiM6
+	 Ajn3asSFdcyMFI2xsqyZs8D/N9kh3OLBsH9D+oVv5XTp6xGW1izyF+otaDXOA9qHlWQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795107528;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795107639;
 	h=Received:DKIM-Signature:Message-ID:Date:MIME-Version:User-Agent:
 	 Subject:To:Cc:References:From:Content-Language:Autocrypt:In-Reply-To:
 	 Content-Type:Content-Transfer-Encoding;
-	bh=zlwPBqQep+gKK2qUpmm59NmPvSqltf2AvxyET+CzK7A=;
-	b=E4EXyK6gmUe6RpHJO6LHkRCP4DK0MJ340rPpgydLCoCpE6bx79ToD/zPHIXsNAshWkzl
-	 7Mru/kjITQficBJAzg0Pn/1A3niLfKNYdAXgr6KsVAVeFRGlbvYkC0fg4/lj46MPBW6FX
-	 P7ZKnXZ9K8fz/rpKnAmwr/OR2+XKAAGzZDU3i1UXUY/fQ8LNUw9kqvQG5j0y+yE4ygW8b
-	 yJB0qlcLiacCkDjlpWJgCm2wucGViBJUaeyi7iHtCC46dZUZrG4NmjUGIGPRwC9UCLG5o
-	 YlG5Y+qGx0NdB/kIDVksvGRjqX1h2ANJoGeySB9jEvXu6K2gw1pV2JndQGGGw0Bdegg==
+	bh=XmF9SeGoyHxhHQftqal/r5GaG7FqVPwJx28e65HqQi0=;
+	b=DtM8wtrX9coij/OCFFbIOiQkOVngoiq372xOXY/wex85vkLX94+dqKSFVCQbPn+zc9GU
+	 LUp68uWHurzN0Ym9BsuAbznlfdvUoKRjwlnSLfdGPndJuCjp1qUCdPrCnlAJdIOp640ZM
+	 i1ith0rJqIFEjsQdbG8wtDufXBJRjjZ6m/z3Vff7qe9cQrctowS86z3vU8xvyoOeVa5DE
+	 0hiix7zoe3wP0ilugRmLJK8jR7vEgRw6z2sIUGIvOYYzgSZEILSEkZHfLDXk0WrA7P5rJ
+	 hBcUC03j+Ltg6h/sNMaRLcWo0u97qx/anzdJBS1+zqKscyq/dqdooTOxO8d/oHqqsdQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="E5i7Q/+h";
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NtBdCeHy;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A6D14606A320;
-	Thu, 19 Nov 2026 16:58:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9CCFE606A325;
+	Thu, 19 Nov 2026 17:00:39 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=E5i7Q/+h
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 369D81F000C4;
-	Thu, 19 Nov 2026 16:58:37 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NtBdCeHy
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3F5211F000C5;
+	Thu, 19 Nov 2026 17:00:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795107528;
-	bh=zlwPBqQep+gKK2qUpmm59NmPvSqltf2AvxyET+CzK7A=;
+	s=k20260515; t=1795107639;
+	bh=XmF9SeGoyHxhHQftqal/r5GaG7FqVPwJx28e65HqQi0=;
 	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=E5i7Q/+hFAt1BZyoYv9K52aBMARN3gdGsb5Hd0fQ/Ncp/+zhT8G31FoYRdlEw9Fn3
-	 Sv+XgjLp3xuNMNpx/Os3SmlGfvIIHLdH2mYwaI5iELfsOsLyTUsARWkPokMdfVW/en
-	 O8PK7XTxuWnoNq6GZCrKl3UAB2U73P0rQH5Vv1pscf1jAgHlAzkIgcDmTiAouU5CTh
-	 UxDrMliSDGsiwiNVD/eiUXHfMjCrQxsGij/ugStyy/FnDo2XBORIHEmScDx9CtuoBS
-	 jMnqM80TV0xX8lLL7RBdcUfGHKDvlixfkeVj8vxoCNAl/wCagQrid6mczsIKjX6PWA
-	 rASJf86jUOqlA==
-Message-ID: <68dcdfbc-2755-437f-bf58-d175b1740afd@kernel.org>
-Date: Thu, 19 Nov 2026 17:58:34 +0100
+	b=NtBdCeHyzx+SGf1BBDft/htzb8g1h6CmiV8WRyyJcdsl+sXfiarZ+PEIrhTD/SV5m
+	 Jp/gvajgqqdWz4mHm8Wdv9/g50W8Py72ErrU00sRmgn74zMfBtHw9BoFSEu8ia5vPJ
+	 hmm8ANClCUV/wPSO7Uop/IK1Ky+rJEQZL6yszV6lCBAS58Rp5V0gYieQvGqjJlVxfN
+	 fhGDTLMDuKTtO94gctvhxR9Kdm5YbyRsFERsil0Ft3erUr3fx6lLnD+0pFASth1iAk
+	 wyrcs4pUqy0LGHa/kNwBeLtRvvbo0SWNQ/a91r4dYwWIl9LGsw2FiaYhPDfeLgC4xZ
+	 7LsP0YCj3bWIA==
+Message-ID: <d9253b46-19bf-42b9-a46f-55d3199d67d3@kernel.org>
+Date: Thu, 19 Nov 2026 18:00:32 +0100
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -52,36 +52,21 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 08/15] mm/hugetlb: serialize page-cache allocations
- with truncation
-To: "Oscar Salvador (SUSE)" <osalvador@kernel.org>
-Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Naoya Horiguchi <nao.horiguchi@gmail.com>,
- Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>,
- Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>,
- Michal Hocko <mhocko@suse.com>, Rik van Riel <riel@surriel.com>,
- Hugh Dickins <hughd@google.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Vivek Kasireddy
- <vivek.kasireddy@intel.com>, Dave Airlie <airlied@redhat.com>,
- Jason Gunthorpe <jgg@ziepe.ca>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
- Randy Dunlap <rdunlap@infradead.org>, Peter Xu <peterx@redhat.com>,
- Breno Leitao <leitao@debian.org>, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+Subject: Re: [PATCH v3 0/9] mm: distinguish HW PTE pointers from SW PTE value
+ pointers
+To: Muhammad Usama Anjum <usama.anjum@arm.com>,
+ Catalin Marinas <catalin.marinas@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ Lorenzo Stoakes <ljs@kernel.org>, Ryan Roberts <ryan.roberts@arm.com>,
+ Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>,
+ Anshuman Khandual <anshuman.khandual@arm.com>, Zi Yan <ziy@nvidia.com>,
  Alexander Gordeev <agordeev@linux.ibm.com>,
- Christian Borntraeger <borntraeger@linux.ibm.com>,
- Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, stable@kernel.org,
- Josef Bacik <josef@toxicpanda.com>
-References: <20261116-fixes_hugetlb-v2-0-4dd9e94ea9ac@kernel.org>
- <20261116-fixes_hugetlb-v2-8-4dd9e94ea9ac@kernel.org>
- <av683B0FDj-xB-7w@localhost.localdomain>
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Samuel Holland <samuel.holland@sifive.com>, Peter Xu <peterx@redhat.com>,
+ linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
+ <avtAQCkvRr1xkxMF@arm.com> <5a6f351e-0a68-4bbf-a9fc-5bb39d8439a4@kernel.org>
+ <2a84fa4f-655d-4c4d-b6ad-b2ee9d37d972@arm.com>
 From: "David Hildenbrand (Arm)" <david@kernel.org>
 Content-Language: en-US
 Autocrypt: addr=david@kernel.org; keydata=
@@ -128,117 +113,82 @@ Autocrypt: addr=david@kernel.org; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <av683B0FDj-xB-7w@localhost.localdomain>
+In-Reply-To: <2a84fa4f-655d-4c4d-b6ad-b2ee9d37d972@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 11/19/26 10:09, Oscar Salvador (SUSE) wrote:
-> On Mon, Nov 16, 2026 at 07:29:29PM +0100, David Hildenbrand (Arm) wrote:
->> Truncation can remove an inode reservation while a fault is still
->> allocating its folio. UFFDIO_COPY and memfd pinning can also consume
->> reservations beyond the new i_size. This can underflow resv_huge_pages
->> and leave folios beyond EOF.
+On 11/18/26 22:48, Muhammad Usama Anjum wrote:
+> On 16/11/2026 6:18 pm, David Hildenbrand (Arm) wrote:
+>> On 11/16/26 18:41, Catalin Marinas wrote:
+>>> Hi Usama,
+>>>
+>> Hi,
 >>
->> The main issue is that truncation takes the fault mutex for folios in
->> the page-cache, but it has no clue about faults that are still being
->> processed concurrently.
+>> David here :)
 >>
->> Matthew Wilcox raised mapping->invalidate_lock in a different upstream
->> hugetlb locking discussion:
+>>> (trimmed the Cc list, some lists reject it as too many recipients)
+>>>
+>>>
+>>> [...]
+>>>
+>>>
+>>> I looked at this (and the arm64 counterpart) and I'm not fully convinced
+>>> it's worth the effort (but I won't oppose it if the mm folk decide to go
+>>> this route).
 >>
->>   "although I wonder if we still need the fault mutex array, given that we
->>    now have mapping->invalidate_lock?"
+>> I think this is the right thing to do to get type safety.
 >>
->> While it likely cannot remove the mutex array entirely (concurrent page
->> faults have to sync ... ), we can at least use it to fix this problem.
+>>>
+>>> First, I'd like to see all such on-stack p*d pointers addressed as a
+>>> prerequisite (e.g. fix pmd_populate() in __split_huge_zero_page_pmd()).
+>>> If for some reason we deem pmd not fixable, I don't like half (or
+>>> quarter) baked solutions just addressing the pte.
 >>
->> Hold mapping->invalidate_lock shared across the size check, allocation
->> and page cache insertion or reservation rollback. Truncation takes it
->> exclusively around i_size_write() only for now: it waits for concurrent
->> allocations to finish updating the page-cache or rolling back reservations
->> before changing the size. Subsequent allocations see the updated i_size.
+>> IIRC doing the full PxD conversion is quite big; doens't make sense to post
+>> these on the list and instead move stepwise.
 >>
->> Let truncation release the lock for now before unmapping and removing
->> folios to preserve the existing lock ordering. Cached-folio faults and
->> private allocations do not acquire the new lock.
+>> Agreed that it would be nice to get rid of all stack usage first.
 >>
->> Use it to synchronize with truncation, keeping the fault mutexes to
->> serialize allocations for the same index.
+>>>
+>>> Second, we could add a run-time page table check, at least for pmd/pte.
+>>> Something like below, gated by CONFIG_PAGE_TABLE_CHECK or
+>>> CONFIG_DEBUG_VM (untested and not entirely sure about using
+>>> PageTable()):
+>>>
+>>> static inline void pgtable_ptr_check(struct mm_struct *mm, const void *p)
+>>> {
+>>> 	if (object_is_on_stack(p)) {
+>>> 		WARN_ON_ONCE(1);
+>>> 		return;
+>>> 	}
+>>> 	if (mm != &init_mm && virt_addr_valid(p))
+>>> 		WARN_ON_ONCE(!PageTable(virt_to_page(p)));
+>>> }
+>>>
+>>> You already have some coccinelle patches to make the conversion. Could
+>>> we turn them into a coccicheck to detect new uses? With LLM reviews like
+>>> Sashiko, we can probably catch new uses violating the requirement (we
+>>> need to document it).
+>>>
+>>> LLMs and coccicheck won't catch all abuses nor does this series prevent
+>>> one from declaring hw_pte_t on the stack.
+>>>
+>>> Once the above are in place, I'd look again at these patches and see
+>>> whether they improve code clarity and are worth the churn.
+>>>
+>>> Maybe an argument in favour of these patchsets is future dynamic support
+>>> for FEAT_D128, we'd need to separate the software representation of a
+>>> pte from the hardware one but we've done this before (arm32 non-LPAE has
+>>> different representations).
 >>
->> Locking order is now:
->>
->>   fault mutex -> hugetlb VMA lock (read) -> invalidate lock (read) ->
->>   folio lock -> PTE lock
->>
->> And on truncation:
->>
->>   i_rwsem (write) -> invalidate lock (write)
->>
->> Add hugetlb_pgoff_valid() to not repeat the same size check multiple
->> times. Memfd needs a bit of care, as it traditionally allowed partial
->> folios to be pinned: the size check in memfd_pin_folios() allows for
->> that.
->>
->> Fixes: 1c9e8def43a3 ("userfaultfd: hugetlbfs: add UFFDIO_COPY support for shared mappings")
->> Fixes: 188a39725ad7 ("hugetlbfs: revert use i_mmap_rwsem to address page fault/truncate race")
->> Fixes: 89c1905d9c14 ("mm/gup: introduce memfd_pin_folios() for pinning memfd folios")
->> Cc: stable@kernel.org
->> Reported-by: Josef Bacik <josef@toxicpanda.com>
->> Link: https://lore.kernel.org/all/ajMfdQf-Fspwmstr@casper.infradead.org/
->> Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
+>> Exactly; we'll need this and go one step further and disallow any ptep++ to
+>> instead route this through helpers.
 > 
-> Acked-by: Oscar Salvador (SUSE) <osalvador@kernel.org>
+> Agreed, after the current series, we can easily make hw_pte_t opaque like the
+> following (or in even better way if we spend some more time thinking about it):
 > 
-> Just one thing:
-> 
-> mm/rmap.c has a description of the lock ordering for hugetlb:
-> 
->  "
->    * hugetlbfs PageHuge() take locks in this order:
->    *   hugetlb_fault_mutex (hugetlbfs specific page fault mutex)
->    *     vma_lock (hugetlb specific lock for pmd_sharing)
->    *       mapping->i_mmap_rwsem (also used for hugetlb pmd sharing)
->    *         folio_lock
->  "
-> 
-> We should update it to reflect the updated locking order, right?
 
-Indeed, thanks!
-
-@Andrew, can you fault in the following:
-
-From d050587df932067bcadb618cf8b72604bc9af58e Mon Sep 17 00:00:00 2001
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Date: Thu, 19 Nov 2026 17:57:41 +0100
-Subject: [PATCH] fixup: mm/hugetlb: serialize page-cache allocations with
- truncation
-
-Update documented locking order in mm/rmap.c.
-
-Signed-off-by: David Hildenbrand (Arm) <david@kernel.org>
----
- mm/rmap.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 0faef46806e5c..a452db02826e8 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -48,8 +48,9 @@
-  * hugetlbfs PageHuge() take locks in this order:
-  *   hugetlb_fault_mutex (hugetlbfs specific page fault mutex)
-  *     vma_lock (hugetlb specific lock for pmd_sharing)
-- *       mapping->i_mmap_rwsem (also used for hugetlb pmd sharing)
-- *         folio_lock
-+ *       mapping->invalidate_lock (when allocating page cache folios)
-+ *         mapping->i_mmap_rwsem (also used for hugetlb pmd sharing)
-+ *           folio_lock
-  */
- 
- #include <linux/mm.h>
--- 
-2.56.1
-
+Yes, exactly.
 
 -- 
 Cheers,
