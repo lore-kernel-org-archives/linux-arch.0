@@ -1,65 +1,74 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.208.69
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795138054;
-	b=4FrUTFmLlM1MwGARYzTZDT9aM0usOA5R9wcZDoO5y7pncMfk4kqKz0gGNjW6pskv3VJ8
-	 AtLJacmmaeNNdSLzPUEm3QEQPk3SJ60URyxIv4J8RRwDe2eygoASEFiAVH/0+4rjFBN5s
-	 ZH5S1HhVhsuMAWISGAXeX0PV4d1ebi29sSP9PdG8j+6kDxysGA7eWCLCECF+5lQtS1CJl
-	 2FVPr9cGLZAsuvNjxvHfM+a9XKab6xhkUOT32r/ZfDx1gxQTy1jCAVM0nKeMEpFDX5ry4
-	 5iCztehxHW7ytD+/hmoVMI2ex3gwLcqSoXUPtQD1uFeysRLPkpD85nqiHSuxsL3Tpzw==
+	t=1795147224;
+	b=HgAhv502LiHLcKLLaFbE1VPUH9QrMBMef35r8mq+Gi5FUvuBLRJbv2tDbL83TaThrWLX
+	 IjFu7ih7oLsigkOvuFJgXZrkiJzQpVPLsCb2dcUbeyg3JR6POlui/ow71nXa0bPk/ngyW
+	 mbG96/9fEIHjCWFYtLQh91g0vsd1iAvV0NBSXi8oLT5HPqYdbpqFunyHNc4xF4yh0TAxF
+	 TJ4K+9HwDD1C2jQArDpLVlA3xHnzr2EcR+Oo/p0UQuOTdyo4ndSfvILrHTRr4PNszhz/z
+	 kUDNmnabMm40WDhRE3eGYZgVGKoT1tXwmmvhfaeUMT28C3CHQqpCNbGbjDnQsNkVT5A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795138054;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-Id:X-Mailer:
-	 MIME-Version:Content-Transfer-Encoding;
-	bh=uP51RJdgbbJaC7Ut67HTzDX7rHk2rGZZvFLYY2qw35k=;
-	b=LoPVYrEEp+7DOkaME755SMk3zfGcMRQbLX7qteOeSmeR6wvXTxjvbs7ddiOFE1bJwcub
-	 rM0H2y0NXxrBlGn1NSwXpUduwWGPbyw3ilbb5Ql4NRh4uqcrWZ0x6rlxUCEN0kAXfAP/w
-	 f/tVWi4gsNTzKRB9jDnjFq+++POlB55rYPUC/sDNnH7BOGEMmb161vFbDAqnp/SPk5+4f
-	 hBcsAGv3xxt+kW+JrA/zGT2iXW6Y8S2TxFn6GgZjXY1OM2h1RhLPpW1r1z8O5Mm4SA6fK
-	 5bVAtYFyY0lz/yRM42tCwGkW8lIFSX4ydWxFjtocZpZRb04UPildSBBRbxmcR0DE/bA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795147224;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
+	 Mime-Version:References:Message-ID:Subject:From:To:Cc:Content-Type;
+	bh=K98FROqv30LP4AMm6nG2V0NGt/4i9m8U/QmIKGR/nHA=;
+	b=WFkdREkht59/CFqvIE//9ga/oiACaq8xqROnZfJd9reDZD/WJt5oNuaw+YG0uH9Ox1Qe
+	 Y8SOn9/+Z8nxIfgghb0XYHwL449wQvXVQgvzvXck+PLGsQYZf9x6M3PKK4x8lHL5Ngh4n
+	 vO++uD4g9HsFP4W3IkTmHbuAPy0u6C81gPV/U1RW6xXdo8HhhhSSVfAW0LsFlct7BdoCD
+	 osfTaJ3dud4fAKPTx8Q7/hVZTlBb+zAjeOE7HnZhdNpTUjaLY9p1Y36Oa6vYMCIPm6fbX
+	 MoP5kwK2Li6fI3RxqbBx5yrnV7GyfkbKL1nJcOnQwAUg8746j6heapwDLDcjsf8E38Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mliWifsE;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=google.com;
+	spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com;
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=B5criCdm;
+	arc=none smtp.remote-ip=209.85.208.69
+Received: from mail-ed1-f69.google.com (mail-ed1-f69.google.com [209.85.208.69])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C80A9606A320;
-	Fri, 20 Nov 2026 01:27:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8E0B9606A32A
+	for <linux-arch@vger.kernel.org>; Fri, 20 Nov 2026 04:00:24 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8E0B9606A32A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--tarunsahu.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mliWifsE
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id F16211F000C4;
-	Fri, 20 Nov 2026 01:27:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795138054;
-	bh=uP51RJdgbbJaC7Ut67HTzDX7rHk2rGZZvFLYY2qw35k=;
-	h=From:To:Cc:Subject:Date;
-	b=mliWifsEoWZE1zqpx1Vu6OK+OXeR4QCj7U+ybaknK6U6MJaApyMqlQYXo2O1fi5E5
-	 vaiykFvTNEQcvzoV+B5yUYF4zPCQM/yny41BWJoW6X/wUmp4Uvia910Z34LEQcQtTD
-	 6Gwa9V2ROSE2xvRhMpLIEFyUAEQI3CrjOmk8Ve5zkz0t9ry6EEu8BJBacSaTg0ihPO
-	 9f1gCJF0SxplACtA6HAj+3IsBG1g+1GkV0BlNzCP/H13y+25eZdpqCyNu/R14b++YX
-	 q+MgkmoYa0q+6O+z5nysAE/bEjC4OGR1rKBEh6uEO5CUcVPqJHgDQhUGvN9Z2gL3Iu
-	 Mr66+NFO9AJDA==
-From: guoren@kernel.org
-To: paul.walmsley@sifive.com,
-	palmer@dabbelt.com,
-	guoren@kernel.org,
-	arnd@arndb.de,
-	fustini@kernel.org
-Cc: linux-riscv@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Leonardo Bras <leobras@redhat.com>,
-	Inochi Amaoto <inochiama@gmail.com>,
-	Han Gao <gaohan@iscas.ac.cn>,
-	Yao Zi <me@ziyao.cc>,
-	Chen Wang <unicorn_wang@outlook.com>,
-	Xiaoguang Xing <xiaoguang.xing@sophgo.com>,
-	Paul Walmsley <pjw@kernel.org>
-Subject: [PATCH V6] riscv: errata: Add ERRATA WRITE_ONCE fixup
-Date: Thu, 19 Nov 2026 20:27:12 -0500
-Message-Id: <20261120012712.1957564-1-guoren@kernel.org>
-X-Mailer: git-send-email 2.40.1
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=B5criCdm
+Received: by mail-ed1-f69.google.com with SMTP id 4fb4d7f45d1cf-6b582b355eeso398063a12.3
+        for <linux-arch@vger.kernel.org>; Thu, 19 Nov 2026 20:00:24 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20260707; t=1795147223; x=1795752023; darn=vger.kernel.org;
+        h=content-type:cc:to:from:subject:message-id:references:mime-version
+         :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=K98FROqv30LP4AMm6nG2V0NGt/4i9m8U/QmIKGR/nHA=;
+        b=B5criCdmTHpf648AOYOoTrsp7d3NtGQaXhm0wMw1FXI3k3qw+457SKF80eC5qUcEr9
+         R5Jarg3tinhS/KE9BrIkFy3cbmSnVIChYpPMlyDW9+lZKO0ID9Z2fsL+JRhl6dfnl5wS
+         u/0lzw3QyLg0SUhXq9kg7PJNK37zkAVLcXZFEgnPtuPAnpD+fadgjVq1GtCPSrfhUFiY
+         BIgOo1wmzaloGacQItCbAPgBfbEoVgkdAr0aWujuWDehTSM49+mnRV62CDO+hXm9kMUQ
+         YSTirgHtY4c5Xa8FG4gJ7p1jPWSue5VrdAxaaoO89BsEeROyX55jHwuC8zlqUq2NyrgT
+         HlWQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1795147223; x=1795752023;
+        h=content-type:cc:to:from:subject:message-id:references:mime-version
+         :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=K98FROqv30LP4AMm6nG2V0NGt/4i9m8U/QmIKGR/nHA=;
+        b=PaEbEAKesEWsaXcAKGJ5juUCQLFCObwIpZmu0m4itaMqT7HsnZtc+T8PEVeyUwH8Qk
+         bTNYJLh8dhDbD5RtXbx5nhaHnp1gX0CtWYgLf/9vKQn2imLY3JnoqJTeP4j/eellqtLG
+         nt47FC71orFmvbnD73Gu9kqGwTNE1ktPDcZ0TQRbCsLSxWHd9ge4M9TZs/Aw5nH+F3BS
+         /yHM64aP+dBAEpGfMfxOe05CMB8zScKkCDTtBpEP3P0KNgkPX/xTZdnWB4PnWN4erRsL
+         0EEX9fn5FuON4zmJj3ekQzntlaFi9JMeuAfj6mxfn1QH7n8nDxQZF3wEDnsABD1Jz1W0
+         P9RQ==
+X-Forwarded-Encrypted: i=1; AL+hErHtxd/p3b7SBARnVPrwrtR3skNR8kdhygqmawjJEY1pJMWQid3Cq0aeRY6YPEMIxm1F+2mVh3siY1s2@vger.kernel.org
+X-Gm-Message-State: APuU4Z/INSlAbw/t2PfgonzjMRJ3Zc9R/5fie0Gnk7VLeLZ1mJdVfxzv
+	9TKzIBwQ5K2BuujxgMMmogq3qmPHY2QtvpOA04dC2EaPQ7KOJsPKw/rETeJcxQw/rg0DyZbamOf
+	ThMAP8YyiFm0n1PtNpw==
+X-Received: from edeg3.prod.google.com ([2002:a05:6402:5643:b0:6b8:a08a:8bad])
+ (user=tarunsahu job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a05:6402:501c:b0:6b8:afbd:64e6 with SMTP id 4fb4d7f45d1cf-6ba37edaf1cmr1021371a12.42.1795147222675;
+ Thu, 19 Nov 2026 20:00:22 -0800 (PST)
+Date: Fri, 20 Nov 2026 04:00:21 +0000
+In-Reply-To: <20261115203421.38c206b35f5b12e6@chrisdown.name>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -68,220 +77,54 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Mime-Version: 1.0
+References: <20261110050202.529473-1-tarunsahu@google.com> <20261110050202.529473-6-tarunsahu@google.com>
+ <DMRMLZSZ0LAZ.D4P70QWX0IHB@soleen.com> <9huz5wy4tufo.fsf@tarunix.c.googlers.com>
+ <20261115203421.38c206b35f5b12e6@chrisdown.name>
+Message-ID: <9huzmrr4f8yy.fsf@tarunix.c.googlers.com>
+Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI compatibility
+From: tarunsahu@google.com
+To: Chris Down <chris@chrisdown.name>
+Cc: Pasha Tatashin <pasha.tatashin@soleen.com>, Mike Rapoport <rppt@kernel.org>, robin.murphy@arm.com, 
+	maz@kernel.org, will@kernel.org, David Matlack <dmatlack@google.com>, 
+	Alexander Graf <graf@amazon.com>, seanjc@google.com, jgg@nvidia.com, loganodell@google.com, 
+	arnd@arndb.de, dwmw2@infradead.org, baolu.lu@linux.intel.com, 
+	Bjorn Helgaas <bhelgaas@google.com>, oupton@kernel.org, alex@shazbot.org, 
+	gle.com@google.com, pbonzini@redhat.com, 
+	Andrew Morton <akpm@linux-foundation.org>, kevin.tian@intel.com, joro@8bytes.org, 
+	kvmarm@lists.linux.dev, linux-pci@vger.kernel.org, 
+	Pratyush Yadav <pratyush@kernel.org>, kexec@lists.infradead.org, kvm@vger.kernel.org, 
+	iommu@lists.linux.dev, linux-arm-kernel@lists.infradead.org, 
+	skhawaja@google.com, sagis@google.com, linux-arch@vger.kernel.org, 
+	linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-From: "GUO Ren (XuanTie)" <guoren@kernel.org>
+Chris Down <chris@chrisdown.name> writes:
 
-The early version of XuanTie C910 core has a store merge buffer
-delay problem. The store merge buffer could improve the store queue
-performance by merging multi-store requests, but when there are not
-continued store requests, the prior single store request would be
-waiting in the store queue for a long time. That would cause
-significant problems for communication between multi-cores. This
-problem was found on sg2042 platform with the qspinlock lock torture
-test.
+> Hi Tarun,
+>
+> tarunsahu@google.com writes:
+>>Techinically this is just for readability.
+>>
+>>WDYT?
+>
+> It doesn't help readability in the generated docs, though. kernel-doc
+> splits the parameter list on the comma inside the macro, so
+> kho_preserve_vmalloc() comes out as
+>
+>      int kho_preserve_vmalloc (void *ptr, DECLARE_KHO_SER_HDR(kho_vmalloc# *fhdr))
+>
+> and the struct memfd_luo_ser and struct luo_session_ser definitions in the
+> ABI docs end up with a member like
+>
+>      DECLARE_KHO_SER_HDR(kho_vmalloc folios_fhdr;
+>
+> I'd go with Pasha's suggestion and use struct kho_ser_hdr directly. The
+> pointer can then say which payload follows it with a comment.
 
-So appending a fence w.o could immediately flush the store merge
-buffer and let other cores see the write result.
+Okay that works. Thanks Chris, I will update it.
 
-This will apply the WRITE_ONCE errata to handle the non-standard
-behavior via appending a fence w.o instruction for WRITE_ONCE().
+~Tarun
 
-This problem is only observed on the sg2042 hardware platform by
-running the lock_torture test program for half an hour. The problem
-was not found in the user space application, because interrupt can
-break the livelock.
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
-Reviewed-by: Leonardo Bras <leobras@redhat.com>
-Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
-Tested-by: Han Gao <gaohan@iscas.ac.cn>
-Tested-by: Yao Zi <me@ziyao.cc>
-Cc: Chen Wang <unicorn_wang@outlook.com>
-Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
-Cc: Paul Walmsley <pjw@kernel.org>
-Signed-off-by: GUO Ren (XuanTie) <guoren@kernel.org>
----
-Changelog
-
-v6:
- - Refine the title
- - Focus on SG2042 fixup
- - Rebase on v7.4-rc3
-
-v5:
-https://lore.kernel.org/linux-riscv/20260421143154.1590156-1-guoren@kernel.org/
- - Add Acked-by: Arnd Bergmann <arnd@arndb.de> for asm/generic
- - Add Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
- - Rebase on v7.0
-
-v4:
-https://lore.kernel.org/linux-riscv/20260412143116.1445893-1-guoren@kernel.org/
- - Add Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
-   (https://lore.kernel.org/linux-riscv/1cfdf6c1-a384-43ad-9588-284335d073f7@ghiti.fr/)
- - Add Tested-by: Yao Zi <me@ziyao.cc>
- - Rebase on v7.0-rc7
-
-v3:
-https://lore.kernel.org/linux-riscv/20260125063941.443777-1-guoren@kernel.org/
- - Rebase on 6.19-rc6.
- - Remove errata_list_vendors patch which has been merged.
- - Add Tested-by tag.
-
-v2:
-https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
- - Add new header file for errata_list_vendors.
- - Rebase newest kernel version.
-
-v1:
-https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
-Signed-off-by: GUO Ren (XuanTie) <guoren@kernel.org>
----
- arch/riscv/Kconfig.errata                    | 17 ++++++++++
- arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
- arch/riscv/include/asm/errata_list_vendors.h |  3 +-
- arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
- include/asm-generic/rwonce.h                 |  2 ++
- 5 files changed, 75 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/include/asm/rwonce.h
-
-diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
-index 4f77b3c6d7fd..331438bb5e0a 100644
---- a/arch/riscv/Kconfig.errata
-+++ b/arch/riscv/Kconfig.errata
-@@ -179,4 +179,21 @@ config ERRATA_THEAD_GHOSTWRITE
- 
- 	  If you don't know what to do here, say "Y".
- 
-+config ERRATA_THEAD_WRITE_ONCE
-+	bool "Apply T-Head WRITE_ONCE errata"
-+	depends on ERRATA_THEAD
-+	default y
-+	help
-+	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
-+	  merge buffer delay problem. The store merge buffer could improve the
-+	  store queue performance by merging multi-store requests, but when there
-+	  are no continued store requests, the prior single store request would be
-+	  waiting in the store queue for a long time. That would cause signifi-
-+	  cant problems for communication between multi-cores. Appending a
-+	  fence w.o could immediately flush the store merge buffer and let other
-+	  cores see the write result.
-+
-+	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
-+	  avior via appending a fence w.o instruction for WRITE_ONCE().
-+
- endmenu # "CPU errata selection"
-diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
-index 6f1c683f0ec0..64683882d50b 100644
---- a/arch/riscv/errata/thead/errata.c
-+++ b/arch/riscv/errata/thead/errata.c
-@@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
- 	return true;
- }
- 
-+static bool errata_probe_write_once(unsigned int stage,
-+				    unsigned long arch_id, unsigned long impid)
-+{
-+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
-+		return false;
-+
-+	/* target-c9xx cores report arch_id and impid as 0 */
-+	if (arch_id != 0 || impid != 0)
-+		return false;
-+
-+	if (stage == RISCV_ALTERNATIVES_BOOT ||
-+	    stage == RISCV_ALTERNATIVES_MODULE)
-+		return true;
-+
-+	return false;
-+}
-+
- static u32 thead_errata_probe(unsigned int stage,
- 			      unsigned long archid, unsigned long impid)
- {
-@@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
- 
- 	errata_probe_ghostwrite(stage, archid, impid);
- 
-+	if (errata_probe_write_once(stage, archid, impid))
-+		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
-+
- 	return cpu_req_errata;
- }
- 
-diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
-index 02b5ab0d23a8..678cd0d42b42 100644
---- a/arch/riscv/include/asm/errata_list_vendors.h
-+++ b/arch/riscv/include/asm/errata_list_vendors.h
-@@ -19,7 +19,8 @@
- #define	ERRATA_THEAD_MAE 0
- #define	ERRATA_THEAD_PMU 1
- #define	ERRATA_THEAD_GHOSTWRITE 2
--#define	ERRATA_THEAD_NUMBER 3
-+#define	ERRATA_THEAD_WRITE_ONCE 3
-+#define	ERRATA_THEAD_NUMBER 4
- #endif
- 
- #ifdef CONFIG_ERRATA_MIPS
-diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
-new file mode 100644
-index 000000000000..081793d4d772
---- /dev/null
-+++ b/arch/riscv/include/asm/rwonce.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ASM_RWONCE_H
-+#define __ASM_RWONCE_H
-+
-+#include <linux/compiler_types.h>
-+#include <asm/alternative-macros.h>
-+#include <asm/vendorid_list.h>
-+#include <asm/errata_list_vendors.h>
-+
-+#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
-+
-+#define write_once_fence()				\
-+do {							\
-+	asm volatile(ALTERNATIVE(			\
-+		"nop",					\
-+		"fence w, o",				\
-+		THEAD_VENDOR_ID,			\
-+		ERRATA_THEAD_WRITE_ONCE,		\
-+		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
-+		: : : "memory");			\
-+} while (0)
-+
-+#define __WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+	write_once_fence();				\
-+} while (0)
-+
-+#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
-+
-+#include <asm-generic/rwonce.h>
-+
-+#endif	/* __ASM_RWONCE_H */
-diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
-index 52b969c7cef9..4e2d941f15a1 100644
---- a/include/asm-generic/rwonce.h
-+++ b/include/asm-generic/rwonce.h
-@@ -50,10 +50,12 @@
- 	__READ_ONCE(x);							\
- })
- 
-+#ifndef __WRITE_ONCE
- #define __WRITE_ONCE(x, val)						\
- do {									\
- 	*(volatile typeof(x) *)&(x) = (val);				\
- } while (0)
-+#endif
- 
- #define WRITE_ONCE(x, val)						\
- do {									\
--- 
-2.40.1
-
+>
+> Chris
