@@ -1,49 +1,65 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795130330;
-	b=4p6gVLJGWoZo4QUh/DV6w1K3VgYm01C+g7mVIAH3tx0eCsWmBmoeLozNz0NWVO1zNeeT
-	 NqMWl3b7jkkccovaRCaRvdU5yM5X2uacXXA2GdLT6lHkpn2EOg+LSVX34tRUzGQayP/ND
-	 l1C4RjYUems0bfXTDmjAltOSrxn0w7mbHSg3uVQpfYB+XSPItC7xoJXFDT1mtBbEasmuh
-	 m1SN0UpFACgKTHJ8IixLmY6fZGFr/6zT9M52NzCVeitFiyl2uH68/pZtdwYyzSXDL1YCm
-	 npmd2uO6EfztugQEeM45ZdL3ex8DpsJ0EdePDEIWIkZy3JDDz46R9G9dBVAs8k6U23A==
+	t=1795138054;
+	b=4FrUTFmLlM1MwGARYzTZDT9aM0usOA5R9wcZDoO5y7pncMfk4kqKz0gGNjW6pskv3VJ8
+	 AtLJacmmaeNNdSLzPUEm3QEQPk3SJ60URyxIv4J8RRwDe2eygoASEFiAVH/0+4rjFBN5s
+	 ZH5S1HhVhsuMAWISGAXeX0PV4d1ebi29sSP9PdG8j+6kDxysGA7eWCLCECF+5lQtS1CJl
+	 2FVPr9cGLZAsuvNjxvHfM+a9XKab6xhkUOT32r/ZfDx1gxQTy1jCAVM0nKeMEpFDX5ry4
+	 5iCztehxHW7ytD+/hmoVMI2ex3gwLcqSoXUPtQD1uFeysRLPkpD85nqiHSuxsL3Tpzw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795130330;
-	h=DMARC-Filter:Received:DKIM-Filter:DKIM-Signature:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:Content-Language:To:Cc:References:
-	 From:In-Reply-To:Content-Type:Content-Transfer-Encoding:X-Spam-Status:
-	 X-Spam-Checker-Version;
-	bh=IoabV2VxoUyRhnu9jmXaZBldz5Wr97ijw+Y3IW83qfM=;
-	b=tyjkg7gJFRmmZIeaU3EsQzHVHdp0Wo5xsCJ5LRcpjmpeBm6HIgpNJV8MD/1x0GBA1pCN
-	 8N+3gQHY+ATSUpxOlgN1mq/xQ4Ycsg86Q2GAPp/Vj1tlD7Z2CHItHOLXZ1L3GKUKdNrrx
-	 91njTFdvsvIZv6SQ4bhM2ma8yi2WfIJvY2bQAOkqLYaHttjrIaQX0uccC97nMcLMqIFGf
-	 30lmyKW3s7Z+QjzYNqa94lsfDnUt9RwuiJZhNFyvUuNqm7zPZbSypvCBWmpP8/I0Z8dR4
-	 FfejPIbZ2oQCELrkCA+cirUsmisEWRzlhJCxIFEhNnTK6wbSGiUjbaPt7a1hgAaMyRw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795138054;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-Id:X-Mailer:
+	 MIME-Version:Content-Transfer-Encoding;
+	bh=uP51RJdgbbJaC7Ut67HTzDX7rHk2rGZZvFLYY2qw35k=;
+	b=LoPVYrEEp+7DOkaME755SMk3zfGcMRQbLX7qteOeSmeR6wvXTxjvbs7ddiOFE1bJwcub
+	 rM0H2y0NXxrBlGn1NSwXpUduwWGPbyw3ilbb5Ql4NRh4uqcrWZ0x6rlxUCEN0kAXfAP/w
+	 f/tVWi4gsNTzKRB9jDnjFq+++POlB55rYPUC/sDNnH7BOGEMmb161vFbDAqnp/SPk5+4f
+	 hBcsAGv3xxt+kW+JrA/zGT2iXW6Y8S2TxFn6GgZjXY1OM2h1RhLPpW1r1z8O5Mm4SA6fK
+	 5bVAtYFyY0lz/yRM42tCwGkW8lIFSX4ydWxFjtocZpZRb04UPildSBBRbxmcR0DE/bA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.microsoft.com;
-	spf=pass smtp.mailfrom=linux.microsoft.com;
-	dkim=pass header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=H1OAbmxz;
-	arc=none smtp.remote-ip=13.77.154.182
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 60240606A32C;
-	Thu, 19 Nov 2026 23:18:50 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 60240606A32C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mliWifsE;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C80A9606A320;
+	Fri, 20 Nov 2026 01:27:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.a=rsa-sha256 header.s=default header.b=H1OAbmxz
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 93B9C20B7166;
-	Thu, 19 Nov 2026 15:18:47 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 93B9C20B7166
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1795130328;
-	bh=IoabV2VxoUyRhnu9jmXaZBldz5Wr97ijw+Y3IW83qfM=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=H1OAbmxzqQXd4m5xgxOYa9Lc8M4W0KGHhMF8BGhB6RMSjzC1SQd7TCafdyccGls2F
-	 6nwT+n+OjtkIDNHAGdKZKiA1iMkEezYzO9szzMcmIPVVkNqpX/jSvjXlQwnDc/GHk9
-	 fZ7/mXHELX4rc9KBcGZiniFbpcRP+suqjqL+Tm6A=
-Message-ID: <1f486680-f2b2-5967-2cf6-bfbf5fe1fc5f@linux.microsoft.com>
-Date: Thu, 19 Nov 2026 15:18:48 -0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=mliWifsE
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F16211F000C4;
+	Fri, 20 Nov 2026 01:27:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795138054;
+	bh=uP51RJdgbbJaC7Ut67HTzDX7rHk2rGZZvFLYY2qw35k=;
+	h=From:To:Cc:Subject:Date;
+	b=mliWifsEoWZE1zqpx1Vu6OK+OXeR4QCj7U+ybaknK6U6MJaApyMqlQYXo2O1fi5E5
+	 vaiykFvTNEQcvzoV+B5yUYF4zPCQM/yny41BWJoW6X/wUmp4Uvia910Z34LEQcQtTD
+	 6Gwa9V2ROSE2xvRhMpLIEFyUAEQI3CrjOmk8Ve5zkz0t9ry6EEu8BJBacSaTg0ihPO
+	 9f1gCJF0SxplACtA6HAj+3IsBG1g+1GkV0BlNzCP/H13y+25eZdpqCyNu/R14b++YX
+	 q+MgkmoYa0q+6O+z5nysAE/bEjC4OGR1rKBEh6uEO5CUcVPqJHgDQhUGvN9Z2gL3Iu
+	 Mr66+NFO9AJDA==
+From: guoren@kernel.org
+To: paul.walmsley@sifive.com,
+	palmer@dabbelt.com,
+	guoren@kernel.org,
+	arnd@arndb.de,
+	fustini@kernel.org
+Cc: linux-riscv@lists.infradead.org,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Leonardo Bras <leobras@redhat.com>,
+	Inochi Amaoto <inochiama@gmail.com>,
+	Han Gao <gaohan@iscas.ac.cn>,
+	Yao Zi <me@ziyao.cc>,
+	Chen Wang <unicorn_wang@outlook.com>,
+	Xiaoguang Xing <xiaoguang.xing@sophgo.com>,
+	Paul Walmsley <pjw@kernel.org>
+Subject: [PATCH V6] riscv: errata: Add ERRATA WRITE_ONCE fixup
+Date: Thu, 19 Nov 2026 20:27:12 -0500
+Message-Id: <20261120012712.1957564-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.40.1
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -53,136 +69,219 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v6 4/6] Drivers: hv: Mark shared memory as decrypted for
- CCA Realms
-Content-Language: en-US
-To: Kameron Carr <kameroncarr@linux.microsoft.com>
-Cc: Michael Kelley <mhklinux@outlook.com>,
- "decui@microsoft.com" <decui@microsoft.com>,
- "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
- "wei.liu@kernel.org" <wei.liu@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>,
- "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
- "linux-arm-kernel@lists.infradead.org"
- <linux-arm-kernel@lists.infradead.org>,
- "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
- "mark.rutland@arm.com" <mark.rutland@arm.com>,
- "sudeep.holla@kernel.org" <sudeep.holla@kernel.org>,
- "thuth@redhat.com" <thuth@redhat.com>, "will@kernel.org" <will@kernel.org>
-References: <20261031001412.4150488-1-kameroncarr@linux.microsoft.com>
- <20261031001412.4150488-5-kameroncarr@linux.microsoft.com>
- <MN2PR02MB6863AA6357C8E0D4881F5FEAD4712@MN2PR02MB6863.namprd02.prod.outlook.com>
- <c6b7f583-878d-1f1e-60cc-e602e277d075@linux.microsoft.com>
- <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <af057438-a684-4840-815c-581b866678c1@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 11/12/26 09:49, Kameron Carr wrote:
-> On 11/11/2026 6:43 PM, Mukesh R wrote:
->> On 11/11/26 10:01, Michael Kelley wrote:
->>> From: Kameron Carr <kameroncarr@linux.microsoft.com> Sent: Friday, October 30, 2026 5:14 PM
->>>>
->>>> In hv_common_cpu_init(), the per-CPU hypercall input/output pages need
->>>> to be marked as decrypted (shared) for confidential VM isolation types.
->>>> This is already done for SNP and TDX isolation; extend the same handling
->>>> to Arm CCA Realm guests so that the host hypervisor can access the
->>>> shared hypercall buffers.
->>>>
->>>> is_realm_world() is declared in include/linux/arm-rsi-cmds.h which only
->>>> builds on arm64 (it includes <asm/memory.h>), so using it directly in
->>>> the arch-neutral drivers/hv/hv_common.c would break the x86 build.
->>>> Introduce a Hyper-V-specific helper following the established
->>>> hv_isolation_type_snp() / hv_isolation_type_tdx() pattern.
->>>>
->>>> On architectures other than arm64 the weak default keeps the existing
->>>> behaviour.
->>>>
->>>> Reviewed-by: Michael Kelley <mhklinux@outlook.com>
->>>> Signed-off-by: Kameron Carr <kameroncarr@linux.microsoft.com>
->>>> ---
->>>>    arch/arm64/hyperv/mshyperv.c   |  5 +++++
->>>>    drivers/hv/hv_common.c         | 17 +++++++++++++----
->>>>    include/asm-generic/mshyperv.h |  1 +
->>>>    3 files changed, 19 insertions(+), 4 deletions(-)
->>>>
->>>> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
->>>> index 46ab2da..da6c3aa0 100644
->>>> --- a/arch/arm64/hyperv/mshyperv.c
->>>> +++ b/arch/arm64/hyperv/mshyperv.c
->>>> @@ -182,3 +182,8 @@ bool hv_is_hyperv_initialized(void)
->>>>        return hyperv_initialized;
->>>>    }
->>>>    EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
->>>> +
->>>> +bool hv_isolation_type_cca(void)
->>>> +{
->>>> +    return is_realm_world();
->>>> +}
+From: "GUO Ren (XuanTie)" <guoren@kernel.org>
 
-Hey Kameron,
+The early version of XuanTie C910 core has a store merge buffer
+delay problem. The store merge buffer could improve the store queue
+performance by merging multi-store requests, but when there are not
+continued store requests, the prior single store request would be
+waiting in the store queue for a long time. That would cause
+significant problems for communication between multi-cores. This
+problem was found on sg2042 platform with the qspinlock lock torture
+test.
 
-Since this function is added to check cca and is being used now, there
-are places that still use is_realm_world() in arch/arm64/hyperv/mshyperv.c
-that I think should switch over to hv_isolation_type_cca(). Should be
-quick patch.
+So appending a fence w.o could immediately flush the store merge
+buffer and let other cores see the write result.
 
-Thanks,
--Mukesh
+This will apply the WRITE_ONCE errata to handle the non-standard
+behavior via appending a fence w.o instruction for WRITE_ONCE().
 
->>>> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
->>>> index 31256cb..a60c92c 100644
->>>> --- a/drivers/hv/hv_common.c
->>>> +++ b/drivers/hv/hv_common.c
->>>> @@ -476,6 +476,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>        u64 msr_vp_index;
->>>>        gfp_t flags;
->>>>        const int pgcount = hv_output_page_exists() ? 2 : 1;
->>>> +    const size_t alloc_size = ALIGN((size_t)pgcount * HV_HYP_PAGE_SIZE, PAGE_SIZE);
->>>>        void *mem;
->>>>        int ret = 0;
->>>>
->>>> @@ -489,7 +490,7 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>         * online and then taken offline
->>>>         */
->>>>        if (!*inputarg) {
->>>> -        mem = kmalloc_array(pgcount, HV_HYP_PAGE_SIZE, flags);
->>>> +        mem = kmalloc(alloc_size, flags);
->>>>            if (!mem)
->>>>                return -ENOMEM;
->>>>
->>>> @@ -499,14 +500,16 @@ int hv_common_cpu_init(unsigned int cpu)
->>>>            }
->>>>
->>>>            if (!ms_hyperv.paravisor_present &&
->>>> -            (hv_isolation_type_snp() || hv_isolation_type_tdx())) {
->>>> -            ret = set_memory_decrypted((unsigned long)mem, pgcount);
->>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>> +             hv_isolation_type_cca())) {
->>>
->>> Could this big "if" statement use "hv_is_isolation_supported()" instead
->>> of explicitly testing for each CoCo VM type? I ask partly because
->>> Mukesh Rathor has just submitted a patch [1] that introduces a new
->>> function that does something almost exactly the same as
->>> hv_is_isolation_supported() and uses it here.
->>
->>>> +            (hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->>>> +             hv_isolation_type_cca())) {
->>
->> With my change, this will become:
->>
->>          (hv_isolation_hw_cvm() || hv_isolation_type_cca())) {
-> 
-> Any reason you wouldn't change hv_isolation_hw_cvm() to
-> 
->    return hv_isolation_type_snp() || hv_isolation_type_tdx() ||
->      hv_isolation_type_cca()
-> 
-> That would seem more logical to me.
-> 
+This problem is only observed on the sg2042 hardware platform by
+running the lock_torture test program for half an hour. The problem
+was not found in the user space application, because interrupt can
+break the livelock.
+
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+Reviewed-by: Leonardo Bras <leobras@redhat.com>
+Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
+Tested-by: Han Gao <gaohan@iscas.ac.cn>
+Tested-by: Yao Zi <me@ziyao.cc>
+Cc: Chen Wang <unicorn_wang@outlook.com>
+Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
+Cc: Paul Walmsley <pjw@kernel.org>
+Signed-off-by: GUO Ren (XuanTie) <guoren@kernel.org>
+---
+Changelog
+
+v6:
+ - Refine the title
+ - Focus on SG2042 fixup
+ - Rebase on v7.4-rc3
+
+v5:
+https://lore.kernel.org/linux-riscv/20260421143154.1590156-1-guoren@kernel.org/
+ - Add Acked-by: Arnd Bergmann <arnd@arndb.de> for asm/generic
+ - Add Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
+ - Rebase on v7.0
+
+v4:
+https://lore.kernel.org/linux-riscv/20260412143116.1445893-1-guoren@kernel.org/
+ - Add Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+   (https://lore.kernel.org/linux-riscv/1cfdf6c1-a384-43ad-9588-284335d073f7@ghiti.fr/)
+ - Add Tested-by: Yao Zi <me@ziyao.cc>
+ - Rebase on v7.0-rc7
+
+v3:
+https://lore.kernel.org/linux-riscv/20260125063941.443777-1-guoren@kernel.org/
+ - Rebase on 6.19-rc6.
+ - Remove errata_list_vendors patch which has been merged.
+ - Add Tested-by tag.
+
+v2:
+https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
+ - Add new header file for errata_list_vendors.
+ - Rebase newest kernel version.
+
+v1:
+https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
+Signed-off-by: GUO Ren (XuanTie) <guoren@kernel.org>
+---
+ arch/riscv/Kconfig.errata                    | 17 ++++++++++
+ arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
+ arch/riscv/include/asm/errata_list_vendors.h |  3 +-
+ arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
+ include/asm-generic/rwonce.h                 |  2 ++
+ 5 files changed, 75 insertions(+), 1 deletion(-)
+ create mode 100644 arch/riscv/include/asm/rwonce.h
+
+diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
+index 4f77b3c6d7fd..331438bb5e0a 100644
+--- a/arch/riscv/Kconfig.errata
++++ b/arch/riscv/Kconfig.errata
+@@ -179,4 +179,21 @@ config ERRATA_THEAD_GHOSTWRITE
+ 
+ 	  If you don't know what to do here, say "Y".
+ 
++config ERRATA_THEAD_WRITE_ONCE
++	bool "Apply T-Head WRITE_ONCE errata"
++	depends on ERRATA_THEAD
++	default y
++	help
++	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
++	  merge buffer delay problem. The store merge buffer could improve the
++	  store queue performance by merging multi-store requests, but when there
++	  are no continued store requests, the prior single store request would be
++	  waiting in the store queue for a long time. That would cause signifi-
++	  cant problems for communication between multi-cores. Appending a
++	  fence w.o could immediately flush the store merge buffer and let other
++	  cores see the write result.
++
++	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
++	  avior via appending a fence w.o instruction for WRITE_ONCE().
++
+ endmenu # "CPU errata selection"
+diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
+index 6f1c683f0ec0..64683882d50b 100644
+--- a/arch/riscv/errata/thead/errata.c
++++ b/arch/riscv/errata/thead/errata.c
+@@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
+ 	return true;
+ }
+ 
++static bool errata_probe_write_once(unsigned int stage,
++				    unsigned long arch_id, unsigned long impid)
++{
++	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
++		return false;
++
++	/* target-c9xx cores report arch_id and impid as 0 */
++	if (arch_id != 0 || impid != 0)
++		return false;
++
++	if (stage == RISCV_ALTERNATIVES_BOOT ||
++	    stage == RISCV_ALTERNATIVES_MODULE)
++		return true;
++
++	return false;
++}
++
+ static u32 thead_errata_probe(unsigned int stage,
+ 			      unsigned long archid, unsigned long impid)
+ {
+@@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
+ 
+ 	errata_probe_ghostwrite(stage, archid, impid);
+ 
++	if (errata_probe_write_once(stage, archid, impid))
++		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
++
+ 	return cpu_req_errata;
+ }
+ 
+diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
+index 02b5ab0d23a8..678cd0d42b42 100644
+--- a/arch/riscv/include/asm/errata_list_vendors.h
++++ b/arch/riscv/include/asm/errata_list_vendors.h
+@@ -19,7 +19,8 @@
+ #define	ERRATA_THEAD_MAE 0
+ #define	ERRATA_THEAD_PMU 1
+ #define	ERRATA_THEAD_GHOSTWRITE 2
+-#define	ERRATA_THEAD_NUMBER 3
++#define	ERRATA_THEAD_WRITE_ONCE 3
++#define	ERRATA_THEAD_NUMBER 4
+ #endif
+ 
+ #ifdef CONFIG_ERRATA_MIPS
+diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
+new file mode 100644
+index 000000000000..081793d4d772
+--- /dev/null
++++ b/arch/riscv/include/asm/rwonce.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef __ASM_RWONCE_H
++#define __ASM_RWONCE_H
++
++#include <linux/compiler_types.h>
++#include <asm/alternative-macros.h>
++#include <asm/vendorid_list.h>
++#include <asm/errata_list_vendors.h>
++
++#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
++
++#define write_once_fence()				\
++do {							\
++	asm volatile(ALTERNATIVE(			\
++		"nop",					\
++		"fence w, o",				\
++		THEAD_VENDOR_ID,			\
++		ERRATA_THEAD_WRITE_ONCE,		\
++		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
++		: : : "memory");			\
++} while (0)
++
++#define __WRITE_ONCE(x, val)				\
++do {							\
++	*(volatile typeof(x) *)&(x) = (val);		\
++	write_once_fence();				\
++} while (0)
++
++#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
++
++#include <asm-generic/rwonce.h>
++
++#endif	/* __ASM_RWONCE_H */
+diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
+index 52b969c7cef9..4e2d941f15a1 100644
+--- a/include/asm-generic/rwonce.h
++++ b/include/asm-generic/rwonce.h
+@@ -50,10 +50,12 @@
+ 	__READ_ONCE(x);							\
+ })
+ 
++#ifndef __WRITE_ONCE
+ #define __WRITE_ONCE(x, val)						\
+ do {									\
+ 	*(volatile typeof(x) *)&(x) = (val);				\
+ } while (0)
++#endif
+ 
+ #define WRITE_ONCE(x, val)						\
+ do {									\
+-- 
+2.40.1
 
