@@ -1,130 +1,69 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795188276;
-	b=RfAFeDH1PfbhtfH2Bh/YaxGqKegF7yDFH95Z1b8df+ItcZWkUvuylINwZgBRkv6qm5on
-	 D3h1ikB5f5QwQBNVknf16//xcRnXCGn5EJpq4lm0DCk8garWyV71H6D75D6AdsnLLR6AU
-	 3QtN0Tzq90qerFr6Ng1JjfTuZYvjaCeb8OSdIH9KwdSfHtKH5YBwVmQdbZqXaq0je7muM
-	 kV/WfR/omefUc6cXvBrK9bM77zdpCFoAmtgZ+Fpkwe0d4CVScJrZz0XUj8Qu5z5qte6UB
-	 0w8sDsO8XID522AXeq+wkvOgF2KJ6EiyxDgBzk0A4U41EyhpvzFDSeDnY5tFcpX0Cfg==
+	t=1795191070;
+	b=Y4vEZlK/PhLcutyFqQ8NULR0zOaqEgg/Gwb8++gU23IW86C2OlZ0hsf+/L4ozZ7DFL8T
+	 UtHEGojp8qKqOMTZRNyNzjuDG0hRV+hcaY4uwd5qSfhHwmQPTRNFPXBxjSzaqkigaDuTi
+	 zWlvIQxJosXOa9YkbGDFadQy9qYNh4o60Rn2pqfCoY9e/tKkbgo8EXSvTydEZXzYv+GCR
+	 /KVRKGYp2+wf4tLiS2dyYTFYuBLRQpwkWV6Bk/7J9+8Jc/MERcpl6oQgyxujTaqdfA+7Z
+	 E4Asi2e8lMxkUQ8FdMVB3WyYPM/QEEJhBNowD3aAVlHkyjOXqDCthZLSA/EJIYiPt3A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795188276;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:
-	 Content-Transfer-Encoding:In-Reply-To;
-	bh=zOo2EfGngcl3fu/kIhqZadaO75pP0lk1DR/lRHlyrtU=;
-	b=3Bf/JDupGMB0NF5YT0guaBMQxASzyBt8w/bQYuZjpy4pLXvc+1ZMyFO9n8Eev5Ed6Alx
-	 4Y7MlAXroEFDChrhA0V7TYlbTNnQKvpgcH3nTww9GJ+kb1Tfjbiohr3ZglABng4Kdh5l2
-	 9iwPgdwu2OaDjYcbe9Zszk4crOqJ4hHKxZe+bcxYqgvAa5efSUBO+33YuHvzuCgBjiaBz
-	 ETVN/fdmBwFGMjRFpx/o1Vl9SwdSSq2kSbCnJxpM3nU067pguiwACOZxEYHmK3ZLW4kg8
-	 5Pyljq0m9B4+A3HhzhGgRqznESzl+j6HVugTTO0IJiWzmdRO+Xz99CjZcXXH5PLORHA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795191070;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
+	bh=ZFb+S8Es0NvUmNBR5T6fgVNGrRH2yKZK48f5XbLVIEc=;
+	b=P2p5kzauUHLuxrumgWE+zbud/Uupj72MsNvf8MJ2y4QKAsPtN95gcU7IJXLexI4FtrR/
+	 bQttkJmfTPNtPgVsmynltZX+/Gn3Y97WPpAXsSh6kYU1FzFQ+GaqBPDXLxPdtiXyxUvx6
+	 2lPRq0uH86bY/n/F/O4P4+aXRRkvQ3z0He9KLTzXHJ5lKuqIUkSTXcYIGrUqzWU/WyxZu
+	 2GtNJbydq5LYEDKZJYC8e6U6e9+QsjkjYb8h3tTpJR+7g1mMU6TiOsZ0BXpWUkFMYKvwY
+	 PPWmznkCcR/j13O3xYp12J1sWa1cAnq/PeXAKiuG67uKOdwoonkIaqKAlHW0qqSUs5w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XCQUtSSf;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="H/VuAI5B";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 1ADE6606A320;
-	Fri, 20 Nov 2026 15:24:35 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8AC3606A325;
+	Fri, 20 Nov 2026 16:11:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XCQUtSSf
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 9CC851F000CA;
-	Fri, 20 Nov 2026 15:24:34 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=H/VuAI5B
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 12A251F000C6;
+	Fri, 20 Nov 2026 16:11:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795188275;
-	bh=zOo2EfGngcl3fu/kIhqZadaO75pP0lk1DR/lRHlyrtU=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=XCQUtSSf00g2G/Jpzjl9LRNQEFXNNRnYGZWzdtuiZBHk7dosmqWBMrC+L7eGsuwT3
-	 6Y8qXJypfh+8W03R5Msm4iQvi0clPna6Y5oqS1fK2fMBPqPJtncagCqPrZrgwYA61c
-	 Ir7DESMb/dns84I6WWtY5IQnf73sTx8SIKL9bvZjYjcc9pfyT2D4A8Rsc/CYWyagj2
-	 DltATLAp/YBb7+MwnvRYS7P7+HT3f1+jlJHOL7W4kb+l4QjcUeVm9fOWhMSveLYD4Q
-	 IO8nsOvMP1W4FNm+RhhQIMrsrDM1nc6imjdTxfwsnAexYb35pl8AoQ1Ir88SqmYiNe
-	 v0OZ/2yfr0Tjg==
-Date: Fri, 20 Nov 2026 17:24:31 +0200
-From: Jarkko Sakkinen <jarkko@kernel.org>
-To: Alexander Mikhalitsyn <alex@amutable.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
-	linux-mm@kvack.org, linux-security-module@vger.kernel.org,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Alexandre Ghiti <alex@ghiti.fr>,
-	Andreas Larsson <andreas@gaisler.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Andy Lutomirski <luto@amacapital.net>,
-	Andy Lutomirski <luto@kernel.org>,
-	Anna-Maria Behnsen <anna-maria@linutronix.de>,
-	Arnd Bergmann <arnd@arndb.de>, Ben Segall <bsegall@google.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Casey Schaufler <casey@schaufler-ca.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Christian Brauner <brauner@kernel.org>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Chris Zankel <chris@zankel.net>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	David Hildenbrand <david@kernel.org>,
-	David Howells <dhowells@redhat.com>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	"David S. Miller" <davem@davemloft.net>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Frederic Weisbecker <frederic@kernel.org>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	"Hallgrimur H. Gunnarsson" <halg@google.com>,
-	Heiko Carstens <hca@linux.ibm.com>, Helge Deller <deller@gmx.de>,
-	"H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>,
-	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-	Jan Kara <jack@suse.cz>,
-	John Johansen <john.johansen@canonical.com>,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Josef Bacik <josef@toxicpanda.com>,
-	Juri Lelli <juri.lelli@redhat.com>, Kees Cook <kees@kernel.org>,
-	K Prateek Nayak <kprateek.nayak@amd.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Lorenzo Stoakes <ljs@kernel.org>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Magnus Lindholm <linmag7@gmail.com>,
-	Manfred Spraul <manfred@colorfullife.com>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>,
-	Mel Gorman <mgorman@suse.de>, Michael Ellerman <mpe@ellerman.id.au>,
-	Michal Hocko <mhocko@suse.com>, Michal Simek <monstr@monstr.eu>,
-	Mike Rapoport <rppt@kernel.org>, Neal Gompa <neal@gompa.dev>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Paul Moore <paul@paul-moore.com>, Paul Walmsley <pjw@kernel.org>,
-	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	Richard Henderson <richard.henderson@linaro.org>,
-	Rich Felker <dalias@libc.org>,
-	"Ritesh Harjani (IBM)" <ritesh.list@gmail.com>,
-	Russell King <linux@armlinux.org.uk>,
-	Serge Hallyn <sergeh@kernel.org>,
-	Shrikanth Hegde <sshegde@linux.ibm.com>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Valentin Schneider <vschneid@redhat.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Vincent Guittot <vincent.guittot@linaro.org>,
-	Vincenzo Frascino <vincenzo.frascino@arm.com>,
-	Vlastimil Babka <vbabka@kernel.org>, Will Deacon <will@kernel.org>,
-	Yoshinori Sato <ysato@users.sourceforge.jp>,
-	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: Re: [RFC PATCH v4 03/14] rootns: Track init lifecycle via
- copy_process() and pid_namespace
-Message-ID: <awBmL_4VqwinHuVN@kernel.org>
-References: <20261119224312.1037966-1-jarkko@kernel.org>
- <20261119224312.1037966-4-jarkko@kernel.org>
- <e376c8f0ec5c50b417375197a5589a210f151d9b.camel@amutable.com>
- <awBLafK4jqB8fTF2@kernel.org>
+	s=k20260515; t=1795191069;
+	bh=ZFb+S8Es0NvUmNBR5T6fgVNGrRH2yKZK48f5XbLVIEc=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=H/VuAI5BtuQwQd0zk9hcNYwSPn6N63WihBmZ3f6agPjw5j6X4nhjl+xkuBInj2K3G
+	 pOag/mfhsLJCuDBPE43lBZguYkWm5Q0XnOYHt8I9NqdQ+atTKMgFYlb1IaF+jtQGld
+	 3sUfi6lcLYmIyXlLtnVutUfX01YNRwxTD426bjxP/ztOBKmBROpGn/s6ksznIb2w4q
+	 Au1te+hWzLmOyeSjczvD2gxa37Gi2iRY6JeY1uNgS+FOo6aHN7HdwWzWJ76IhqubZC
+	 I7wV52HU+JBPo3Q8L36yOGgOyjynFxkC/8obE8WBrvul2HbGE4EceWsI1QomsynUz+
+	 KVYj1KF0dneuA==
+From: Pratyush Yadav <pratyush@kernel.org>
+To: Tarun Sahu <tarunsahu@google.com>
+Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
+ <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
+  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
+ <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
+  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
+  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
+  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
+  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
+  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
+  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
+  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
+  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
+  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
+  linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v4 02/19] kho: block: Record the entry size in the block
+ header
+In-Reply-To: <20261110050202.529473-3-tarunsahu@google.com> (Tarun Sahu's
+	message of "Tue, 10 Nov 2026 05:01:45 +0000")
+References: <20261110050202.529473-1-tarunsahu@google.com>
+	<20261110050202.529473-3-tarunsahu@google.com>
+Date: Fri, 20 Nov 2026 16:11:01 +0000
+Message-ID: <2vxz8q2n1o16.fsf@kernel.org>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -134,30 +73,90 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <awBLafK4jqB8fTF2@kernel.org>
+Content-Type: text/plain
 
-On Fri, Nov 20, 2026 at 03:30:21PM +0200, Jarkko Sakkinen wrote:
-> On Fri, Nov 20, 2026 at 02:18:43PM +0100, Alexander Mikhalitsyn wrote:
-> > Dear Jarkko,
-> > 
-> > >  	acct_exit_ns(pid_ns);
-> > > +	exit_rootns(pid_ns, me);
-> > 
-> > We have a very similar mechanism around pidfd's to track exit
-> > information for a task. As far as I can see we already have (struct
-> > rootns *)->init_pid reference, so we can get exit information for free
-> > (look for PIDFD_INFO_EXIT).
-> 
-> Thanks for mentioning. I'll see if I can leverage it.
-> 
-> If something like this is found, it is partly due long history of this
-> code i.e., not planned/opionated choice :-) 
+On Tue, Nov 10 2026, Tarun Sahu wrote:
 
-This non-doable or incompatible at least. I'm not sure if that would
-have gain. I think this goes to acceptable redundancy. Or at least,
-currently think this way.
+> Subsystems using the KHO Serialization Blocks framework currently do
+> not record the serialized entry size in the block header. The entry size
+> is only known to individual callers, which must track and store it in an
+> owning serialized data structure. If a newer source kernel adds fields
+> to an entry, the changed entry size breaks the stride when an older
+> target kernel iterates over blocks.
+>
+> Add an entry_size field to struct kho_block_header_ser. On the outgoing
+> side, record bs->entry_size into every block header during allocation.
+> During restoration, derive the entry stride directly from the block
+> header instead of relying on caller-supplied dimensions. The
+> kho_block_set_init() interface remains unchanged. A zero entry size,
+> or one that differs between blocks of a set, is rejected during
+> restoration.
 
-Br, Jarkko
+Yeah, I agree with David here. It makes little sense to have callers
+pass in the entry size only to have it ignored (or, only used for
+rejection). It would be much better to use the recorded entry size and
+hand it over to callers.
+
+>
+> This change modifies the serialized layout of struct kho_block_header_ser
+> and shifts the offset of serialized entries within preserved blocks.
+> Bump KHO_FDT_COMPATIBLE from kho-v4 to kho-v5 so that pre-v5 and post-v5
+> kernels cleanly reject mismatched handover state during boot. Also
+> update the stale compatible string example in the documentation.
+>
+> Suggested-by: Pratyush Yadav <pratyush@kernel.org>
+> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+> ---
+>  include/linux/kho/abi/block.h          | 10 ++++----
+>  include/linux/kho/abi/kexec_handover.h |  6 ++---
+>  kernel/liveupdate/kho_block.c          | 32 +++++++++++++++++++++++---
+>  3 files changed, 38 insertions(+), 10 deletions(-)
+>
+> diff --git a/include/linux/kho/abi/block.h b/include/linux/kho/abi/block.h
+> index 36bdbaf9b3b8..a40b0906c821 100644
+> --- a/include/linux/kho/abi/block.h
+> +++ b/include/linux/kho/abi/block.h
+> @@ -40,9 +40,10 @@
+>  
+>  /**
+>   * struct kho_block_header_ser - Header for the serialized data block.
+> - * @next:  Physical address of the next struct kho_block_header_ser.
+> - * @count: The number of entries that immediately follow this header in the
+> - *         memory block.
+> + * @next:       Physical address of the next struct kho_block_header_ser.
+> + * @count:      The number of entries that immediately follow this header in the
+> + *              memory block.
+> + * @entry_size: The size in bytes of each serialized entry in the block.
+>   *
+>   * This structure is located at the beginning of a block of physical memory
+>   * preserved across a kexec. It provides the necessary metadata to interpret
+> @@ -51,9 +52,10 @@
+>  struct kho_block_header_ser {
+>  	u64 next;
+>  	u64 count;
+> +	u64 entry_size;
+
+I think this is the wrong place to put this. This header goes before
+each block, so it should only hold metadata _for this block_, not for
+the whole data structure. Because if you do that, you end up having the
+field present in each block, but only the first block is special and the
+value is only valid there. The feature header coming later makes this
+problem worse.
+
+I think we should follow down the lines of kho_vmalloc and have a
+out-of-band structure that describes the whole block set, and then each
+block only holds metadata relevant to it.
+
+So this would look like:
+
+	struct kho_block_ser {
+		DECLARE_KHOSER_PTR(first, struct kho_block_header_ser *);
+		u64 entry_size;
+		/* Other things like flags, size, etc... */
+	};
+
+[...]
+
+-- 
+Regards,
+Pratyush Yadav
