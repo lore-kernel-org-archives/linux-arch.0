@@ -1,69 +1,68 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795191070;
-	b=Y4vEZlK/PhLcutyFqQ8NULR0zOaqEgg/Gwb8++gU23IW86C2OlZ0hsf+/L4ozZ7DFL8T
-	 UtHEGojp8qKqOMTZRNyNzjuDG0hRV+hcaY4uwd5qSfhHwmQPTRNFPXBxjSzaqkigaDuTi
-	 zWlvIQxJosXOa9YkbGDFadQy9qYNh4o60Rn2pqfCoY9e/tKkbgo8EXSvTydEZXzYv+GCR
-	 /KVRKGYp2+wf4tLiS2dyYTFYuBLRQpwkWV6Bk/7J9+8Jc/MERcpl6oQgyxujTaqdfA+7Z
-	 E4Asi2e8lMxkUQ8FdMVB3WyYPM/QEEJhBNowD3aAVlHkyjOXqDCthZLSA/EJIYiPt3A==
+	t=1795193340;
+	b=vgOg8qQl2O/4X02OwwvutOpb7hQVaWR7pLhcAdjYZc+3cP5HDDvuWKAKq7RPRsJoTSq4
+	 A7VKLLPM1KSI7gsydNVipJ7WmAlYiPRhqZxaVY/FlIErqlgiBk+GI8NOh1mPOCN7P57+Q
+	 bh0j01D83Qom4x7gPvWEd1E1OnRJh4J/iVDn18+FmSFVLzKB1BR/VXANh1Fm5Mc0F8MJB
+	 VwYgksCfUczbeLawWU4QKdg0USWcumbw78zet/ztAwgReCIBFWegODvi48zkgjE6ExJwq
+	 YirgKPnLAHRNGhrOm57WvaG4FlzufeymW14mxap8Q5b3j89FKzdkMXL+sSHwV9hiE7g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795191070;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
-	bh=ZFb+S8Es0NvUmNBR5T6fgVNGrRH2yKZK48f5XbLVIEc=;
-	b=P2p5kzauUHLuxrumgWE+zbud/Uupj72MsNvf8MJ2y4QKAsPtN95gcU7IJXLexI4FtrR/
-	 bQttkJmfTPNtPgVsmynltZX+/Gn3Y97WPpAXsSh6kYU1FzFQ+GaqBPDXLxPdtiXyxUvx6
-	 2lPRq0uH86bY/n/F/O4P4+aXRRkvQ3z0He9KLTzXHJ5lKuqIUkSTXcYIGrUqzWU/WyxZu
-	 2GtNJbydq5LYEDKZJYC8e6U6e9+QsjkjYb8h3tTpJR+7g1mMU6TiOsZ0BXpWUkFMYKvwY
-	 PPWmznkCcR/j13O3xYp12J1sWa1cAnq/PeXAKiuG67uKOdwoonkIaqKAlHW0qqSUs5w==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795193340;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
+	 Subject:Message-ID:References:MIME-Version:Content-Type:
+	 Content-Disposition:Content-Transfer-Encoding:In-Reply-To;
+	bh=dWlboDYBd5BGl+p3WRU/hoNuEIs3lMzUvVPPx0RwBac=;
+	b=sPpctbyNIw4jhoQRQRZU0/uUcYkrST7d3TTIbUxeVbLpVomfxVNEGHF+bBgwQ1gbGbVK
+	 f4H8XaZmuLFpJN4cEPcRxKLfD+P+EBk5WwhOFhvt5Zm+JkNo8aHQiEfBxRvPxRl7CVTFP
+	 TpyI9VCNyu20zLre6xorESpr55e6w/Q9peo6TEIy4HKUidnpLfd9XnlCcEeOKmaOFhW73
+	 uhPJWx3w6URCY6P6ODxMEcQnS5tGV9i0/hB8rnwLAUqF4de+d2u/rxluKkmyNkdhdF6JU
+	 OIhH05sc9Sn2BOihem6jieL40VBEb1REejwKEumiMabUyOAjesLCNydQEWE1TuGbKeg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="H/VuAI5B";
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8AC3606A325;
-	Fri, 20 Nov 2026 16:11:09 +0000 (UTC)
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BLUp4lYO;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id EA9D2606A330;
+	Fri, 20 Nov 2026 16:48:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org EA9D2606A330
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=H/VuAI5B
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 12A251F000C6;
-	Fri, 20 Nov 2026 16:11:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795191069;
-	bh=ZFb+S8Es0NvUmNBR5T6fgVNGrRH2yKZK48f5XbLVIEc=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=H/VuAI5BtuQwQd0zk9hcNYwSPn6N63WihBmZ3f6agPjw5j6X4nhjl+xkuBInj2K3G
-	 pOag/mfhsLJCuDBPE43lBZguYkWm5Q0XnOYHt8I9NqdQ+atTKMgFYlb1IaF+jtQGld
-	 3sUfi6lcLYmIyXlLtnVutUfX01YNRwxTD426bjxP/ztOBKmBROpGn/s6ksznIb2w4q
-	 Au1te+hWzLmOyeSjczvD2gxa37Gi2iRY6JeY1uNgS+FOo6aHN7HdwWzWJ76IhqubZC
-	 I7wV52HU+JBPo3Q8L36yOGgOyjynFxkC/8obE8WBrvul2HbGE4EceWsI1QomsynUz+
-	 KVYj1KF0dneuA==
-From: Pratyush Yadav <pratyush@kernel.org>
-To: Tarun Sahu <tarunsahu@google.com>
-Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
- <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
-  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
- <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
-  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
-  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
-  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
-  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
-  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
-  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
-  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
-  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
-  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
-  linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v4 02/19] kho: block: Record the entry size in the block
- header
-In-Reply-To: <20261110050202.529473-3-tarunsahu@google.com> (Tarun Sahu's
-	message of "Tue, 10 Nov 2026 05:01:45 +0000")
-References: <20261110050202.529473-1-tarunsahu@google.com>
-	<20261110050202.529473-3-tarunsahu@google.com>
-Date: Fri, 20 Nov 2026 16:11:01 +0000
-Message-ID: <2vxz8q2n1o16.fsf@kernel.org>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=BLUp4lYO
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 7EEFB1575;
+	Fri, 20 Nov 2026 08:48:50 -0800 (PST)
+Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D22FB3F882;
+	Fri, 20 Nov 2026 08:48:48 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1795193333; bh=wE0tnPT5bhRkJ3p9KFR14+0FV3MqcU0Hq6gMMmUBPHw=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=BLUp4lYO5xM+mHKj+9mRsDBnlTM0X4YPScwuiUjDcgvaqV4OlDJQUIgd7+5xtyTJI
+	 kdqcMXaofKElkdLmL/c1hVIMwzg1cBTo3LXReHLkjUqYuKleU5s9QQE62owlL6LQfk
+	 hWmvZ4XkibssNAhaQIYwIkWoBhGc+yd7AYV1OuRY=
+Date: Fri, 20 Nov 2026 16:48:44 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	David Hildenbrand <david@kernel.org>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	Ryan Roberts <ryan.roberts@arm.com>, Will Deacon <will@kernel.org>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Anshuman Khandual <anshuman.khandual@arm.com>,
+	Zi Yan <ziy@nvidia.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Peter Xu <peterx@redhat.com>, linux-mm@kvack.org,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v3 0/9] mm: distinguish HW PTE pointers from SW PTE value
+ pointers
+Message-ID: <awB57BlYzicAJzqr@arm.com>
+References: <20260922-pte0-v3-0-5670b8cb9059@arm.com>
+ <avtAQCkvRr1xkxMF@arm.com>
+ <959a843d-f579-4aa7-8299-c6e9c5d03812@arm.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -73,90 +72,126 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <959a843d-f579-4aa7-8299-c6e9c5d03812@arm.com>
 
-On Tue, Nov 10 2026, Tarun Sahu wrote:
-
-> Subsystems using the KHO Serialization Blocks framework currently do
-> not record the serialized entry size in the block header. The entry size
-> is only known to individual callers, which must track and store it in an
-> owning serialized data structure. If a newer source kernel adds fields
-> to an entry, the changed entry size breaks the stride when an older
-> target kernel iterates over blocks.
->
-> Add an entry_size field to struct kho_block_header_ser. On the outgoing
-> side, record bs->entry_size into every block header during allocation.
-> During restoration, derive the entry stride directly from the block
-> header instead of relying on caller-supplied dimensions. The
-> kho_block_set_init() interface remains unchanged. A zero entry size,
-> or one that differs between blocks of a set, is rejected during
-> restoration.
-
-Yeah, I agree with David here. It makes little sense to have callers
-pass in the entry size only to have it ignored (or, only used for
-rejection). It would be much better to use the recorded entry size and
-hand it over to callers.
-
->
-> This change modifies the serialized layout of struct kho_block_header_ser
-> and shifts the offset of serialized entries within preserved blocks.
-> Bump KHO_FDT_COMPATIBLE from kho-v4 to kho-v5 so that pre-v5 and post-v5
-> kernels cleanly reject mismatched handover state during boot. Also
-> update the stale compatible string example in the documentation.
->
-> Suggested-by: Pratyush Yadav <pratyush@kernel.org>
-> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
-> ---
->  include/linux/kho/abi/block.h          | 10 ++++----
->  include/linux/kho/abi/kexec_handover.h |  6 ++---
->  kernel/liveupdate/kho_block.c          | 32 +++++++++++++++++++++++---
->  3 files changed, 38 insertions(+), 10 deletions(-)
->
-> diff --git a/include/linux/kho/abi/block.h b/include/linux/kho/abi/block.h
-> index 36bdbaf9b3b8..a40b0906c821 100644
-> --- a/include/linux/kho/abi/block.h
-> +++ b/include/linux/kho/abi/block.h
-> @@ -40,9 +40,10 @@
->  
->  /**
->   * struct kho_block_header_ser - Header for the serialized data block.
-> - * @next:  Physical address of the next struct kho_block_header_ser.
-> - * @count: The number of entries that immediately follow this header in the
-> - *         memory block.
-> + * @next:       Physical address of the next struct kho_block_header_ser.
-> + * @count:      The number of entries that immediately follow this header in the
-> + *              memory block.
-> + * @entry_size: The size in bytes of each serialized entry in the block.
->   *
->   * This structure is located at the beginning of a block of physical memory
->   * preserved across a kexec. It provides the necessary metadata to interpret
-> @@ -51,9 +52,10 @@
->  struct kho_block_header_ser {
->  	u64 next;
->  	u64 count;
-> +	u64 entry_size;
-
-I think this is the wrong place to put this. This header goes before
-each block, so it should only hold metadata _for this block_, not for
-the whole data structure. Because if you do that, you end up having the
-field present in each block, but only the first block is special and the
-value is only valid there. The feature header coming later makes this
-problem worse.
-
-I think we should follow down the lines of kho_vmalloc and have a
-out-of-band structure that describes the whole block set, and then each
-block only holds metadata relevant to it.
-
-So this would look like:
-
-	struct kho_block_ser {
-		DECLARE_KHOSER_PTR(first, struct kho_block_header_ser *);
-		u64 entry_size;
-		/* Other things like flags, size, etc... */
-	};
+On Wed, Nov 18, 2026 at 09:41:41PM +0000, Muhammad Usama Anjum wrote:
+> On 16/11/2026 5:41 pm, Catalin Marinas wrote:
+> > On Tue, Sep 22, 2026 at 06:12:28PM +0100, Muhammad Usama Anjum wrote:
+> >> PMD, PUD, P4D and PGD storage are deliberately out of scope. They can be
+> >> converted in later series after the PTE boundary is agreed, avoiding the
+> >> PMD-specific cases that made an all-level conversion difficult to
+> >> review.
 
 [...]
 
+> > First, I'd like to see all such on-stack p*d pointers addressed as a
+> > prerequisite (e.g. fix pmd_populate() in __split_huge_zero_page_pmd()).
+> > If for some reason we deem pmd not fixable, I don't like half (or
+> > quarter) baked solutions just addressing the pte.
+> 
+> Only pmd pointers conversions may require careful review and some discussion.
+> Other remaining p*d would be straight forward again. I think if I convert
+> everything, we'll have 30-35 patches for generic side only. It would a little
+> time consuming to rebase that again and again.
+> 
+> I think, a simpler plan can be to post the pmd pointer conversion series
+> as well  in the open to get better acceptance of this overall effort.
+
+I didn't ask for the full pmdp conversion but only to see if we can
+remove the on-stack uses first. At a quick grep, there are only a few:
+pmd_populate() on a local pmd_t in __split_huge_zero_page_pmd(),
+__split_huge_pmd_locked() and vmemmap_split_pmd().
+
+> > Second, we could add a run-time page table check, at least for pmd/pte.
+> > Something like below, gated by CONFIG_PAGE_TABLE_CHECK or
+> > CONFIG_DEBUG_VM (untested and not entirely sure about using
+> > PageTable()):
+> > 
+> > static inline void pgtable_ptr_check(struct mm_struct *mm, const void *p)
+> > {
+> > 	if (object_is_on_stack(p)) {
+> > 		WARN_ON_ONCE(1);
+> > 		return;
+> > 	}
+> > 	if (mm != &init_mm && virt_addr_valid(p))
+> > 		WARN_ON_ONCE(!PageTable(virt_to_page(p)));
+> > }
+> 
+> s390 already has CONFIG_STRICT_MM_TYPECHECKS, but that only provides type
+> checking for page-table values. It cannot distinguish a pointer to
+> page-table storage from a pointer to a copied value. Consequently, direct
+> dereferences still appear in generic code and can bypass s390’s
+> architecture-specific handling. They have been trying to fix [1] differently.
+> 
+> RISC-V has independently encountered the same problem. Some RISC-V
+> platforms must transform page-table entries whenever they are read from
+> or written to hardware page tables, so generic code must consistently
+> use the architecture accessors. They were trying to fix it [2].
+
+I thought these were about direct dereference of the pointer to pte. We
+could use some sparse annotations like __ptent (already proposed). The
+run-time check is about valid pointer accesses but when the PTE is on
+stack.
+
+> > You already have some coccinelle patches to make the conversion. Could
+> > we turn them into a coccicheck to detect new uses? With LLM reviews like
+> > Sashiko, we can probably catch new uses violating the requirement (we
+> > need to document it).
+> 
+> Coccinelle can identify common syntax, but cannot reliably distinguish the     
+> meaning of two pointers when both are pte_t *.
+
+No, that's what we'd use a runtime check for. The incomplete types probably
+help, though you can't fully prevent explicit casting.
+
+> > LLMs and coccicheck won't catch all abuses nor does this series prevent
+> > one from declaring hw_pte_t on the stack.
+> 
+> By using Coccinelle and LLMs we can still get regressions which arch-es
+> have been doing over the year.
+> 
+> hw_pte_t * makes accidental violations compilation errors in every build.
+> Deliberately declaring hw_pte_t on the stack remains possible, but is explicit
+> and reviewable. (RFC of this series has info on why we aren't using opaque
+> objects.)
+
+I'm not sure what the conclusion was on opaque hw_pte_t. IIRC Lorenzo
+also proposed a non-opaque type that Ryan agreed to some time ago. IIUC,
+if we take that route, we'd need to go again through all type changes in
+this series. On arm64, some of the functions proposed like hw_pte_val(),
+__pte_from_hw() would need converting again.
+
+IOW, I'm trying to understand the road to get there, like ptep_advance()
+instead of ptep++ and so on. Once we are clear, maybe without a full
+patchset, we can go ahead in steps but at the moment it's not clear to
+me you won't post another conversion like this soon after.
+
+Anyway, that's not my code, so if the mm folk are happy, please go ahead
+with the generic series. I may wait enabling it on arm64 until the
+opaque pte type discussion is settled.
+
+> > Once the above are in place, I'd look again at these patches and see
+> > whether they improve code clarity and are worth the churn.
+> > 
+> > Maybe an argument in favour of these patchsets is future dynamic support
+> > for FEAT_D128, we'd need to separate the software representation of a
+> > pte from the hardware one but we've done this before (arm32 non-LPAE has
+> > different representations).
+> 
+> Yes, that's also the big motivation of this work. We don't want to depend on
+> the config options to turn on/off features. Arch should be able to turn on/off
+> code based on the cpu features.
+
+It's a lot more work than the pte size here. PTRS_PER_* have different
+values, ptep_advance() would be more dynamic. It's doable but it's a lot
+more involved and I think the types are the least of our problems. I'm
+also waiting to see how many CPUs implement D128 before committing to
+supporting it upstream (it doesn't buy us much anyway).
+
+Thanks.
+
 -- 
-Regards,
-Pratyush Yadav
+Catalin
