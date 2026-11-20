@@ -1,46 +1,46 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795181422;
-	b=K7WlMEesc0bVkGca6KDaWObv86lDAQOySfl6UUxafatRX2wNEVUnQKmsIUFs2v9laAMH
-	 H+59n0hwoM9WLZBUNuy2GIiKpelQd1g3qrwruSctNVF4EPo7ezU3cImOHP8aIxJ093c4U
-	 nCUnmoJwA2IXNckDJsEuuUzxJtnddNcxAHRZtHlduB13NkIrNX/kE+qq75i1dJquuAFUy
-	 Qb2tBp4KUFqedwXYwY2FCR3MTVj54dLlDxrfzLJ6MYDferD+8anR2fbL+ouDR28BfgMz5
-	 e6eeVGCbmTBLEWpGVNA9Rjdtkst9QJlHs1Rium9i/77gK3gZqH4Ae2Dqmy3jlI4cNyA==
+	t=1795188276;
+	b=RfAFeDH1PfbhtfH2Bh/YaxGqKegF7yDFH95Z1b8df+ItcZWkUvuylINwZgBRkv6qm5on
+	 D3h1ikB5f5QwQBNVknf16//xcRnXCGn5EJpq4lm0DCk8garWyV71H6D75D6AdsnLLR6AU
+	 3QtN0Tzq90qerFr6Ng1JjfTuZYvjaCeb8OSdIH9KwdSfHtKH5YBwVmQdbZqXaq0je7muM
+	 kV/WfR/omefUc6cXvBrK9bM77zdpCFoAmtgZ+Fpkwe0d4CVScJrZz0XUj8Qu5z5qte6UB
+	 0w8sDsO8XID522AXeq+wkvOgF2KJ6EiyxDgBzk0A4U41EyhpvzFDSeDnY5tFcpX0Cfg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795181422;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795188276;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:
 	 Content-Transfer-Encoding:In-Reply-To;
-	bh=r0yepTevnFJpzt2r2drCfhbGwH1m5XYOTRjJ/I5L2oA=;
-	b=ZB9EAJvNAT+5sANvApeCGih4XfZ1uwKNFUcih+r94cEwI84hKIphc1cepilz2dV1c2qx
-	 U5CmFTSgpModwMR607KKODkWC0duxwGbSb5KA8T0zFvj1OtEDxDFTPja9yCI7Y5YVuF9z
-	 m96AUzx3MTZTtA6HH/tI0nP536RpUY944ncZf2TAInLAmF5BQUYf7BCQ7I4O+dew6pUnb
-	 zRoyK8p1xfJXFvVwQyQvXKNY0fsi8yfBbSUDLjJNm0IwHjZKr6ycNhveMLaUvTU6e7jNt
-	 BCyGVHSDetk/UUNpHEP/0N8W1WFDfRHMzAlBzEJgP/LVbyptWeUe9cxN4/l+o+i0Bqg==
+	bh=zOo2EfGngcl3fu/kIhqZadaO75pP0lk1DR/lRHlyrtU=;
+	b=3Bf/JDupGMB0NF5YT0guaBMQxASzyBt8w/bQYuZjpy4pLXvc+1ZMyFO9n8Eev5Ed6Alx
+	 4Y7MlAXroEFDChrhA0V7TYlbTNnQKvpgcH3nTww9GJ+kb1Tfjbiohr3ZglABng4Kdh5l2
+	 9iwPgdwu2OaDjYcbe9Zszk4crOqJ4hHKxZe+bcxYqgvAa5efSUBO+33YuHvzuCgBjiaBz
+	 ETVN/fdmBwFGMjRFpx/o1Vl9SwdSSq2kSbCnJxpM3nU067pguiwACOZxEYHmK3ZLW4kg8
+	 5Pyljq0m9B4+A3HhzhGgRqznESzl+j6HVugTTO0IJiWzmdRO+Xz99CjZcXXH5PLORHA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=LxHJ1pgZ;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XCQUtSSf;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 060D8606A320;
-	Fri, 20 Nov 2026 13:30:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 1ADE6606A320;
+	Fri, 20 Nov 2026 15:24:35 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=LxHJ1pgZ
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 5BFB11F000D2;
-	Fri, 20 Nov 2026 13:30:20 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XCQUtSSf
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 9CC851F000CA;
+	Fri, 20 Nov 2026 15:24:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795181421;
-	bh=r0yepTevnFJpzt2r2drCfhbGwH1m5XYOTRjJ/I5L2oA=;
+	s=k20260515; t=1795188275;
+	bh=zOo2EfGngcl3fu/kIhqZadaO75pP0lk1DR/lRHlyrtU=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=LxHJ1pgZMRnjgm2kTX3LFJJa+QJ+pe4P0CEN40l/PzhoI4P8panaY+0Q3U0aDuZqY
-	 d6XFuKi4YyOzKCDyY6Fpy81BvYcjjeknCdisgEAM6IWExeb3iW1nhJEJD4KaBAW+bD
-	 r5iJicgG91dzqk9nzBZ8D2/JbAlMgawKAhCSuL3ug4K1sos2GJ4t7TiWGQh22c59DM
-	 wVnhMwGWXmBTp2MeJ5zHRxb9ZPYDyJPmjlhQXY3V7wh+jRIoGhfeMZWEgSkpntxOIX
-	 O5p3EmJ9RssCoXPKlmpEXhy+NrYqURd5KZrMIRYhlRKm4oS7b0Ay023KIpW8vNYQ1h
-	 LgzIrz39Ee1bw==
-Date: Fri, 20 Nov 2026 15:30:17 +0200
+	b=XCQUtSSf00g2G/Jpzjl9LRNQEFXNNRnYGZWzdtuiZBHk7dosmqWBMrC+L7eGsuwT3
+	 6Y8qXJypfh+8W03R5Msm4iQvi0clPna6Y5oqS1fK2fMBPqPJtncagCqPrZrgwYA61c
+	 Ir7DESMb/dns84I6WWtY5IQnf73sTx8SIKL9bvZjYjcc9pfyT2D4A8Rsc/CYWyagj2
+	 DltATLAp/YBb7+MwnvRYS7P7+HT3f1+jlJHOL7W4kb+l4QjcUeVm9fOWhMSveLYD4Q
+	 IO8nsOvMP1W4FNm+RhhQIMrsrDM1nc6imjdTxfwsnAexYb35pl8AoQ1Ir88SqmYiNe
+	 v0OZ/2yfr0Tjg==
+Date: Fri, 20 Nov 2026 17:24:31 +0200
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: Alexander Mikhalitsyn <alex@amutable.com>
 Cc: linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
@@ -120,10 +120,11 @@ Cc: linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
 Subject: Re: [RFC PATCH v4 03/14] rootns: Track init lifecycle via
  copy_process() and pid_namespace
-Message-ID: <awBLafK4jqB8fTF2@kernel.org>
+Message-ID: <awBmL_4VqwinHuVN@kernel.org>
 References: <20261119224312.1037966-1-jarkko@kernel.org>
  <20261119224312.1037966-4-jarkko@kernel.org>
  <e376c8f0ec5c50b417375197a5589a210f151d9b.camel@amutable.com>
+ <awBLafK4jqB8fTF2@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -136,26 +137,27 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <e376c8f0ec5c50b417375197a5589a210f151d9b.camel@amutable.com>
+In-Reply-To: <awBLafK4jqB8fTF2@kernel.org>
 
-On Fri, Nov 20, 2026 at 02:18:43PM +0100, Alexander Mikhalitsyn wrote:
-> Dear Jarkko,
+On Fri, Nov 20, 2026 at 03:30:21PM +0200, Jarkko Sakkinen wrote:
+> On Fri, Nov 20, 2026 at 02:18:43PM +0100, Alexander Mikhalitsyn wrote:
+> > Dear Jarkko,
+> > 
+> > >  	acct_exit_ns(pid_ns);
+> > > +	exit_rootns(pid_ns, me);
+> > 
+> > We have a very similar mechanism around pidfd's to track exit
+> > information for a task. As far as I can see we already have (struct
+> > rootns *)->init_pid reference, so we can get exit information for free
+> > (look for PIDFD_INFO_EXIT).
 > 
-> >  	acct_exit_ns(pid_ns);
-> > +	exit_rootns(pid_ns, me);
+> Thanks for mentioning. I'll see if I can leverage it.
 > 
-> We have a very similar mechanism around pidfd's to track exit
-> information for a task. As far as I can see we already have (struct
-> rootns *)->init_pid reference, so we can get exit information for free
-> (look for PIDFD_INFO_EXIT).
+> If something like this is found, it is partly due long history of this
+> code i.e., not planned/opionated choice :-) 
 
-Thanks for mentioning. I'll see if I can leverage it.
-
-If something like this is found, it is partly due long history of this
-code i.e., not planned/opionated choice :-) 
-
-> 
-> Kind regards,
-> Alex
+This non-doable or incompatible at least. I'm not sure if that would
+have gain. I think this goes to acceptable redundancy. Or at least,
+currently think this way.
 
 Br, Jarkko
