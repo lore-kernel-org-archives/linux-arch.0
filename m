@@ -1,69 +1,192 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795198783;
-	b=B6G2mYjqmUJpNbxHqfj4qolGlEgSsbcje9NiADZrlV9LOOEJzoKI/rQOuftDieTKLQN+
-	 9pdrCjBqRL5C5KBpC6lK/f6ZuCquxOlkvoJD2iJyU2QRpNfX4M3WozjYGJiNIVjZ9A/nv
-	 CwHQbymDXJw0DKYR6/CfbQKtD8PmKoLSDDUyK3WDB21hTTkmNzTJdevXQ6kCbz1S+fdSv
-	 zOC6diIhSXAiBxfjrvkfolPwHAdwZ19lym9aHW554wswmxE7vGsJfMqJzVbabZ1RI7qVM
-	 tuUKjaQAyKyO9JSoj3U7Jq7Wk95wOYw4or0x3ZlVXwvbV7j9o2KavUejHKd6MnIvGVw==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795198783;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
-	bh=UdEz5ChOTQTbNYz1UmBbzo8Aoq31zV2Ta5sIBGLsEk0=;
-	b=LYU+AZMyL8dH+mR6ebIIK2UCgu6BLFtmxP19D0sgOpppuScmNC9bzdrqbuZU7Sd9I0eL
-	 lcCKQU4XcezVLKzG0fzgSlanM2rsnK+HDIXaD0+HjAFXzYBwIcnERJCnhnoHRCACLEyEJ
-	 eiBmKY8VzIaNwCvIjcQdSGInSFuYaibdBljoNj2FDchMx1wz9eQPjqAF2aTl4D6gjEq8E
-	 s6UNagVrF6N2eBygGMrdJMdcqQnVdFWWO/ihrd0ey/JGyJk2LLe56f7Dp98vWEyw9xFy/
-	 TXEBcJBgm0+7d2wBV30NNRGcLQOIP0E5jF005+qsnQPQiRNVK4T29H099HdsfEFXDGw==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q1i+y9XT;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=198.175.65.18
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1795211065;
+	b=YK1HKvAiNOEW4Fe7q45eSiwy/Rb8IzEfchD9byrE9iMs8Yuqc2p9a38SYOdU8tbz6UQU
+	 hVGAthfCxzGX/QUFnwHIhCweUGjmPR6I73/Bv2s0jEkP/ngY4zvzYUllh80GRv8kNacFS
+	 ek5082ZNR5OwNwa1Wt26P/vxgQYywg0RRTu9yHJLQB0RK8+A6TS3RyADBrJw4IA3rNYHs
+	 U8JOL8+w1o4aXOyFYZu4AM9El2CNOxVWYS5vxE21WikTZGSxty0801mFosq2QPeR1nXC9
+	 dju+ZKtB/cYGWiEj2TevYfU4lfdeDPplAl4zIalj7esp8bu2EJO8gTMi6DVm1uqsRDw==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795211065;
+	h=DMARC-Filter:DKIM-Signature:X-CSE-ConnectionGUID:X-CSE-MsgGUID:
+	 X-IronPort-AV:X-IronPort-AV:Received:X-CSE-ConnectionGUID:
+	 X-CSE-MsgGUID:X-ExtLoop1:X-IronPort-AV:Received:Received:Received:
+	 Received:DKIM-Signature:Received:Received:From:To:CC:Subject:
+	 Thread-Topic:Thread-Index:Date:Message-ID:References:In-Reply-To:
+	 Accept-Language:Content-Language:X-MS-Has-Attach:X-MS-TNEF-Correlator:
+	 x-ms-publictraffictype:x-ms-traffictypediagnostic:
+	 x-ms-office365-filtering-correlation-id:x-ms-exchange-senderadcheck:
+	 x-ms-exchange-antispam-relay:x-microsoft-antispam:
+	 x-microsoft-antispam-message-info:x-forefront-antispam-report:
+	 x-ms-exchange-antispam-messagedata-chunkcount:
+	 x-ms-exchange-antispam-messagedata-0:Content-Type:
+	 Content-Transfer-Encoding:MIME-Version:
+	 X-Exchange-RoutingPolicyChecked:X-MS-Exchange-CrossTenant-AuthAs:
+	 X-MS-Exchange-CrossTenant-AuthSource:
+	 X-MS-Exchange-CrossTenant-Network-Message-Id:
+	 X-MS-Exchange-CrossTenant-originalarrivaltime:
+	 X-MS-Exchange-CrossTenant-fromentityheader:
+	 X-MS-Exchange-CrossTenant-id:X-MS-Exchange-CrossTenant-mailboxtype:
+	 X-MS-Exchange-CrossTenant-userprincipalname:
+	 X-MS-Exchange-Transport-CrossTenantHeadersStamped:X-OriginatorOrg;
+	bh=fF9B1USe3xW8JGjS6vwUwtFiylROVUZk4lEwhRnfJhk=;
+	b=ap17QesEShej7BQ8rMVHziOApIlwA5burkP0UlRBHx6QgBaaaIP9pLuTdd6VHGYLvVZl
+	 IcGmk8nC59TL7tH2AEPQcLBsV6g5DtZonDh1KUSDePTncqkOZfqJu2gI4W59zS7y2sHhf
+	 XGI3BHo6yAfvKZUdN8yHFQKq2Dtr7fIztOUTwIo2zUk6OGAtS3Xf8JndH44tNB6t7Hya8
+	 KnBbJ/5S7LmmqrdqAKW7HgzzDKv4CHnuiTqfPlipgu5P7DqkoNkQwuInmlCncZIsY/yLj
+	 fEUBROK+hShl43FE1ZFle44/Vc22NNqKgXMmQHdmjLq5NJ0C73WJ5FCybz1sKMID5bQ==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=intel.com;
+	spf=pass smtp.mailfrom=intel.com;
+	dkim=pass header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=mSTgXM7a;
+	dkim=pass header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=selector1 header.b=S4BPLBjw;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=198.175.65.18
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.18])
+	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D02B4606B209;
-	Fri, 20 Nov 2026 18:19:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA034606A6A8;
+	Fri, 20 Nov 2026 21:44:24 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AA034606A6A8
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Q1i+y9XT
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3F3EC1F000D1;
-	Fri, 20 Nov 2026 18:19:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795198783;
-	bh=UdEz5ChOTQTbNYz1UmBbzo8Aoq31zV2Ta5sIBGLsEk0=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=Q1i+y9XTqJL2olSUgLoFDypoCvg10dPK5cwSnIoE7BSJb6HnLroUCyRPfKJr6C/TW
-	 XBmxmu1CiF2gbfxVkPHtAfWMolUBjqehnf1sIoJkZzVO3Bb0r0PWFo9aF4OyWj7bN3
-	 YCg/uu0sB9JwxlhCTNuaVQrVjbj1prwuzOzWuH0/OOGXdrwu1Ga0eEgv9ApxocCjxJ
-	 Ci5nqhmcr+l9Xp7BS7QTxTihG1UewuIzNwTJNCVfppD5b5b+vC89J/V+ogTWGSoo+j
-	 LT0a+FlogR7KRuQJUz8LfqDCuJ2xaB5LPL/0ViD97BmEbcUVaRYcl4wsLd+41IXKLS
-	 fM3mOWgVdsI4A==
-From: Pratyush Yadav <pratyush@kernel.org>
-To: Tarun Sahu <tarunsahu@google.com>
-Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
- <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
-  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
- <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
-  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
-  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
-  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
-  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
-  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
-  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
-  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
-  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
-  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
-  linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v4 03/19] kho, memfd_luo: Reference struct kho_vmalloc
- via serialized pointer
-In-Reply-To: <20261110050202.529473-4-tarunsahu@google.com> (Tarun Sahu's
-	message of "Tue, 10 Nov 2026 05:01:46 +0000")
-References: <20261110050202.529473-1-tarunsahu@google.com>
-	<20261110050202.529473-4-tarunsahu@google.com>
-Date: Fri, 20 Nov 2026 18:19:35 +0000
-Message-ID: <2vxz4idb1i2w.fsf@kernel.org>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (2048-bit key, unprotected) header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=Intel header.b=mSTgXM7a;
+	dkim=pass (1024-bit key, unprotected) header.d=intel.com header.i=@intel.com header.a=rsa-sha256 header.s=selector1 header.b=S4BPLBjw
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1795211065; x=1826747065;
+  h=from:to:cc:subject:date:message-id:references:
+   in-reply-to:content-transfer-encoding:mime-version;
+  bh=fF9B1USe3xW8JGjS6vwUwtFiylROVUZk4lEwhRnfJhk=;
+  b=mSTgXM7a6VjRRwJa8/Tj34tA4nBQLAzJ5xj5ZOCO9D5zVdkus3cI+8Q8
+   gn83awpJdC6l0uLVE8bRSzm4c2b5VQ78fJP4d4Nht/3fhj3m5EWY8LK51
+   kJLtubHULfu9BI45gqoBl72oh5za2+9Hv0Cvb+hWpz6xl7Fn1Y7psjRzP
+   1V9XbM/QJQ7ifijk+BPJjg1ghUhbvJ7aC/HhwA+TaTH1Yjshj9A22A0gF
+   uFroindnhl7UvD6QAFjeqCi0pCEniOjcZtWjlU4R1dWxwMr1bUZcA/mNt
+   dFS4HYRNsKs2z0E0fotwzowGDkcc6zJN/OqBIEZX+MIecCTpAPFuO0qpl
+   Q==;
+X-CSE-ConnectionGUID: 4c5KUx82R6OJlVwyRu+/Ag==
+X-CSE-MsgGUID: sLGrN1FlS46LVi0NYAXXbg==
+X-IronPort-AV: E=McAfee;i="6800,10657,11972"; a="4111268"
+X-IronPort-AV: E=Sophos;i="6.27,223,1787036400"; 
+   d="scan'208";a="4111268"
+Received: from orviesa007.jf.intel.com ([10.64.159.147])
+  by orvoesa110.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Nov 2026 13:44:24 -0800
+X-CSE-ConnectionGUID: jQBCzPPFRXiDdNCb7OnfCA==
+X-CSE-MsgGUID: GkiA4KTRRvK3uvYEQhQgOg==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.27,223,1787036400"; 
+   d="scan'208";a="10737252"
+Received: from orsmsx902.amr.corp.intel.com ([10.22.229.24])
+  by orviesa007.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Nov 2026 13:44:24 -0800
+Received: from ORSMSX903.amr.corp.intel.com (10.22.229.25) by
+ ORSMSX902.amr.corp.intel.com (10.22.229.24) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.56; Fri, 20 Nov 2026 13:44:23 -0800
+Received: from ORSEDG901.ED.cps.intel.com (10.7.248.11) by
+ ORSMSX903.amr.corp.intel.com (10.22.229.25) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.56 via Frontend Transport; Fri, 20 Nov 2026 13:44:23 -0800
+Received: from PH7PR06CU001.outbound.protection.outlook.com (52.101.201.65) by
+ edgegateway.intel.com (134.134.137.111) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.56; Fri, 20 Nov 2026 13:44:23 -0800
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=dT6i2DUKC2BA6mMqeDRmRtqVcgrw0dIdJt9zckLwCCeoqnt8uyYviGzBno/3nHe7Fc0cydNn6R6vqmaN7o1jVaIJ79eBLa6g5+eLykleV8Im9/sMibx6WnpCRmUjaIVHFpMjt3Iw2j/BSQSmU4sOCo6Bf1PDFohw1n+oA+z+y6itWsM45vnDVuT+vnzVlOpvCPg/Ph8CoWWCp6Sxdu8Vsr8AvceD2ARX/OK2ajX+67++RpgELWX67NryZpCFfA+4+QX7Wj901KMyFQaqINcP2NPSdEJKRwPYKE3qX+5wi8bkDN273lRHISMIOE6UIu7IkRHLzFSmCpBhNLVQfmewAA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=fF9B1USe3xW8JGjS6vwUwtFiylROVUZk4lEwhRnfJhk=;
+ b=xdUEc7nueyIjiiLBKY1bO3JDnU3RppLb+9S2ZONhbyHUNQ/MNlKGCBroEZVH47dkp/2P2fd6LZ9Nd1+UOXnS2vOu4CRKbViDia8ciP/pwaH6u7h2bSVLV7oBBi3M2ewFgkSUETebNCPzo5XEMVAqdxL8X4uR09oigZE+8MYvGROU3YUz4xWchu5I6oVMedbWqzgIKDdFohlGZamBqLqzaZ5C5wyKcj235KyQ7SY2JxSAFBLxfvZQ3pCjGqyMCVs5YQypcGx8nG3v/kePSUvF0NuX43CDbBEmVQa1boCZObOYm/VIs28GzzUAZIOjg+Gpho3rsCZH3Wy2n5IkepYOSg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=intel.com; dmarc=pass action=none header.from=intel.com;
+ dkim=pass header.d=intel.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=intel.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=fF9B1USe3xW8JGjS6vwUwtFiylROVUZk4lEwhRnfJhk=;
+ b=S4BPLBjwTmHxaPy2trTkuOa7RRjLzhQx2gUG5BnqVITUPYlpgsMgf7WVwFKKxHW7oZQSNqPVZ8pQJqyu2DwAmcMa+LJwB+2ptHutunQl6ardmSFv21Xm3o6nsCXzIAv/+mONuqJyF42lmuefazdGCxcLpJkSfyzAtiJ39sS4xMA=
+Received: from LV2PR11MB6070.namprd11.prod.outlook.com (2603:10b6:408:179::22)
+ by CH3PR11MB7940.namprd11.prod.outlook.com (2603:10b6:610:130::18) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.639.10; Fri, 20 Nov
+ 2026 21:44:20 +0000
+Received: from LV2PR11MB6070.namprd11.prod.outlook.com
+ ([fe80::4c84:af62:dc60:fd9]) by LV2PR11MB6070.namprd11.prod.outlook.com
+ ([fe80::4c84:af62:dc60:fd9%5]) with mapi id 15.21.0639.011; Fri, 20 Nov 2026
+ 21:44:20 +0000
+From: "Popov, Pavel E" <pavel.e.popov@intel.com>
+To: Bjorn Helgaas <bhelgaas@google.com>, Logan Gunthorpe
+	<logang@deltatee.com>, Arnd Bergmann <arnd@arndb.de>
+CC: Leon Romanovsky <leon@kernel.org>, Lukas Wunner <lukas@wunner.de>, "Thomas
+ Gleixner" <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+	<bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "x86@kernel.org"
+	<x86@kernel.org>, Jim Chow <jim.chow@broadcom.com>, Radu Rugina
+	<radu.rugina@broadcom.com>, Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Wei Liu <wei.liu@kernel.org>, Michael Kelley <mhklinux@outlook.com>, "Nathan
+ Ciobanu" <nathan.d.ciobanu@linux.intel.com>,
+	"bcm-kernel-feedback-list@broadcom.com"
+	<bcm-kernel-feedback-list@broadcom.com>, "virtualization@lists.linux.dev"
+	<virtualization@lists.linux.dev>, "linux-hyperv@vger.kernel.org"
+	<linux-hyperv@vger.kernel.org>, "linux-arch@vger.kernel.org"
+	<linux-arch@vger.kernel.org>, "linux-pci@vger.kernel.org"
+	<linux-pci@vger.kernel.org>, "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>
+Subject: Re: [PATCH v5 0/3] PCI/P2PDMA: Allow P2PDMA on Intel Xeon server CPUs
+Thread-Topic: [PATCH v5 0/3] PCI/P2PDMA: Allow P2PDMA on Intel Xeon server
+ CPUs
+Thread-Index: AQHdcjam2A3Q4odg002rEagcyXnfx7c3iKlw
+Date: Fri, 20 Nov 2026 21:44:20 +0000
+Message-ID: <LV2PR11MB60707F72BFE00F5FF18CAD5AB2782@LV2PR11MB6070.namprd11.prod.outlook.com>
+References: <20261111234439.4098-1-pavel.e.popov@intel.com>
+In-Reply-To: <20261111234439.4098-1-pavel.e.popov@intel.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+authentication-results: mx.microsoft.com 1; dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=intel.com;
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: LV2PR11MB6070:EE_|CH3PR11MB7940:EE_
+x-ms-office365-filtering-correlation-id: 1b3037f4-7422-469e-11e5-08df474f6f30
+x-ms-exchange-senderadcheck: 1
+x-ms-exchange-antispam-relay: 0
+x-microsoft-antispam: BCL:0;ARA:13230040|376014|7416014|1800799024|366016|23010399003|38070700021|10067099003|56012099006|11063799006|18002099003|22082099003;
+x-microsoft-antispam-message-info: PGnN6SuFDv2HSzlnOayVGSJbcOKpVV61SyPTaZ2btV09G9HFJTzVhM/uJofIIjaV3tbvKsuTrOGR+UZc6whuxiDoi++hqdud0p+RKpdKAStqG5mFx1SZtAan7NwFoA8BLgD2+9H7ZJYmvb44ftyUQgE16EB6X5qp0G0EOQsHDHa+/lwtq9oA10QQvihj+c9As0zCa5gteJGm/Z2x6TNPlvQjPef3wCi5JX9VdtM3pQJh8BzleqKzXbXMGIKT2mHASkpckzgaiTnMcquv0y6FcEjnFRgRWefqlEiHdbXQivluY9eBKbpku+4MRZp4e2nEUm41/0QhTneVv1ijXyh3Xx5csumn91ypWFYe9MzOOF89lIN//Sr1k5M/X70UoSF06bvstaFxg4865TMIyNNgRvze96k7cm8u4KpE+T4RCuk784WFUln1IvYCX0gQI59uoAV2e7ajIdj4DnTjoy8i+XHDVYShvvKUjVTIqwHVYUdNbcQjfPpeJVys+WRrajhHCiYKB0V5LdGMX/4+g8RFRTafoQvNw8O2jKpjxmsRLe5SApqzTfirqDftQzfAqfy5s2r0Ym960tI07bQKxsRFbgbmoaOTLJ7vPqmMPzcJjlpwejETBSgRVrMEXMvTKnvcNMszQJU6RUp/KkbBTB+Mnu7hhhWq0r1bjtyDkcpKcXY/2yWtCJgd+d8i8WLHWVNg2WwM7EBdD9cRhMQNyonKyejJ16rv0pIp9sK6MXe/Wqo=
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV2PR11MB6070.namprd11.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(366016)(23010399003)(38070700021)(10067099003)(56012099006)(11063799006)(18002099003)(22082099003);DIR:OUT;SFP:1101;
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0: =?us-ascii?Q?ivlybsIlDKZCJuqnOqLySu4+91MgInYJ+OG0GP/3a+t5FAETocdhi5I+vHE/?=
+ =?us-ascii?Q?JgTZFPEKU1cf6Nag7ZHe/L7CIYUBavILheo4cfOodAtPFyzGyRgf70coKiE5?=
+ =?us-ascii?Q?5otuTX2p4uMjtq23Hwn8/EQbs1wU4Z4RbHy+B0ZWrOn4zuoTTOgbN8p67ppy?=
+ =?us-ascii?Q?nqVI+8vnP5h+Bb8We8UnUbJ5gJcwmWysFEtbJbXjnj8vlOlQ0DQ4RZsTYZLz?=
+ =?us-ascii?Q?1HvUobPU4Jxbr9w57KJEa7+jMCUTvwflKgaIiFbgQLl1wZzNl9qx0hupL5h+?=
+ =?us-ascii?Q?RDKCmrWk8ebEK+FoolH3uAs/RWrmm3tat45zOHoinnQUu3pdWwZ/Q5ut5JG2?=
+ =?us-ascii?Q?6Y3JY3S4skhXXdHLPua4XrjLGaxbMW1D8e76bjFnGRN7xeUQOK2f2gKuS5cA?=
+ =?us-ascii?Q?kdrB3/gKy3sLdOIcI5FryzYzpKNkh+U5Qd89PDPftMWeF/1z7fIQT1LowmfY?=
+ =?us-ascii?Q?g5nDUDSgutIfO4pK/u9uttIMjaeoXdbgT8Uf5/tpy/7KZ6Bb52vz2D/YYXgO?=
+ =?us-ascii?Q?XWbszSzjmY/kqh039ZXnEJPuM50UGO3lsIQSgKyTxfFbwECOsOcukJG55Gvc?=
+ =?us-ascii?Q?7eepccTwiI1s3S6zGr42Uq21JHvwvCvq/cWu7xXmGgoBeeaQDq1PlkZmCCet?=
+ =?us-ascii?Q?aiKLqYcXwaX3lCdyCmst6asfrK+fxK/0bWSAFhyzuqEZOZBQcnljEBRoWyNn?=
+ =?us-ascii?Q?FbmWkHpO14AMgaARCq6Z1r4u59dApr6Quvt7MMu4cKjVs5AmVdbu0GvO5YrX?=
+ =?us-ascii?Q?TeeM2bwsvidxonzf+/++ft7Kf2P4+xo/xhoBKIXB404BJljFyEWSe+46Xm5g?=
+ =?us-ascii?Q?7f1kQ+Eheo9mJ1LQi55AB0BEsrmD2I10c4HNL+HXlbrlVWWjEsWN3r1359eM?=
+ =?us-ascii?Q?cvNf7W+bOimd1fVC7IcnSf6XzC0pvcMgbtWxdSrkCOUetfDgYtGEHbNVbR2i?=
+ =?us-ascii?Q?3airccIzyNvXHpKwz6vwuEBIKDf3zte/a4HDX4FLqLb5yDEKUUSwfzAbuKRk?=
+ =?us-ascii?Q?GTLPEhgMYr41YFmfxlo+8vOaAG+kF+K5D8rYOux5SPPM5u5uBlqUdnxaNbwf?=
+ =?us-ascii?Q?/2zF+MjUCO6CxYXF1H36QUkoBZwzzcTYGLVkl65eETp3cjvp+O3c+VmBXivK?=
+ =?us-ascii?Q?Y42lXdKfQNIraFXWDR7E3equNo0XHcioIUBAQymMFgkkwEwdKFM2gsHlCNDI?=
+ =?us-ascii?Q?droMajraV1UiitWZ7nnB9wVVUYuP3PSczg4aOTiDiBi5H0vbm6rD9vIidl5G?=
+ =?us-ascii?Q?PODuhrSuD4Jb4yh82Ex7OFhIgdU+E1iL+ZH0TS+DkdYvIMXpQp15eDezX5oC?=
+ =?us-ascii?Q?eTbNYGXfYc9VxJYuj02/ubLXN0lBpJ762KubaO0ZZT4UapcUfM7lmv+IAc1/?=
+ =?us-ascii?Q?iCLjwvLOIaoDo+11F2chyc9nS0txGaSm0W92x8fWQpTlVCPK1lrUbK5ZGT5x?=
+ =?us-ascii?Q?RYbCIs66L4wG+oUkzexce5c05GHBkKK1W6SLbFAbswGhQDJ1XUebGR94/URk?=
+ =?us-ascii?Q?hBxRfCvB8xSR/zzDy7LKSUAKZ2VSb35LLw4M1dI2r39hgXIpOAyy2NTyxr0F?=
+ =?us-ascii?Q?rTzZnbS5jtomg7x3T9rNjAETdQbxvpsaFlXUh81Yh2Ka4lkqALpdWg0RhN0u?=
+ =?us-ascii?Q?1k7YWdMniJ4fIA8kO40f0+q6PJvJQ+nRDIGJqo+8v8Ne6DKXHmNPkOGywEac?=
+ =?us-ascii?Q?GB6nYN97Y+fl6n/4IDnEt66pMLCXy+qTiyPl0sgkxL3phhSqNHTPdykgSsq5?=
+ =?us-ascii?Q?6e2cwvN1/w=3D=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -73,336 +196,30 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain
+X-Exchange-RoutingPolicyChecked: flJiGWZPGV4DQKza1Oty2c2Za9IyvM3PDl/CNE/zhyPBXE2G1GtEcXoZWATGpcUDqdgmRRZovsAZj2+opag8FQ8OiQpiRspaV9TKog+u1f5IcU/lpltW9Prm/YY5F+6AnYKiE5HbLYESfDUyw4U2NuOGIm4vSYX9GAajjMDmFZyJkd5BW/PVoLpcByTwegz1Wu+h/ScQlLB5LxkC2N27zs6h19mA9wEa0R++OeIALkgw56MF8oxIt7VB4G7agg1FAzPbByUNTcQQNUD68MxTj5Dyw6VY/1ORsEJ2Z+FryK4yIvbCgxTm3h+wQOaIzKs0zXIJQzmkXpSOuL9sUtK/9w==
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: LV2PR11MB6070.namprd11.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 1b3037f4-7422-469e-11e5-08df474f6f30
+X-MS-Exchange-CrossTenant-originalarrivaltime: 20 Nov 2026 21:44:20.2665
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 46c98d88-e344-4ed4-8496-4ed7712e255d
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: hMTCkMYEvMVM2C3+NKQbeqvrwIRn2k/oouQDJz6Jq0WD/DRyTCeea60fh/pMvT2h8JyHh4bRD+DMLgVIMKvduQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR11MB7940
+X-OriginatorOrg: intel.com
 
-On Tue, Nov 10 2026, Tarun Sahu wrote:
+Hi Bjorn,
 
-> Subsystems preserving vmalloc allocations currently embed struct
-> kho_vmalloc directly by value in their serialized structures or device
-> tree properties. For example, struct memfd_luo_ser embeds struct
-> kho_vmalloc folios, and test_kho writes the structure directly into the
-> folios_info FDT property.
->
-> Embedding struct kho_vmalloc directly couples the containing layout's
-> field offsets and size to struct kho_vmalloc. Any modification to struct
-> kho_vmalloc shifts subsequent fields in the containing structure and
-> breaks the handover ABI across kexec.
->
-> Convert callers to hold a DECLARE_KHOSER_PTR pointer to struct
-> kho_vmalloc instead of embedding it by value. In memfd_luo, allocate the
-> main structure and struct kho_vmalloc in the same preserved folio, placing
-> struct kho_vmalloc in the remaining 8-byte-aligned space, and bump the
-> compatibility string to memfd-v3. In test_kho, place struct kho_vmalloc
-> in the remaining space of the FDT folio, store the serialized pointer in
-> the folios_info property, and bump the compatibility string to
-> kho-test-v2.
->
-> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
-> ---
->  include/linux/kho/abi/kexec_handover.h |  6 +++
->  include/linux/kho/abi/memfd.h          |  8 ++--
->  lib/test_kho.c                         | 29 ++++++++----
->  mm/memfd_luo.c                         | 63 ++++++++++++++++----------
->  4 files changed, 68 insertions(+), 38 deletions(-)
->
-[...]
-> diff --git a/mm/memfd_luo.c b/mm/memfd_luo.c
-> index 6b68220275eb..4471cced57db 100644
-> --- a/mm/memfd_luo.c
-> +++ b/mm/memfd_luo.c
-> @@ -85,9 +85,8 @@
->  #include "internal.h"
->  
->  static int memfd_luo_preserve_folios(struct file *file,
-> -				     struct kho_vmalloc *kho_vmalloc,
-> -				     struct memfd_luo_folio_ser **out_folios_ser,
-> -				     u64 *nr_foliosp)
-> +				     struct memfd_luo_ser *ser,
-> +				     struct memfd_luo_folio_ser **out_folios_ser)
->  {
->  	struct inode *inode = file_inode(file);
->  	struct memfd_luo_folio_ser *folios_ser;
-> @@ -104,7 +103,8 @@ static int memfd_luo_preserve_folios(struct file *file,
->  	 * are not set.
->  	 */
->  	if (!size) {
-> -		*nr_foliosp = 0;
-> +		ser->folios.phys = 0;
+A gentle reminder about this series. All three patches are reviewed by
+Logan, 1/3 and 2/3 also by Leon, and 1/3 has Arnd's ack and Sohil's
+review.
 
-I don't think it is a good idea to access this directly.
+It applies on pci/next as is. 2/3 and 3/3 have context conflicts with
+pci/p2pdma. I can send a rebased version if you want it on top of that
+branch.
 
-Please take this patch instead:
-https://lore.kernel.org/kexec/20261116134013.1636689-2-pratyush@kernel.org/
+Is anything else needed to get it queued?
 
-> +		ser->nr_folios = 0;
->  		*out_folios_ser = NULL;
->  		return 0;
->  	}
-> @@ -200,12 +200,12 @@ static int memfd_luo_preserve_folios(struct file *file,
->  		pfolio->index = folio->index;
->  	}
->  
-> -	err = kho_preserve_vmalloc(folios_ser, kho_vmalloc);
-> +	err = kho_preserve_vmalloc(folios_ser, KHOSER_LOAD_PTR(ser->folios));
->  	if (err)
->  		goto err_unpreserve;
->  
->  	kvfree(folios);
-> -	*nr_foliosp = nr_folios;
-> +	ser->nr_folios = nr_folios;
->  	*out_folios_ser = folios_ser;
->  
->  	/*
-> @@ -254,37 +254,43 @@ static void memfd_luo_unpreserve_folios(struct kho_vmalloc *kho_vmalloc,
->  	vfree(folios_ser);
->  }
->  
-> +static size_t memfd_luo_ser_size(void)
-> +{
-> +	return sizeof(struct memfd_luo_ser) + sizeof(struct kho_vmalloc);
-> +}
-> +
-> +static struct memfd_luo_ser *memfd_luo_ser_init(void *mem)
-> +{
-> +	struct kho_vmalloc *kho_vmalloc = mem + sizeof(struct memfd_luo_ser);
-> +	struct memfd_luo_ser *ser = mem;
-> +
-> +	KHOSER_STORE_PTR(ser->folios, kho_vmalloc);
-> +	return ser;
-> +}
-> +
-
-Hmm, I am not a huge fan of this. This makes doing such allocations
-quite annoying, and I reckon we will be seeing a fair bit of them in
-many places.
-
-The key observation here is that most file handlers need to allocate a
-bunch of preserved memory, but they usually can free it all at once. So
-we can get away with a very simple allocator that hands out memory
-linearly.
-
-I have sketched out some code for this, take a look at the patch below.
-Note that it is only compile tested.
-
-Perhaps give it a try and see if it does the job better.
-
->  static int memfd_luo_preserve(struct liveupdate_file_op_args *args)
->  {
->  	struct inode *inode = file_inode(args->file);
->  	struct memfd_luo_folio_ser *folios_ser;
->  	struct memfd_luo_ser *ser;
-> -	u64 nr_folios, inode_size;
->  	int err = 0, seals;
-> +	u64 inode_size;
->  
->  	inode_lock(inode);
->  	shmem_freeze(inode, true);
->  
-> -	/* Allocate the main serialization structure in preserved memory */
-> -	ser = kho_alloc_preserve(sizeof(*ser));
-> -	if (IS_ERR(ser)) {
-> -		err = PTR_ERR(ser);
-> -		goto err_unlock;
-> -	}
-> -
->  	seals = memfd_get_seals(args->file);
->  	if (seals < 0) {
->  		err = seals;
-> -		goto err_free_ser;
-> +		goto err_unlock;
->  	}
->  
->  	/* Make sure the file only has the seals supported by this version. */
->  	if (seals & ~MEMFD_LUO_ALL_SEALS) {
->  		err = -EOPNOTSUPP;
-> -		goto err_free_ser;
-> +		goto err_unlock;
->  	}
->  
-> -	ser->pos = args->file->f_pos;
->  	inode_size = i_size_read(inode);
->  
->  	/*
-> @@ -293,18 +299,26 @@ static int memfd_luo_preserve(struct liveupdate_file_op_args *args)
->  	 */
->  	if (DIV_ROUND_UP_ULL(inode_size, PAGE_SIZE) > UINT_MAX) {
->  		err = -EFBIG;
-> -		goto err_free_ser;
-> +		goto err_unlock;
-> +	}
-> +
-> +	/* Allocate the main serialization structure in preserved memory */
-> +	ser = kho_alloc_preserve(memfd_luo_ser_size());
-> +	if (IS_ERR(ser)) {
-> +		err = PTR_ERR(ser);
-> +		goto err_unlock;
->  	}
-> +	ser = memfd_luo_ser_init(ser);
->  
-> +	ser->pos = args->file->f_pos;
->  	ser->size = inode_size;
->  	ser->seals = seals;
-> +	ser->flags = 0;
-
-Nit: Looks like a stray change. Flags should be initialized to 0 anyway,
-right?
-
->  
-> -	err = memfd_luo_preserve_folios(args->file, &ser->folios,
-> -					&folios_ser, &nr_folios);
-> +	err = memfd_luo_preserve_folios(args->file, ser, &folios_ser);
->  	if (err)
->  		goto err_free_ser;
->  
-> -	ser->nr_folios = nr_folios;
->  	inode_unlock(inode);
->  
->  	args->private_data = folios_ser;
-[...]
-
---- 8< ---
-
-Signed-off-by: Pratyush Yadav (Google) <pratyush@kernel.org>
-
-diff --git a/include/linux/kexec_handover.h b/include/linux/kexec_handover.h
-index ef2b188c8ed0..f17b46a4dbf6 100644
---- a/include/linux/kexec_handover.h
-+++ b/include/linux/kexec_handover.h
-@@ -13,6 +13,21 @@ struct kho_vmalloc;
- struct folio;
- struct page;
- 
-+/**
-+ * struct kho_arena - Allocator handing out pieces of one preserved buffer.
-+ * @buf:  Start of the preserved buffer.
-+ * @size: Size of the buffer in bytes.
-+ * @used: Offset in the buffer where the last allocation ended.
-+ *
-+ * This is runtime state only. It is not preserved and the next kernel does not
-+ * need it to free the buffer.
-+ */
-+struct kho_arena {
-+	void *buf;
-+	size_t size;
-+	size_t used;
-+};
-+
- #ifdef CONFIG_KEXEC_HANDOVER
- bool kho_is_enabled(void);
- bool is_kho_boot(void);
-@@ -26,6 +41,9 @@ void kho_unpreserve_vmalloc(struct kho_vmalloc *preservation);
- void *kho_alloc_preserve(size_t size);
- void kho_unpreserve_free(void *mem);
- void kho_restore_free(void *mem);
-+int kho_arena_init(struct kho_arena *arena, size_t size);
-+void *kho_arena_alloc(struct kho_arena *arena, size_t size);
-+void kho_arena_destroy(struct kho_arena *arena);
- struct folio *kho_restore_folio(phys_addr_t phys);
- struct page *kho_restore_pages(phys_addr_t phys, unsigned long nr_pages);
- void *kho_restore_vmalloc(const struct kho_vmalloc *preservation);
-@@ -89,6 +107,18 @@ static inline void *kho_alloc_preserve(size_t size)
- static inline void kho_unpreserve_free(void *mem) { }
- static inline void kho_restore_free(void *mem) { }
- 
-+static inline int kho_arena_init(struct kho_arena *arena, size_t size)
-+{
-+	return -EOPNOTSUPP;
-+}
-+
-+static inline void *kho_arena_alloc(struct kho_arena *arena, size_t size)
-+{
-+	return NULL;
-+}
-+
-+static inline void kho_arena_destroy(struct kho_arena *arena) { }
-+
- static inline struct folio *kho_restore_folio(phys_addr_t phys)
- {
- 	return NULL;
-diff --git a/kernel/liveupdate/kexec_handover.c b/kernel/liveupdate/kexec_handover.c
-index 38e65d210cb9..c2788027d717 100644
---- a/kernel/liveupdate/kexec_handover.c
-+++ b/kernel/liveupdate/kexec_handover.c
-@@ -1659,6 +1659,78 @@ void kho_restore_free(void *mem)
- }
- EXPORT_SYMBOL_GPL(kho_restore_free);
- 
-+/* Enough for any serialized data structure. */
-+#define KHO_ARENA_ALIGN		sizeof(u64)
-+
-+/**
-+ * kho_arena_init - Initialize a preserved buffer backing an arena.
-+ * @arena: The arena to initialize.
-+ * @size:  The size of buffer to allocate.
-+ *
-+ * kho_alloc_preserve() rounds every allocation up to use a full folio. A caller
-+ * that needs many small objects wastes most of a folio on each. An arena takes
-+ * one buffer from kho_alloc_preserve() and hands out pieces of it one after
-+ * another.
-+ *
-+ * Allocations can not be freed one by one. The whole buffer is freed at once,
-+ * with kho_arena_destroy(). or with kho_restore_free() in the incoming kernel.
-+ *
-+ * Return: 0 on success, negative error code on failure.
-+ */
-+int kho_arena_init(struct kho_arena *arena, size_t size)
-+{
-+	void *buf;
-+
-+	buf = kho_alloc_preserve(size);
-+	if (IS_ERR(buf))
-+		return PTR_ERR(buf);
-+
-+	arena->buf = buf;
-+	arena->size = PAGE_SIZE << get_order(size);
-+	arena->used = 0;
-+
-+	return 0;
-+}
-+EXPORT_SYMBOL_GPL(kho_arena_init);
-+
-+/**
-+ * kho_arena_alloc - Allocate preserved memory from an arena.
-+ * @arena: The arena to allocate from.
-+ * @size:  The number of bytes to allocate.
-+ *
-+ * Hands out the next @size bytes of the arena's buffer. The memory is zeroed,
-+ * aligned to 8 bytes, and already preserved.
-+ *
-+ * Return: A pointer to the allocated memory, or NULL if @size is 0 or the
-+ * arena does not have @size bytes left.
-+ */
-+void *kho_arena_alloc(struct kho_arena *arena, size_t size)
-+{
-+	size_t start = ALIGN(arena->used, KHO_ARENA_ALIGN);
-+
-+	if (!size || size > arena->size - start)
-+		return NULL;
-+
-+	arena->used = start + size;
-+
-+	return arena->buf + start;
-+}
-+EXPORT_SYMBOL_GPL(kho_arena_alloc);
-+
-+/**
-+ * kho_arena_destroy - Unpreserve and free the buffer backing an arena.
-+ * @arena: The arena to destroy.
-+ *
-+ * Frees all the memory allocated from the arena. Must only be called in the
-+ * outgoing kernel.
-+ */
-+void kho_arena_destroy(struct kho_arena *arena)
-+{
-+	kho_unpreserve_free(arena->buf);
-+	*arena = (struct kho_arena){};
-+}
-+EXPORT_SYMBOL_GPL(kho_arena_destroy);
-+
- /**
-  * is_kho_boot - check if current kernel was booted via KHO-enabled
-  * kexec
-
--- 
-Regards,
-Pratyush Yadav
+Thanks,
+Pavel
