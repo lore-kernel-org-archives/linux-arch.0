@@ -1,64 +1,56 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.28.3
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795223229;
-	b=eB+slqj8ctYucpgBGd2eIBzkg0XW5pG780WQzzMjmAfwRetA+KeF2viNHIjQ0wESeKJu
-	 At28tcQFXRGklkIG0Oqpogh3d9ncUSjpMYeEu5UzASIc6onQQfhtt6AMCIrqcK9sUDBb7
-	 xTKulyrV6VoKa9RIYQkoz/rrB1lY+iGE3n3HMPk0sDwMdbq9xX2RBJYc79yl20X73h6Zq
-	 5BCGE+K/r6lNhk9ZVkm+RpQd0wjTvWV69h51+gRr4n0pr6bM/2H1IeAxCD0Y+z9Z9/fuQ
-	 NuElZeWLdOzp59dNmW4zTTpnPvdeYVWMmSPZ9HR9R7ktIoPJ+nlkQLMMg4wnAbYcwGg==
+	t=1795269898;
+	b=jmGdOCzDy2FDb0EWFaVFg/rG3RZhZFFKB7XlkDMz7iRbmbS63DQ0qsZdx1iMy8qv/9pb
+	 xzGMft2SAVa2HLiQ4z0hLFsmugQj/JRsrqFRSwun/zYGOosz/nE8ptLHJHnu7i5Hqohvy
+	 oX1LA+cSHMA303vPpPiA6DGHuoP+CIQ2Wo+lYgcRtP7DHrUnh9dcLQcMp/C0ljcPKD5Kh
+	 ofS+R52INYwKB3kx9ofRYZT0ompm9ybiqzU81P0kGbNbeHIC7sAQhq5QQLTduTcCwdSmm
+	 r06mCUttJMEdgq/83DXd3Xlav1Fa5a9e2fFTY31KnVdy024GPh9xfuCJicRjIW1nUMQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795223229;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=uRbvTYGHLE/dSalAhrR1hJSynJ2eHI0LzzHZL/10yZo=;
-	b=UwMPmbsfYE5D/15kCQxbOODsZtw3Io6hHPi1Amr/TSeY+YdGIqfws60c39KWv8d9k5o4
-	 V7ZTtfTizfQCdImKIPUCRq92KbiaitJgHolsbLtpSSYop1RAHP7uGO4h+34VO9PQLRUlh
-	 h6Dk0lB5Uh/C7a84hstPtSjbGC5/GWEOpc2RVMvwfiRNylrUhB5GHc4f9LdXFTerqHj2V
-	 5Z7zfRsj+BN6AdCt11uaR3jV0lP9T6zDro60vvy8HajS7VxXjxTQLU39xLfjsyzQdk4py
-	 L3ljQjcO6RUVzjz/eR4f7pskCC5dSMXOvY/0YgeIKruM8OiZGRA3x0aVaXEL7u+HZQQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795269898;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
+	 Subject:Date:Message-ID:X-Mailer:MIME-Version:
+	 Content-Transfer-Encoding;
+	bh=PKtVeCaua4JhrI5ou+iiHT4NA8Q2Cj43f5Zms2EDi7c=;
+	b=ri6HHQRD0+R9rmf4LqETAcsA7yfwdBR6BKIXDP1DeAUwd+JC3FmviZ16y9/AUg1bAHC4
+	 Mc2ilaq9m9aGC1DQGSxrL+1dtoV2ZVgExce42cPPDg+acNC8ZGwu8QKTUtV1owKd8fG8F
+	 wTz+fKjcbOEppWfDxBrpDcC+iTobhULAdGwLa3OvRyLwhM40cnencZBOOwqmj1lZSw9bh
+	 /r0E/a6RVVKR3MbWSlTIBkWX+UGHHdrfq5yAOVXTTK8+sWx5CJAMaGaplPS9bylvWv92V
+	 FhZSlvSfdbO69BftioXzvp4//9VwqcO/OW9bFh2wb7uY9RJNNOu/OndR3KwKRT8BkbQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=LN+7Xyts;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	dmarc=none header.from=xiaopeng.com;
+	spf=pass smtp.mailfrom=xiaopeng.com;
+	dkim=pass header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=uKDloGwS;
+	arc=none smtp.remote-ip=115.124.28.3
+Received: from out28-3.mail.aliyun.com (out28-3.mail.aliyun.com [115.124.28.3])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D4C94606A6BB;
-	Sat, 21 Nov 2026 01:07:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A389F606A320;
+	Sat, 21 Nov 2026 14:04:54 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A389F606A320
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=xiaopeng.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xiaopeng.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=LN+7Xyts
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22B6F1F000C6;
-	Sat, 21 Nov 2026 01:07:09 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795223229;
-	bh=uRbvTYGHLE/dSalAhrR1hJSynJ2eHI0LzzHZL/10yZo=;
-	h=Date:From:To:Cc:Subject:In-Reply-To;
-	b=LN+7XytsqPs5YF9E9mIPKktv5Gsp1VQ/w4jEbFo5vT2u5BKEyqjRyUqoRT5Nwolq4
-	 22by5rzHW0eHEBArf/qXzbjMAzXm9+SMOpY3BX8vpfcJ+8afSf2FEG4/f+nbp+/ZRO
-	 68K1I1fQenkijo8Fswmmi/4ZjGCNGJke2gScCoR7QBbZTNTgvHjhLTc3rKj0c1FfqX
-	 UTRlaA6BjtCIifzWkxXNuMyjVLjrF/nUkDgiT6MTRCoiiGQAQBb/PHJ1aP+qIuoyW3
-	 7qFrHDkVDpVFY3egBfLOSHiksLdfXHaG/THUnKOaXkCK3JKG0LoWz71q4DCSXQkpiW
-	 1cVy6Rw3zd+NQ==
-Date: Fri, 20 Nov 2026 19:07:08 -0600
-From: Bjorn Helgaas <helgaas@kernel.org>
-To: Pavel Popov <pavel.e.popov@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>,
-	Logan Gunthorpe <logang@deltatee.com>,
-	Arnd Bergmann <arnd@arndb.de>, Leon Romanovsky <leon@kernel.org>,
-	Lukas Wunner <lukas@wunner.de>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	Jim Chow <jim.chow@broadcom.com>,
-	Radu Rugina <radu.rugina@broadcom.com>,
-	Alexey Makhalov <alexey.makhalov@broadcom.com>,
-	Wei Liu <wei.liu@kernel.org>, Michael Kelley <mhklinux@outlook.com>,
-	Nathan Ciobanu <nathan.d.ciobanu@linux.intel.com>,
-	bcm-kernel-feedback-list@broadcom.com,
-	virtualization@lists.linux.dev, linux-hyperv@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v5 0/3] PCI/P2PDMA: Allow P2PDMA on Intel Xeon server CPUs
-Message-ID: <20261121010708.GA929035@bhelgaas>
+	dkim=pass (1024-bit key, unprotected) header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=uKDloGwS
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xiaopeng.com; s=default;
+	t=1795269886; h=From:To:Subject:Date:Message-ID:MIME-Version;
+	bh=PKtVeCaua4JhrI5ou+iiHT4NA8Q2Cj43f5Zms2EDi7c=;
+	b=uKDloGwSQN78itVpvgPB22oV8tU/UqGDN6riQoqkTh/ByQRM+3y8GRHiiNyCwp+IHbYQBX8BSbsIm+lf8gKNtmZen+XB5OiK4fjmy3WN4NxrJSVf8PJa917b4rw5U40Tlypk64JYZVwsi4Z+h9hQC0IB+w+XB82LPpZnM9UveH4=
+X-Alimail-AntiSpam:AC=CONTINUE;BC=0.5188516|-1;CH=green;DM=|CONTINUE|false|;DS=CONTINUE|ham_system_inform|0.0573754-0.000396786-0.942228;FP=15482861394436111488|0|0|0|0|-1|-1|-1;HT=maildocker-contentspam033037034020;MF=fangxy@xiaopeng.com;NM=1;PH=DS;RN=4;RT=4;SR=0;TI=SMTPD_---.k7FMYJ4_1795269885;
+Received: from localhost.localdomain(mailfrom:fangxy@xiaopeng.com fp:SMTPD_---.k7FMYJ4_1795269885 cluster:ay29)
+          by smtp.aliyun-inc.com;
+          Sat, 21 Nov 2026 22:04:45 +0800
+From: Fang Xieyan <fangxy@xiaopeng.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Subject: [PATCH] asm-generic: bitsperlong: Remove the disabled BITS_PER_LONG check
+Date: Sat, 21 Nov 2026 22:04:44 +0800
+Message-ID: <20261121140444.57953-1-fangxy@xiaopeng.com>
+X-Mailer: git-send-email 2.50.1
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -68,84 +60,52 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261111234439.4098-1-pavel.e.popov@intel.com>
+Content-Transfer-Encoding: 8bit
 
-On Wed, Nov 11, 2026 at 04:44:36PM -0700, Pavel Popov wrote:
-> VMware and Hyper-V expose passthrough devices to guest VMs without an
-> explicit host bridge device. Consequently, host_bridge_whitelist()
-> cannot automatically identify the underlying host bridge structure,
-> causing Peer-to-Peer DMA (P2PDMA) requests to be rejected unless the
-> device IDs are explicitly listed in pci_p2pdma_whitelist[]. To enable
-> P2PDMA on Intel hosts, this series extends cpu_supports_p2pdma(), which
-> so far covers AMD Zen and newer, with an explicit list of Intel Xeon
-> server generations.
-> 
-> Patch 1 adds a generic <asm/cpu_device_id.h>, so that generic code can
-> include it without #ifdef CONFIG_X86.
-> Patch 2 moves the CONFIG_X86 #ifdef out of cpu_supports_p2pdma(); this
-> is the v4 1/2 patch, unchanged.
-> Patch 3 is the v4 2/2 patch with Logan's Reviewed-by carried over; the
-> only change is in the includes.
-> 
-> Arnd, if 1/3 looks OK to you, could it go through the PCI tree
-> together with 2/3 and 3/3?
-> 
-> The other users of <asm/cpu_device_id.h> and <asm/intel-family.h>
-> under #ifdef CONFIG_X86 (ACPI, cpufreq, i915, amdgpu, tpm, ccp,
-> platform/x86) are converted in a follow-up series on top of this one.
-> 
-> Based on mainline (7.4-rc2+). Built with x86_64 and arm64
-> allmodconfig, each patch separately.
-> 
-> Changes in v5:
-> - Add 1/3, a generic <asm/cpu_device_id.h>, so the include no longer
->   needs #ifdef CONFIG_X86 (Leon Romanovsky)
-> - Drop the <asm/intel-family.h> include, <asm/cpu_device_id.h>
->   includes it on x86
-> 
-> Changes in v4:
-> - Add 1/2, moving the CONFIG_X86 #ifdef out of cpu_supports_p2pdma()
->   (Logan Gunthorpe, Leon Romanovsky)
-> - Keep the #ifdef around the asm/ includes, as these headers exist
->   only on x86 (Bjorn Helgaas)
-> 
-> Changes in v3:
-> - Drop the hypervisor check and move the Xeon list into
->   cpu_supports_p2pdma(), next to the AMD check, as suggested by Logan
->   Gunthorpe and Leon Romanovsky [1]
-> - Fold the VMware and Hyper-V patches into one, as the check no longer
->   depends on the hypervisor
-> 
-> Changes in v2:
-> - Replace the Skylake-and-newer threshold with an explicit list of Intel
->   Xeon server generations, from Skylake-SP to Diamond Rapids (Logan
->   Gunthorpe)
-> - Move the CONFIG_X86 #ifdef out of hypervisor_supports_p2pdma()
->   (Logan Gunthorpe)
-> - Rebased on current mainline
-> 
-> [1] https://lore.kernel.org/r/20261016153147.GC219304@unreal
-> 
-> v4: https://lore.kernel.org/r/20261020173736.81755-1-pavel.e.popov@intel.com
-> v3: https://lore.kernel.org/r/20261020151305.65218-1-pavel.e.popov@intel.com
-> v2: https://lore.kernel.org/r/20261016223402.19991-1-pavel.e.popov@intel.com
-> v1: https://lore.kernel.org/r/20261009154034.82321-1-pavel.e.popov@intel.com
-> 
-> Pavel Popov (3):
->   asm-generic: Add <asm-generic/cpu_device_id.h>
->   PCI/P2PDMA: Move CONFIG_X86 #ifdef out of cpu_supports_p2pdma()
->   PCI/P2PDMA: Allow P2PDMA on Intel Xeon server CPUs
-> 
->  drivers/pci/p2pdma.c                | 30 +++++++++++++++++++++++++++--
->  include/asm-generic/Kbuild          |  1 +
->  include/asm-generic/cpu_device_id.h |  5 +++++
->  3 files changed, 34 insertions(+), 2 deletions(-)
->  create mode 100644 include/asm-generic/cpu_device_id.h
+A FIXME in this header asks to fix x86-64 and reenable the check
+between BITS_PER_LONG and __BITS_PER_LONG. However, this check
+cannot be enabled because the two values can legitimately differ
+when building the compat vDSO.
 
-Applied to pci/p2pdma for v7.5, thanks for the reminder.
+BITS_PER_LONG is derived from CONFIG_64BIT and reflects the
+kernel's configured word size, while __BITS_PER_LONG reflects
+the compiler target ABI.
 
-There were minor conflicts with Leon's series, but I applied yours
-directly on v7.4-rc1 and resolved the conflicts when adding Leon's on
-top.
+The existing sanity checks validate __BITS_PER_LONG against the
+actual C type 'long'. For regular kernel builds, this also detects
+mismatches between BITS_PER_LONG and __BITS_PER_LONG, since
+BITS_PER_LONG matches the kernel's native word size.
+
+Remove the dead check and the misleading FIXME.
+
+Signed-off-by: Fang Xieyan <fangxy@xiaopeng.com>
+---
+The preprocessed output of this header is unchanged in 64-bit, 32-bit
+and compat vDSO (-m32 with CONFIG_64BIT) builds. Build-tested on x86_64
+defconfig (IA32_EMULATION=y), including the vdso32 build.
+
+ include/asm-generic/bitsperlong.h | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/include/asm-generic/bitsperlong.h b/include/asm-generic/bitsperlong.h
+index 90e8aeebfd2f..5183b50d3080 100644
+--- a/include/asm-generic/bitsperlong.h
++++ b/include/asm-generic/bitsperlong.h
+@@ -11,14 +11,6 @@
+ #define BITS_PER_LONG 32
+ #endif /* CONFIG_64BIT */
+ 
+-/*
+- * FIXME: The check currently breaks x86-64 build, so it's
+- * temporarily disabled. Please fix x86-64 and reenable
+- */
+-#if 0 && BITS_PER_LONG != __BITS_PER_LONG
+-#error Inconsistent word size. Check asm/bitsperlong.h
+-#endif
+-
+ #if __CHAR_BIT__ * __SIZEOF_LONG__ != __BITS_PER_LONG
+ #error Inconsistent word size. Check asm/bitsperlong.h
+ #endif
+-- 
+2.50.1
+
