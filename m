@@ -1,56 +1,78 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.28.3
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795269898;
-	b=jmGdOCzDy2FDb0EWFaVFg/rG3RZhZFFKB7XlkDMz7iRbmbS63DQ0qsZdx1iMy8qv/9pb
-	 xzGMft2SAVa2HLiQ4z0hLFsmugQj/JRsrqFRSwun/zYGOosz/nE8ptLHJHnu7i5Hqohvy
-	 oX1LA+cSHMA303vPpPiA6DGHuoP+CIQ2Wo+lYgcRtP7DHrUnh9dcLQcMp/C0ljcPKD5Kh
-	 ofS+R52INYwKB3kx9ofRYZT0ompm9ybiqzU81P0kGbNbeHIC7sAQhq5QQLTduTcCwdSmm
-	 r06mCUttJMEdgq/83DXd3Xlav1Fa5a9e2fFTY31KnVdy024GPh9xfuCJicRjIW1nUMQ==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795269898;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-ID:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=PKtVeCaua4JhrI5ou+iiHT4NA8Q2Cj43f5Zms2EDi7c=;
-	b=ri6HHQRD0+R9rmf4LqETAcsA7yfwdBR6BKIXDP1DeAUwd+JC3FmviZ16y9/AUg1bAHC4
-	 Mc2ilaq9m9aGC1DQGSxrL+1dtoV2ZVgExce42cPPDg+acNC8ZGwu8QKTUtV1owKd8fG8F
-	 wTz+fKjcbOEppWfDxBrpDcC+iTobhULAdGwLa3OvRyLwhM40cnencZBOOwqmj1lZSw9bh
-	 /r0E/a6RVVKR3MbWSlTIBkWX+UGHHdrfq5yAOVXTTK8+sWx5CJAMaGaplPS9bylvWv92V
-	 FhZSlvSfdbO69BftioXzvp4//9VwqcO/OW9bFh2wb7uY9RJNNOu/OndR3KwKRT8BkbQ==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=xiaopeng.com;
-	spf=pass smtp.mailfrom=xiaopeng.com;
-	dkim=pass header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=uKDloGwS;
-	arc=none smtp.remote-ip=115.124.28.3
-Received: from out28-3.mail.aliyun.com (out28-3.mail.aliyun.com [115.124.28.3])
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1795301378;
+	b=BMecklcNkHZiHHpawfy5N60lN8dK6c3p5n/iP5hjVTl4sKWUL1dG5FMGCPbARhgiDEL+
+	 xRUHMmoThs7E6ITu6zE04i0LqS0NYr1hvEom0KTByVwhnmo/UQ2okHyb/REFLlUM7PD1C
+	 yCSWntvukYmQUGzPlCA5TDUhUTG+wWrgw23rBdzFdkYntwh23ML1pIAkj955MbIfxNTih
+	 zmWiOS4E4XZEV6onk4ke5MmdSy6Dfl+cBxdFspNIedMyi7NZSiT1p6/RUTtcwpjjFOazp
+	 Qd4tctxH5LqE3gckH9qRqqU/p5qvR7k1YnYVyuUPZRisnMu2ltIvGQdPaJ06ZQZJHMw==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795301378;
+	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
+	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
+	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
+	 X-Original-From:Reply-To:Content-Transfer-Encoding;
+	bh=Mvx3njFRz9zfHK0cxlq3fPJ/kD3jv1+DFhiSx9WqC4E=;
+	b=gGDu3GsUSrCn1rF9zNy1tGBofMhY+9EfoRhIrZisyFovrME3Ua15a0+qxNlQLYy70Zdu
+	 8NDrUjcC3nTqaWdTViIIMqUizIgLWn5/whiUYnyrwTSEaGj0mj78i8BPnAN35Nr19H9wQ
+	 uYJIKw4e26RVahLtyblqKM5tDTbgA4Uh8hpI73nX7FxN7EpByYBLKB/W4OB3N2yhDTbkq
+	 Kr3DBJFKmgf87Wx4ByOZLbYTAJ0OQAOLpP8MsA1TM63PwTVfwYJa8+BDR+rMl1L0cp2s3
+	 PaoPDJJjkgo8ZyL+UYfPvkdTgE4zL1UQK4Qax5tRzurUKgh1p1ZLCXVSVpv73VB6Ucg==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=C1irgVyr;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7EB3A606A334;
+	Sat, 21 Nov 2026 22:49:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=C1irgVyr
+Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
+ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
+	t=1795301378;
+	b=LaP/ics97yE9YXKDZiHfiazSgtGjuKWOv446PfM4C0VkFPJq9Yqpq3SvSdD7nqTUsD49
+	 4I1XAFHBhPFte45E6B0G0JcWFZaQ/ZMz4bwKxKqR7d/ZCD53ri7nVKtRlJaAiZBvpTuCJ
+	 pywJwGRjpsfkt7doKX4ovly3non5GEJkqBD2NKlZLslZlj/unejir6bfqRNhM7PtLEKhZ
+	 IIdDiTJZJAOnyP2/1eiiBWFhVbYnZCGcknD7Gaho6vvOSoBX3eaujkHISJ5pykktTAEmN
+	 cf9dISIwooa39MUOk9eclEe8pwIyAi1MFcarHKDKbvETW6CN2bokHt44A2h4Lp3oCiA==
+ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
+	c=relaxed/relaxed; t=1795301378;
+	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
+	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
+	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
+	 X-Original-From:Reply-To:Content-Transfer-Encoding;
+	bh=Mvx3njFRz9zfHK0cxlq3fPJ/kD3jv1+DFhiSx9WqC4E=;
+	b=Hmtf38oAhUOSRgk/Uim4UFu76G4wd0J63PetGhQRJzeeucSnr3kk2NM/No6wRzmNFrPV
+	 vyd/Bmo79JaZRqkGmmPPoyolHzVc+YIyb/gtYkgVPFHmH+KVe30GoUV2Hy89ts5IN0XTD
+	 yt7TkZY1VZSSbBDZVBV41o9HMmzEFCD1D6LcTt6BeVtjV61Fu5W580KgO3RAwXlzq6it7
+	 sJNnAQwLhQTqk/GTdk5cOaIONIfN9GofxYbBkob24dQPjABkWXwI1PUSHp8ERw4nLec7b
+	 uDkOSdVqJJin9+EjYpQf40cbANL9bOoJxrXOam3nW/UKKaauHK1iH6bgaDhQ5CW4EVg==
+ARC-Authentication-Results: i=1; smtp.kernel.org; 
+	arc=none smtp.remote-ip=100.80.115.77
+Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A389F606A320;
-	Sat, 21 Nov 2026 14:04:54 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A389F606A320
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=xiaopeng.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xiaopeng.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=uKDloGwS
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xiaopeng.com; s=default;
-	t=1795269886; h=From:To:Subject:Date:Message-ID:MIME-Version;
-	bh=PKtVeCaua4JhrI5ou+iiHT4NA8Q2Cj43f5Zms2EDi7c=;
-	b=uKDloGwSQN78itVpvgPB22oV8tU/UqGDN6riQoqkTh/ByQRM+3y8GRHiiNyCwp+IHbYQBX8BSbsIm+lf8gKNtmZen+XB5OiK4fjmy3WN4NxrJSVf8PJa917b4rw5U40Tlypk64JYZVwsi4Z+h9hQC0IB+w+XB82LPpZnM9UveH4=
-X-Alimail-AntiSpam:AC=CONTINUE;BC=0.5188516|-1;CH=green;DM=|CONTINUE|false|;DS=CONTINUE|ham_system_inform|0.0573754-0.000396786-0.942228;FP=15482861394436111488|0|0|0|0|-1|-1|-1;HT=maildocker-contentspam033037034020;MF=fangxy@xiaopeng.com;NM=1;PH=DS;RN=4;RT=4;SR=0;TI=SMTPD_---.k7FMYJ4_1795269885;
-Received: from localhost.localdomain(mailfrom:fangxy@xiaopeng.com fp:SMTPD_---.k7FMYJ4_1795269885 cluster:ay29)
-          by smtp.aliyun-inc.com;
-          Sat, 21 Nov 2026 22:04:45 +0800
-From: Fang Xieyan <fangxy@xiaopeng.com>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Subject: [PATCH] asm-generic: bitsperlong: Remove the disabled BITS_PER_LONG check
-Date: Sat, 21 Nov 2026 22:04:44 +0800
-Message-ID: <20261121140444.57953-1-fangxy@xiaopeng.com>
-X-Mailer: git-send-email 2.50.1
+	by smtp.kernel.org (Postfix) with ESMTPS id 1E38A1F000C6;
+	Sat, 21 Nov 2026 22:49:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795301378;
+	bh=Mvx3njFRz9zfHK0cxlq3fPJ/kD3jv1+DFhiSx9WqC4E=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
+	b=C1irgVyrUzRN0+NfCbTETxw6IJE5bjzl6Ti6JMiN5nbo0s0WNp9gIhi/nLYgfAj3C
+	 aofeeHZoELqLuWuIlYPEle5DwZZLxKzgOrJDbXH2xTEvIKGj3XZZ1VnHfItyviN/Kq
+	 Brxs5bKg/SshBrxlsXoDJPdgdm6e4Zucj7+wUpk5FPiZUXYNQL3iiKqmuaIHz4yyeU
+	 O7ZVFw1VqjC3Q30MpPOuUBk+MxHzCKPzYJZ86Bx9dNZoA+mWOdAwZLZfq+6qUqj/mD
+	 YJreA+LNYpEyqCHDbV+qjhcBkz2vCyX1npk3mXjksLbjrVZKwLm2n4VUxsHPMH7yLB
+	 WaSmryQ+cOULg==
+Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
+	by lkml.kernel.org (Postfix) with ESMTP id A240E4BE4E;
+	Sat, 21 Nov 2026 22:49:36 +0000 (UTC)
+From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
+Date: Sat, 21 Nov 2026 15:49:20 -0700
+Subject: [PATCH 2/6] vmlinux.lds.h: drop unused HEADERED_SECTION* macros
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -60,52 +82,70 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Message-Id: <20261121-vmlinux-lds-v1-2-49818f3f5cc0@gmail.com>
+References: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
+In-Reply-To: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
+ Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+ Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+ Aaron Tomlin <atomlin@atomlin.com>, 
+ Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+ linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
+X-Mailer: b4 0.14.3
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=1428;
+ i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
+ bh=g5z+IDfPUrLi9ooJXrXG7eSrlGaOIyVCDk2Kag52knw=;
+ b=8Wjuc7MD0ocj9DKzUsHhTKX4gKapvtQNihvNKFW29mVEKxvKEEwX9qY3zacUro/LVHBkf+CYo
+ cxboaSyrpNEDEEFFreyZ7UrfwdzRscBLLDCAValR+sBLhQFeeHNbQu7
+X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
+ pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
+X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
+ auth_id=958
+X-Original-From: Jim Cromie <jim.cromie@gmail.com>
+Reply-To: jim.cromie@gmail.com
+Content-Transfer-Encoding: 7bit
 
-A FIXME in this header asks to fix x86-64 and reenable the check
-between BITS_PER_LONG and __BITS_PER_LONG. However, this check
-cannot be enabled because the two values can legitimately differ
-when building the compat vDSO.
+From: Jim Cromie <jim.cromie@gmail.com>
 
-BITS_PER_LONG is derived from CONFIG_64BIT and reflects the
-kernel's configured word size, while __BITS_PER_LONG reflects
-the compiler target ABI.
+These macros are unused, no point in carrying them any more.
 
-The existing sanity checks validate __BITS_PER_LONG against the
-actual C type 'long'. For regular kernel builds, this also detects
-mismatches between BITS_PER_LONG and __BITS_PER_LONG, since
-BITS_PER_LONG matches the kernel's native word size.
+NB: these macros were just moved to bounded_sections.lds.h, from
+vmlinux.lds.h, which is the known entity, and therefore more
+meaningful in the 1-line summary, so thats what I used as the topic.
 
-Remove the dead check and the misleading FIXME.
-
-Signed-off-by: Fang Xieyan <fangxy@xiaopeng.com>
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
-The preprocessed output of this header is unchanged in 64-bit, 32-bit
-and compat vDSO (-m32 with CONFIG_64BIT) builds. Build-tested on x86_64
-defconfig (IA32_EMULATION=y), including the vdso32 build.
+ include/asm-generic/bounded_sections.lds.h | 15 ---------------
+ 1 file changed, 15 deletions(-)
 
- include/asm-generic/bitsperlong.h | 8 --------
- 1 file changed, 8 deletions(-)
-
-diff --git a/include/asm-generic/bitsperlong.h b/include/asm-generic/bitsperlong.h
-index 90e8aeebfd2f..5183b50d3080 100644
---- a/include/asm-generic/bitsperlong.h
-+++ b/include/asm-generic/bitsperlong.h
-@@ -11,14 +11,6 @@
- #define BITS_PER_LONG 32
- #endif /* CONFIG_64BIT */
+diff --git a/include/asm-generic/bounded_sections.lds.h b/include/asm-generic/bounded_sections.lds.h
+index 8c29293ca7fb..268cdc34389b 100644
+--- a/include/asm-generic/bounded_sections.lds.h
++++ b/include/asm-generic/bounded_sections.lds.h
+@@ -18,19 +18,4 @@
  
--/*
-- * FIXME: The check currently breaks x86-64 build, so it's
-- * temporarily disabled. Please fix x86-64 and reenable
-- */
--#if 0 && BITS_PER_LONG != __BITS_PER_LONG
--#error Inconsistent word size. Check asm/bitsperlong.h
--#endif
+ #define BOUNDED_SECTION(_sec)	 BOUNDED_SECTION_BY(_sec, _sec)
+ 
+-#define HEADERED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
+-	_HDR_##_label_	= .;						\
+-	KEEP(*(.gnu.linkonce.##_sec_))					\
+-	BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)
 -
- #if __CHAR_BIT__ * __SIZEOF_LONG__ != __BITS_PER_LONG
- #error Inconsistent word size. Check asm/bitsperlong.h
- #endif
+-#define HEADERED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_, _HDR_) \
+-	_label_##_HDR_ = .;						\
+-	KEEP(*(.gnu.linkonce.##_sec_))					\
+-	BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)
+-
+-#define HEADERED_SECTION_BY(_sec_, _label_)				\
+-	HEADERED_SECTION_PRE_LABEL(_sec_, _label_, __start, __stop)
+-
+-#define HEADERED_SECTION(_sec)	 HEADERED_SECTION_BY(_sec, _sec)
+-
+ #endif /* _ASM_GENERIC_BOUNDED_SECTIONS_H */
+
 -- 
-2.50.1
+2.56.1
+
 
