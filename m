@@ -1,78 +1,79 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795301379;
-	b=WBT8i4uQNA0Kr9LunIb32x3UBc0CHjuoLMvFyzdzX3q1KY9wk83ohaydowlkFEvsBs4J
-	 cvgVmUuvQux3E0RF6DFHuAU9EiBoMBoVjLw/9HUrE/ACrvzeBU1JoEvxnIa9Nefu7K+6/
-	 fBXuxHQNsCd1rXLAr/D+qOWy8Nea3HsNgJ8CXnusZAq51RQukVcUI0hs4dssPbGWHwj6j
-	 YQQwotpaMr25hK74J2EY4UDzY4ZnYKKTDo25SsXT7Zjwy/tPxb78KO340BvGPUODQaF/P
-	 slma1fNsjzQbEGbF0U1USwarkLUKH5nnZJxJunykSxwm3zyZhqS/9ihT7CzYCrzu9Xg==
+	t=1795301380;
+	b=01C8B8Uy3u3Jg2SaPrAP+Nlm2eIZWWHobbv/pPi65S8ofijIwwg65XDQk3RdkYI2pddc
+	 8Aoo5FstfYjps6aNfUem6LkOsFCYG7N1T7qdMrSCvo8x17Dk0nXzGyHBsRhlPUYwC/b3y
+	 T02vh9VJ3D0XlbaYdhi+0BS9DkHbdo+eQSFkjP7S4ijx5wSEDcYQqHo9FU2rfHPNo/nw5
+	 60lsp0bxy1lD58uWjqivOcdWFt6wiyuRLuBZqHPU6siETaZILNt3NT3PnpyFAUjMxJdqg
+	 bYowyUWLH3G733QXyJKmfmAyZgq4gF7b0h+j21o6feMbSzr6aH1+UK3IhqBOga4equg==
 ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795301379;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795301380;
 	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
 	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=uqv4XjV88HPVChZGFcN8mxBmgf4cgX5V2lhIBW54M2Y=;
-	b=Vy3v4NAGV+KJFoKSWeTsdyo/UfWEZacuxr28wjzQV/9Mxif4yKD4D21o0XB95NrhgdSy
-	 C0KYBDR1Z1TjmYIDhUgTSUeahWmuS7OWjRjAOl1CSYK2IRWXLXvkpm417BwAoyqQ6x0+5
-	 rttA0Ov5T1ZbYzYhU5UXZrP6yzvi6tXQsEKDR/z1Lt/LRCscJq8gZzpdiHj2mR+DUFSb3
-	 VWFcAjkBqv/aWHeVGBB6vC8DvSYWF6xMExOFyJ/JJC3F6OsTuq61uopp+G3L6cDYFFlM8
-	 0t9BPjs3vx3Zf5dTSlYByXAaZ+ak1oXbDBr6xDT/weC8sKXZV2dXvPjbc6vc5uO3riw==
+	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
+	b=jL6PkZKCYhmQidyvi+6NPGGAFMXIP8jh5CQxv+Yiq46OhWn0HZsr18YXLnQNAn9OJK9R
+	 wO0RKbFnvHgp8HisTC4GjLUZgckQXi2HsAA70FtFsD64nZUY/30frKBxsH9NAA2EsqOoZ
+	 aZaFAOvxwlWHifnDCvHUn2/xHj0/0pC+dJYKmF73WGwHdKg3FZLEqnwy/sWHNue8ezKXa
+	 2pueEdIoAKqbf1nuahCS1q+GJffm8SG1hIDtI6ylhEgyYE3DGt9TX8PwFQ3N9ExPF1Xlc
+	 igCtOm5StKZALE7bFVHljHD1G30x9R1V4zggLzNcIIPaiDm3Dkj7ST+6k9ncLm/PF9A==
 ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="SKYCv/x4";
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NiTPaH6R;
 	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 90478606A68F;
-	Sat, 21 Nov 2026 22:49:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 164A4606A332;
+	Sat, 21 Nov 2026 22:49:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=SKYCv/x4
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NiTPaH6R
 Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
 ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
 	t=1795301379;
-	b=qK/2YJvTC7r+I927DHTt6dCy9CJ9bzs4rV05ZtlSqCBmGrfUgMCGlBwbBPSU2cGQgu2/
-	 +eSyNnX2XX7cKacGrDJnGVOgm1AG8SiIIblTKaxQZgfFG8m4/l0EDRWqINvkQ27QyNJ4t
-	 JVLpLUbwbxEMGx/W2BfIsI+6SSvQaOiNYSN0Mqwi7uC6fKZVykB9t7I3kgot4t/CCE7E4
-	 ugClJxQ3wPbOlofI8cPlo5QztqPmtfHjJ2X2O19Gr9EX6WdzxDq9OZB/mHUqWNl5ILLtU
-	 SMlXrRgvgPMFTFkLi1Qt/KjYSP0v1FgCBmhdnirdLkzhZn2OwaKmKFmPRbESQUJ2btQ==
+	b=y8iY7lVS2IW2cgnEznNWnvDnzVKi2ar1AMq2iBPosbH6+9PvErzMmoWHVbNiu5NorrxI
+	 eJdwP+uzRJMrrDrNqfYyngGecVod4546/b17FP5kwV8fG9MxxD6rsQvNwEpvA0udNWbJO
+	 r+pXKm5Ohd6mbeUTsUEOMQ8P2H4zqTbDf1Zu5Og7rMZdqqV7jieOYRuCM+FiOUZG8ZMmM
+	 g1bX/V12Z8HTSnaDRciKLiN3eBt6ArGcaqOWbPTuCINuaIAXfQlBKal2fKnI17RDByDSm
+	 gX0JH22OFASLH+n2fnwDXJTHBJVb4I6/gkbwZ33HLzOpI7olqSe18yEZiJ0OjaI7BcQ==
 ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
 	c=relaxed/relaxed; t=1795301379;
 	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
 	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
 	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
 	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=uqv4XjV88HPVChZGFcN8mxBmgf4cgX5V2lhIBW54M2Y=;
-	b=VFTC5NCI1yIm5RhRgrWH1bjbuvH7M2+/9q1EFMdzBnyw8JgjYb0BPqSJkBNJQwo1pShk
-	 v2cxJbTzR72cuvde4KghtS/1ubya+7ZV+ZwAaU+iLomz/QdfMwnGVKigJlkl4HRRYPsMR
-	 gz1c0/RBfVVUiyxIajAwK8/NpDVPMgjNOVpjZ8Xgqc9WjoIwLBhpDfbuIBGCalMnaTIEF
-	 EVf0ZfcSveEPP0BWXyR48TFT4wd7joMcSKN555/a43IKlnJ5Fhr8emr1rqCL9E8K/e4rE
-	 gZ/jrF3l3LakXXWwB+X1b6gnVW8RKspmMRAzJb2XmcUFS2cAubmH2uWw9d9FEdUPwEg==
+	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
+	b=hyEeIdGixQL8ZLbsqdmaaWYhTLKg7QOBzvme46hybJVNGc94GOFEBi0RtQPZnmstagzH
+	 U1iEXJmAl/uckNqETii7jn5fAj34Tf+BRiM/h1hDL4gJ4gTsaGawWsA46L4WttwYFcLK7
+	 ZEGj5LEbmpusjdWODLEFANuLiUWx8Hu10PGWEYtQT0gQMKnFuB1LeYassEflim8y21hl+
+	 TxT8BysQyrpKPH5dO+vh6FX9nHWfStBBFPuGQhzYqx7Mf+xle0H4+3bj02idRP5aiL0Lm
+	 daEqE2DzqFu5F+cimdEDxaNRWTysgT92E0ZErUC2wOaNC95zRSISkjI8oXSMowYzAYw==
 ARC-Authentication-Results: i=1; smtp.kernel.org; 
 	arc=none smtp.remote-ip=100.80.115.77
 Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.kernel.org (Postfix) with ESMTPS id 565571F000D1;
-	Sat, 21 Nov 2026 22:49:37 +0000 (UTC)
+	by smtp.kernel.org (Postfix) with ESMTPS id 2D7B81F000D3;
+	Sat, 21 Nov 2026 22:49:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
 	s=k20260515; t=1795301379;
-	bh=uqv4XjV88HPVChZGFcN8mxBmgf4cgX5V2lhIBW54M2Y=;
+	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
-	b=SKYCv/x42O+nT/6iZnT8NUAtCHFfwF4q1skL1UN3z7OP9j+AsJZ75Y8CuQRp75tPH
-	 1E7jy5Lv7oJ05C4Ha0xqhEwbSVHIW6gsVKG0YiCiXJazph9ikgA1/9XlPz/dYpgGjo
-	 V8M0uOHAXutKNZKJbn1F1GePPGDQ4jFwp5OopWJUNjd0w5FSjqouqj84F+kdx2lqVw
-	 vbQb6G7KsmAvTw4D9fs2Xb1jjG6B6NAw2n0MOHnJOoS0AHAqX09+DEfJ3Tj8ClVhhq
-	 U3v0nK2GrJXN8IAjJjsKV4P6PAzb0hjE2uvHPjabrMfenoiTw+w1jd0iTIGVlPt6Ev
-	 zqQ1nJCZd/SHQ==
+	b=NiTPaH6RJ/P+wGhC/u7Ek+jTQSU+b+sl/mGS3Ksa1KJktP0C4+yW5jV1tKv/ln/0F
+	 MQ03fdpJpYQXprgU9i4sMVq+5AWCv0/l/6DRfXpaRUkICjG9wo22poH6jAbE37WDQW
+	 3mLgUeEOEhXomgfqXG/GujQX26Yu+FTkhDgEbnSfJ5VzxUEiPUVVNOEC1/wNHTEipl
+	 C1FYmJ5IseSp6H1YLsHVD6BBZ2vaJEueKY5ghuSE/zedbKpzRI9m+YybMyLA+8Fvxe
+	 OjtDqJja7YgdOb8cl+F/Y+S6N1030YAOt5V/+n99Vjsc46Kk7SeXhfNNiIS23cpYIq
+	 d/h485GZ0FD8A==
 Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
-	by lkml.kernel.org (Postfix) with ESMTP id D8EB94BE5F;
-	Sat, 21 Nov 2026 22:49:36 +0000 (UTC)
+	by lkml.kernel.org (Postfix) with ESMTP id 197804BE66;
+	Sat, 21 Nov 2026 22:49:37 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 21 Nov 2026 15:49:22 -0700
-Subject: [PATCH 4/6] vmlinux.lds.h: remove redundant ALIGN(8) directives
+Date: Sat, 21 Nov 2026 15:49:24 -0700
+Subject: [PATCH 6/6] checkpatch.pl: generalize linker script macro
+ exceptions
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -83,7 +84,7 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <20261121-vmlinux-lds-v1-4-49818f3f5cc0@gmail.com>
+Message-Id: <20261121-vmlinux-lds-v1-6-49818f3f5cc0@gmail.com>
 References: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
 In-Reply-To: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
 To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
@@ -94,11 +95,11 @@ To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>,
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
  linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=3579;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=1707;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=UWBsnPOKwEU86EF/7fgNh8+symPCuK2eZOcJxfRgLYY=;
- b=AOMDbzuug3CzJQNYnuVFHGSpbxkFu0YpomfJCOVSrE7QnZHOL85QAfkAwJDgtkocupTfy/Piq
- AQJCK/c1cu9CfUonuKqWzceIkr59BgNPwZCRSibpB3cy4FxtVjObrb5
+ bh=xCW9O+AbKUBV4BIvimad+RBHO1OQaFVpJS/+K5VR+iI=;
+ b=0VosmkYkQDOh1ZsR0s0Drc1tYC/PFQI9LCHx9Cf4c8dAjx0vQMsVNzfyClZpREyVYQImsWZnh
+ kNWhjPL+PQdC+FS7xIoo9zNTPj0RDP3Kz5kYSu8iqHrjllNM12cdmuU
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
@@ -109,117 +110,47 @@ Content-Transfer-Encoding: 7bit
 
 From: Jim Cromie <jim.cromie@gmail.com>
 
-The BOUNDED_SECTION_PRE_LABEL and BOUNDED_SECTION_POST_LABEL macros
-were recently updated to inherently enforce an 8-byte alignment. This
-makes the explicit '. = ALIGN(8);' statements preceding 'naked' macro
-calls in vmlinux.lds.h redundant.
-
-Remove these redundant alignment directives to clean up the file and
-clarify that the macros handle their own alignment padding.
+checkpatch skips macro-rule checks in linker scripts; 3 of them
+explicitly check for vmlinux.lds.h, and 1 (the 1st) skips on any
+*.lds.h.  Generalize the 3 to match the 1st, including the escapes on
+the dots, so they're literal checks for '.'
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/asm-generic/vmlinux.lds.h | 13 -------------
- 1 file changed, 13 deletions(-)
+ scripts/checkpatch.pl | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c570495d8de5..20c49684d89d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -228,7 +228,6 @@
+diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+index b8b64f720191..318e1f2577fd 100755
+--- a/scripts/checkpatch.pl
++++ b/scripts/checkpatch.pl
+@@ -6016,7 +6016,7 @@ sub process {
+ # Usually multi-statement macros should be enclosed in a do {} while
+ # (0) loop.  Grab the first statement and ensure its the whole macro
+ # if its not enclosed in a known good container
+-		if ($realfile !~ m@/vmlinux.lds.h$@ &&
++		if ($realfile !~ m@/\.lds\.h$@ &&
+ 		    $line =~ /^.\s*\#\s*define\s*$Ident(\()?/) {
+ 			my $ln = $linenr;
+ 			my $cnt = $realcnt;
+@@ -6175,7 +6175,7 @@ sub process {
  
- #ifdef CONFIG_KPROBES
- #define KPROBE_BLACKLIST()				\
--	. = ALIGN(8);					\
- 	BOUNDED_SECTION(_kprobe_blacklist)
- #else
- #define KPROBE_BLACKLIST()
-@@ -244,7 +243,6 @@
+ # check for line continuations outside of #defines, preprocessor #, and asm
  
- #ifdef CONFIG_EVENT_TRACING
- #define FTRACE_EVENTS()							\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION(_ftrace_events)					\
- 	BOUNDED_SECTION_BY(_ftrace_eval_map, _ftrace_eval_maps)
- #else
-@@ -261,7 +259,6 @@
- 
- #ifdef CONFIG_FTRACE_SYSCALLS
- #define TRACE_SYSCALLS()			\
--	. = ALIGN(8);				\
- 	BOUNDED_SECTION_BY(__syscalls_metadata, _syscalls_metadata)
- #else
- #define TRACE_SYSCALLS()
-@@ -276,7 +273,6 @@
- 
- #ifdef CONFIG_SERIAL_EARLYCON
- #define EARLYCON_TABLE()						\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table, , _end)
- #else
- #define EARLYCON_TABLE()
-@@ -284,11 +280,9 @@
- 
- #ifdef CONFIG_SECURITY
- #define LSM_TABLE()					\
--	. = ALIGN(8);					\
- 	BOUNDED_SECTION_PRE_LABEL(.lsm_info.init, _lsm_info, __start, __end)
- 
- #define EARLY_LSM_TABLE()						\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_PRE_LABEL(.early_lsm_info.init, _early_lsm_info, __start, __end)
- #else
- #define LSM_TABLE()
-@@ -314,7 +308,6 @@
- 
- #ifdef CONFIG_ACPI
- #define ACPI_PROBE_TABLE(name)						\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_POST_LABEL(__##name##_acpi_probe_table,		\
- 				   __##name##_acpi_probe_table,, _end)
- #else
-@@ -323,7 +316,6 @@
- 
- #ifdef CONFIG_THERMAL
- #define THERMAL_TABLE(name)						\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_POST_LABEL(__##name##_thermal_table,		\
- 				   __##name##_thermal_table,, _end)
- #else
-@@ -403,12 +395,10 @@
- 	__end_init_stack = .;
- 
- #define JUMP_TABLE_DATA							\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_BY(__jump_table, ___jump_table)
- 
- #ifdef CONFIG_HAVE_STATIC_CALL_INLINE
- #define STATIC_CALL_DATA						\
--	. = ALIGN(8);							\
- 	BOUNDED_SECTION_BY(.static_call_sites, _static_call_sites)	\
- 	BOUNDED_SECTION_BY(.static_call_tramp_key, _static_call_tramp_key)
- #else
-@@ -453,7 +443,6 @@
- 		*(.rodata) *(.rodata.*) *(.data.rel.ro*)		\
- 		SCHED_DATA						\
- 		RO_AFTER_INIT_DATA	/* Read only after init */	\
--		. = ALIGN(8);						\
- 		BOUNDED_SECTION_BY(__tracepoints_ptrs, ___tracepoints_ptrs) \
- 		*(__tracepoints_strings)/* Tracepoints: strings */	\
- 	}								\
-@@ -989,12 +978,10 @@
- 
- /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
- #define KUNIT_TABLE()							\
--		. = ALIGN(8);						\
- 		BOUNDED_SECTION_POST_LABEL(.kunit_test_suites, __kunit_suites, _start, _end)
- 
- /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
- #define KUNIT_INIT_TABLE()						\
--		. = ALIGN(8);						\
- 		BOUNDED_SECTION_POST_LABEL(.kunit_init_test_suites, \
- 				__kunit_init_suites, _start, _end)
- 
+-		} elsif ($realfile =~ m@/vmlinux.lds.h$@) {
++		} elsif ($realfile =~ m@/\.lds\.h$@) {
+ 		    $line =~ s/(\w+)/$maybe_linker_symbol{$1}++/ge;
+ 		    #print "REAL: $realfile\nln: $line\nkeys:", sort keys %maybe_linker_symbol;
+ 		} else {
+@@ -6192,7 +6192,7 @@ sub process {
+ # single-statement macros do not need to be enclosed in do while (0) loop,
+ # macro should not end with a semicolon
+ 		if ($perl_version_ok &&
+-		    $realfile !~ m@/vmlinux.lds.h$@ &&
++		    $realfile !~ m@/\.lds\.h$@ &&
+ 		    $line =~ /^.\s*\#\s*define\s+$Ident(\()?/) {
+ 			my $ln = $linenr;
+ 			my $cnt = $realcnt;
 
 -- 
 2.56.1
