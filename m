@@ -1,79 +1,80 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795301380;
-	b=01C8B8Uy3u3Jg2SaPrAP+Nlm2eIZWWHobbv/pPi65S8ofijIwwg65XDQk3RdkYI2pddc
-	 8Aoo5FstfYjps6aNfUem6LkOsFCYG7N1T7qdMrSCvo8x17Dk0nXzGyHBsRhlPUYwC/b3y
-	 T02vh9VJ3D0XlbaYdhi+0BS9DkHbdo+eQSFkjP7S4ijx5wSEDcYQqHo9FU2rfHPNo/nw5
-	 60lsp0bxy1lD58uWjqivOcdWFt6wiyuRLuBZqHPU6siETaZILNt3NT3PnpyFAUjMxJdqg
-	 bYowyUWLH3G733QXyJKmfmAyZgq4gF7b0h+j21o6feMbSzr6aH1+UK3IhqBOga4equg==
+	t=1795301377;
+	b=yznK5CZ5DB6KKPKwzR/Yg2q6M61mCx41aqbE4RgN2eFWRLtTsCebqeSK4mME3W0dPW1m
+	 MLp9fEXv/YHxxdFHwitxU0JcVstJMEpZFLr24CUn/KoLFvqIdEpNOFEgS4JNEXNzISsao
+	 kKNzIxGmDTezf92SRadewwfWkH9riGkGs0VLFVNTWap4Ule8lNtwtnqo1zvvfWnU2sMhs
+	 7RY8i9s/gofXdiczq+pKgb4e0EuI4OnfSZjL4/cp2TvH9hVP433GOtwMIOA+Y4T9uAwMC
+	 QR4/bNzzLwHO3JkRr71muqCVk/tfGxyy/aTKtkaTLjw3z63NRAilX4ZGRhhfS03DDrg==
 ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795301380;
-	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
-	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
-	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
-	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
-	b=jL6PkZKCYhmQidyvi+6NPGGAFMXIP8jh5CQxv+Yiq46OhWn0HZsr18YXLnQNAn9OJK9R
-	 wO0RKbFnvHgp8HisTC4GjLUZgckQXi2HsAA70FtFsD64nZUY/30frKBxsH9NAA2EsqOoZ
-	 aZaFAOvxwlWHifnDCvHUn2/xHj0/0pC+dJYKmF73WGwHdKg3FZLEqnwy/sWHNue8ezKXa
-	 2pueEdIoAKqbf1nuahCS1q+GJffm8SG1hIDtI6ylhEgyYE3DGt9TX8PwFQ3N9ExPF1Xlc
-	 igCtOm5StKZALE7bFVHljHD1G30x9R1V4zggLzNcIIPaiDm3Dkj7ST+6k9ncLm/PF9A==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795301377;
+	h=Received:DKIM-Signature:Received:From:Subject:Date:Message-Id:
+	 MIME-Version:Content-Type:Content-Transfer-Encoding:X-B4-Tracking:
+	 X-Change-ID:To:Cc:X-Mailer:X-Developer-Signature:X-Developer-Key:
+	 X-Endpoint-Received:X-Original-From:Reply-To;
+	bh=Aoiu4YgCXwBVcBKUOr7OdOpxOZVgC9Rnn+3RJ75AsfA=;
+	b=vEYzxWlP3uaoRCu7SmTjgp6ZY9fe6pVuhBhzQ48VKZYIvovuSAT8BzRBsTsr55jIQTR+
+	 K7OYwMY4GHJi+8VnrkrlyDuyoCaC6k86XN5o8GaHEO5+uol5aGumge4leLZi6/KD34Jc7
+	 7qK2lGM7oUj+A11pe40gJQpFHcpvlnTxt3XThbBi2PDpjwZmLnu+2+MRR4Z2D00j4UpVV
+	 m1qW2yRv95m6uXoucWvzWe9tvpcGjU1zwUVySZcAQLkXfhBqAZhHgSCznL7/JA0of45Vp
+	 mFY1PyKFgn1mFfNHG9sPQSwc62/uxqPW0oREsnWtwzdrZvj9yY4s2ZgNGwoMEXVbD3g==
 ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NiTPaH6R;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UiN+x13g;
 	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 164A4606A332;
-	Sat, 21 Nov 2026 22:49:40 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D4EC9606A320;
+	Sat, 21 Nov 2026 22:49:37 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NiTPaH6R
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UiN+x13g
 Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
 ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
-	t=1795301379;
-	b=y8iY7lVS2IW2cgnEznNWnvDnzVKi2ar1AMq2iBPosbH6+9PvErzMmoWHVbNiu5NorrxI
-	 eJdwP+uzRJMrrDrNqfYyngGecVod4546/b17FP5kwV8fG9MxxD6rsQvNwEpvA0udNWbJO
-	 r+pXKm5Ohd6mbeUTsUEOMQ8P2H4zqTbDf1Zu5Og7rMZdqqV7jieOYRuCM+FiOUZG8ZMmM
-	 g1bX/V12Z8HTSnaDRciKLiN3eBt6ArGcaqOWbPTuCINuaIAXfQlBKal2fKnI17RDByDSm
-	 gX0JH22OFASLH+n2fnwDXJTHBJVb4I6/gkbwZ33HLzOpI7olqSe18yEZiJ0OjaI7BcQ==
+	t=1795301377;
+	b=oduiiZIm6Ru5QD0ulQbQ1Os1MaI4OBYeGVNXuO0sLOIIXhLu5HgF6+GLzWcOI0dH0rFk
+	 NQo+/N8Q55qYlzrVegXv4gKIJ7L4Rpxdd4x9GCDThtKziPUzreHDIZbn7l7mUXJwTvRB9
+	 KM0tRcjjC4FxHHTtlM32XCkB2+HeQPJ89BSL8uyOSu4b0VEZ1JYJwH/qEviXDTYae6fo8
+	 Bl20vxUVD6ucr0uRKa75ToFCMGEcRirD35Pt6TYB6Yh/vetlX1Kx/KY9Vh1QX51M+J1+I
+	 r0bq8Nb2ueSk5XckKzLsLbgV2jsDOitwRXASvRcmF9+OxjenWh9/GF8zUUPtThm0ECw==
 ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
-	c=relaxed/relaxed; t=1795301379;
-	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
-	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
-	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
-	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
-	b=hyEeIdGixQL8ZLbsqdmaaWYhTLKg7QOBzvme46hybJVNGc94GOFEBi0RtQPZnmstagzH
-	 U1iEXJmAl/uckNqETii7jn5fAj34Tf+BRiM/h1hDL4gJ4gTsaGawWsA46L4WttwYFcLK7
-	 ZEGj5LEbmpusjdWODLEFANuLiUWx8Hu10PGWEYtQT0gQMKnFuB1LeYassEflim8y21hl+
-	 TxT8BysQyrpKPH5dO+vh6FX9nHWfStBBFPuGQhzYqx7Mf+xle0H4+3bj02idRP5aiL0Lm
-	 daEqE2DzqFu5F+cimdEDxaNRWTysgT92E0ZErUC2wOaNC95zRSISkjI8oXSMowYzAYw==
+	c=relaxed/relaxed; t=1795301377;
+	h=DKIM-Signature:Received:From:Subject:Date:Message-Id:MIME-Version:
+	 Content-Type:Content-Transfer-Encoding:X-B4-Tracking:X-Change-ID:To:
+	 Cc:X-Mailer:X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
+	 X-Original-From:Reply-To;
+	bh=Aoiu4YgCXwBVcBKUOr7OdOpxOZVgC9Rnn+3RJ75AsfA=;
+	b=S6eFeZrxT0b3GOWcOrcdn5NEWqJAS/LinxCrce2+oL2mV0E7H7AGK0TrgG9p9hZiw1Zk
+	 AJw+IgHGuFMTyz9yqFAl8P4hSoeo6wMMBkAx4S6Uj9zWZBfhOSjqbhc95K98l3syvbyMk
+	 G0IyZEZ9P8iR0+yUVkOutcG5PoImFB03Qukhcxu+8WCNfTQq+Q0QHsmzn9/ohJt3FScV2
+	 ENl4QDstk8dQt4rpqsYKGG2cmJgt9jVSamF7yA2/pPcmOto4agPvtn+pjeMOoWTP5oLCe
+	 5RJ7v4BU8JK4VbiLCN3kDQkoNZiXJqXRStWJW+L8T2FGtSDGu6/5OT8BpxKIAhMU0Og==
 ARC-Authentication-Results: i=1; smtp.kernel.org; 
 	arc=none smtp.remote-ip=100.80.115.77
 Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.kernel.org (Postfix) with ESMTPS id 2D7B81F000D3;
-	Sat, 21 Nov 2026 22:49:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795301379;
-	bh=Yvk8G+eiIxLavWAH5Pq1LRcAcJ6Bn80Kp0La/YGdqsw=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
-	b=NiTPaH6RJ/P+wGhC/u7Ek+jTQSU+b+sl/mGS3Ksa1KJktP0C4+yW5jV1tKv/ln/0F
-	 MQ03fdpJpYQXprgU9i4sMVq+5AWCv0/l/6DRfXpaRUkICjG9wo22poH6jAbE37WDQW
-	 3mLgUeEOEhXomgfqXG/GujQX26Yu+FTkhDgEbnSfJ5VzxUEiPUVVNOEC1/wNHTEipl
-	 C1FYmJ5IseSp6H1YLsHVD6BBZ2vaJEueKY5ghuSE/zedbKpzRI9m+YybMyLA+8Fvxe
-	 OjtDqJja7YgdOb8cl+F/Y+S6N1030YAOt5V/+n99Vjsc46Kk7SeXhfNNiIS23cpYIq
-	 d/h485GZ0FD8A==
-Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
-	by lkml.kernel.org (Postfix) with ESMTP id 197804BE66;
+	by smtp.kernel.org (Postfix) with ESMTPS id 0E4921F000C0;
 	Sat, 21 Nov 2026 22:49:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795301377;
+	bh=Aoiu4YgCXwBVcBKUOr7OdOpxOZVgC9Rnn+3RJ75AsfA=;
+	h=From:Subject:Date:To:Cc:Reply-To;
+	b=UiN+x13g9SK91jI5iOvwBstLG2KX8iXC9Uly0/1ygHIZ+Du1zH0xnFLMCn+bj0cm5
+	 I88xyAfMjXH6GlE0WoSNt02MgW2SoAKaZ6OSQlnJKS5IesVF93tAsQPagZ1M2z/25H
+	 yp1Ezvt2U+WPl+2803cxoMpy5WybiGneafDesiT8AZ2qR155nro1FenLgP7Rx2JfpQ
+	 Zt9/xH42jj/BEEA7qERddZY3bRux9qfErhJpJGjYPQE7/5bi2KfCP/tXgiq29qtLeX
+	 iUyZqJG2tbHtVU+aJl5zjGpmAvfs2tnndQOtldDgDvvLROX57UYj1cwe70OGVSzQy5
+	 pmlgWyQ/a8Z5A==
+Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
+	by lkml.kernel.org (Postfix) with ESMTP id 651DE4BE3E;
+	Sat, 21 Nov 2026 22:49:36 +0000 (UTC)
 From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 21 Nov 2026 15:49:24 -0700
-Subject: [PATCH 6/6] checkpatch.pl: generalize linker script macro
- exceptions
+Subject: [PATCH 0/6] dyndbg,vmlinux.lds.h: fix i386 section alignment in
+ BOUNDED_SECTION macros
+Date: Sat, 21 Nov 2026 15:49:18 -0700
+Message-Id: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -84,75 +85,86 @@ List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <20261121-vmlinux-lds-v1-6-49818f3f5cc0@gmail.com>
-References: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
-In-Reply-To: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAA/x3M3QpAQBAG0FeZvmtbZkPsq8iFn8EUS7vZlLy7c
+ h7gPIgSVCIcPQiSNOrh4Ygzwrj2fhGjExzB5rZitmzSvqm/brNN0QxlU3DORVXXJTLCGWTW+9/
+ a7n0/HYCNLV0AAAA=
+X-Change-ID: 20261121-vmlinux-lds-b59410146885
 To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
  Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
  Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
  Aaron Tomlin <atomlin@atomlin.com>, 
  Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
+ linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>, 
+ Louis Chauvet <louis.chauvet@bootlin.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=1707;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=2466;
  i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=xCW9O+AbKUBV4BIvimad+RBHO1OQaFVpJS/+K5VR+iI=;
- b=0VosmkYkQDOh1ZsR0s0Drc1tYC/PFQI9LCHx9Cf4c8dAjx0vQMsVNzfyClZpREyVYQImsWZnh
- kNWhjPL+PQdC+FS7xIoo9zNTPj0RDP3Kz5kYSu8iqHrjllNM12cdmuU
+ bh=InmaDXtqg+/ahjVrbCn9lEk8jOf8zxExCbI82ydIsZw=;
+ b=Sf2U1Fv6tD3GNRvKetfdqrqq6Lle3eJzJPocyk3wSnGWKzNm3t5q6lF4H62eVd+rRfUiiwlLR
+ LlWgl5loBYOCdW0Eb97rHq1Fo2nHdILm6Wsn3J80brn9VpViuJ1gDzm
 X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
  pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
 X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
  auth_id=958
 X-Original-From: Jim Cromie <jim.cromie@gmail.com>
 Reply-To: jim.cromie@gmail.com
-Content-Transfer-Encoding: 7bit
 
-From: Jim Cromie <jim.cromie@gmail.com>
+This series fixes a latent i386 section-alignment bug, by adding
+explicit alignments into the BOUNDED_SECTION_* linker script macros.
+The misalignment appears once __dyndbg_classes is split in 2, and the
+1st section has just 1 entry; the 2nd section implicitly gets ALIGN(4).
 
-checkpatch skips macro-rule checks in linker scripts; 3 of them
-explicitly check for vmlinux.lds.h, and 1 (the 1st) skips on any
-*.lds.h.  Generalize the 3 to match the 1st, including the escapes on
-the dots, so they're literal checks for '.'
+1. Refactor BOUNDED_SECTION_* (and HEADERED_SECTION_*) macros from
+   vmlinux.lds.h into include/asm-generic/bounded_sections.lds.h for
+   reuse.
+
+2. Drop the unused HEADERED_SECTION* macros from bounded_sections.lds.h.
+
+3. Add explicit ALIGN(8) defaults to BOUNDED_SECTION_* (with _ALIGNED
+   variants for non-8-byte tables like ORC_UNWIND_TABLE,
+   EXCEPTION_TABLE, TRACEDATA, INIT_SETUP, and NOTES), fixing an i386
+   NULL deref in dynamic_debug_init() caused by 28-byte
+   __dyndbg_classes misaligning the following __dyndbg section.
+
+4. Remove now-redundant outer `. = ALIGN(8);` directives preceding 
+   BOUNDED_SECTION* uses in vmlinux.lds.h.
+
+5. Add include/asm-generic/dyndbg.lds.h with DYNDBG_SECTIONS() for 
+   vmlinux.lds.h and MOD_DYNDBG_SECTIONS() (`0 : ALIGN(8)` + `KEEP`) for
+   scripts/module.lds.S, fixing lost __dyndbg* sections in DRM modules 
+   under CONFIG_DRM_USE_DYNAMIC_DEBUG=y.
+
+6. fix checkpatch to skip macro-rules checks on any *.lds.h, in 3
+   places where only vmlinux.lds.h is currently skipped.
+
+NB: most of this patchset was split out of larger series fixing
+dyndbg-classmaps.
 
 Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- scripts/checkpatch.pl | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+Jim Cromie (6):
+      vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sections.lds.h
+      vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+      vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+      vmlinux.lds.h: remove redundant ALIGN(8) directives
+      dyndbg.lds.S: fix lost dyndbg sections in modules
+      checkpatch.pl: generalize linker script macro exceptions
 
-diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index b8b64f720191..318e1f2577fd 100755
---- a/scripts/checkpatch.pl
-+++ b/scripts/checkpatch.pl
-@@ -6016,7 +6016,7 @@ sub process {
- # Usually multi-statement macros should be enclosed in a do {} while
- # (0) loop.  Grab the first statement and ensure its the whole macro
- # if its not enclosed in a known good container
--		if ($realfile !~ m@/vmlinux.lds.h$@ &&
-+		if ($realfile !~ m@/\.lds\.h$@ &&
- 		    $line =~ /^.\s*\#\s*define\s*$Ident(\()?/) {
- 			my $ln = $linenr;
- 			my $cnt = $realcnt;
-@@ -6175,7 +6175,7 @@ sub process {
- 
- # check for line continuations outside of #defines, preprocessor #, and asm
- 
--		} elsif ($realfile =~ m@/vmlinux.lds.h$@) {
-+		} elsif ($realfile =~ m@/\.lds\.h$@) {
- 		    $line =~ s/(\w+)/$maybe_linker_symbol{$1}++/ge;
- 		    #print "REAL: $realfile\nln: $line\nkeys:", sort keys %maybe_linker_symbol;
- 		} else {
-@@ -6192,7 +6192,7 @@ sub process {
- # single-statement macros do not need to be enclosed in do while (0) loop,
- # macro should not end with a semicolon
- 		if ($perl_version_ok &&
--		    $realfile !~ m@/vmlinux.lds.h$@ &&
-+		    $realfile !~ m@/\.lds\.h$@ &&
- 		    $line =~ /^.\s*\#\s*define\s+$Ident(\()?/) {
- 			my $ln = $linenr;
- 			my $cnt = $realcnt;
+ MAINTAINERS                                |  1 +
+ include/asm-generic/bounded_sections.lds.h | 32 ++++++++++++++
+ include/asm-generic/dyndbg.lds.h           | 18 ++++++++
+ include/asm-generic/vmlinux.lds.h          | 68 ++++++------------------------
+ scripts/checkpatch.pl                      |  6 +--
+ scripts/module.lds.S                       |  2 +
+ 6 files changed, 69 insertions(+), 58 deletions(-)
+---
+base-commit: aebb7274476403040d582c61478df8f4a7bf9cd3
+change-id: 20261121-vmlinux-lds-b59410146885
 
+Best regards,
 -- 
-2.56.1
+Jim Cromie <jim.cromie@gmail.com>
 
 
