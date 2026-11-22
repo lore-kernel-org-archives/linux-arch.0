@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795376259;
-	b=MMZhef/T629x52jtCpAuqz1fa2VOnTRE98+CfYSLsRZ9ztthkWSnx0SH0WLISuoxDvc9
-	 Fj+eR271g4ppLA7FGuLuYzZe23TcukBST+UlQM+xOYfYYAs2MGmN8xdUC0uB1qSNJXvLG
-	 Mh158cQDCQRBHq9JA1bNooiOUqX0PB+9wt85VXu+UyaS80OLbFcr7b4HGDNDo8OWr3ZMq
-	 cefkC95IBmEU5oivQSoD8kw2oCeJNoqhFOQj2NOIqi+OcYnuap+UApwlVHF2+XcG92D0p
-	 e4OFyv5SRAUWsWmCYug4AW9UckutUrX5wYwZ9gZibbHW50WZmU1OUzidFGccY08XIkQ==
+	t=1795376269;
+	b=GnAIQjjOaur02wXZaElJigfRlUV5dJshy2HTaIgI+JUhLsen6RkIPtY9+OiCffMEaDoV
+	 /xLAvO1X6DG1okGnAPTy/viWZVo0kv6avvNbymC0Y58jXftdaRr54y0bNhoPNt1sy32mm
+	 DtWs/KO5I8w/JP06HLhIa0uHgvRBS4IYDk83IPRYPUSh33803ovMfoX2jaUm+7nBfio/k
+	 fjwUWLqfGvk+60mqUL4DagBlH3g/b+bUjw8jDnk1iWi9glMkeUSBWGcGDG7F1hTrvZOSH
+	 6S8dRaKNXw+itfMtY+kgSzO9QTbjpPxRbwRYiBT6W8VVIKQaCjIM/Fky2o1D4n7/hZg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795376259;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795376269;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=lKuvDTI6FKXAAEbVhrzFDmxnTT5Wc4CNv/2+sIEwHRc=;
-	b=kNT5Pbm94mW7Y+OmsJw+eGQUuDHnL2GURY7ckUXGETkICavsBm34f+S/y/xMGJhCJ3Qd
-	 htbJXaN2IhpA9yNHZmFXe/yCmJNnnLkGyjXS5NKSLRR1AG18w3LKYQyOW7bLaO8EDRFB0
-	 E0suIbZVCbkF/UecvKtjB2G1mF/xJr+aCb+pfXa3wSHMvDiFyx9COkEBsGvluxJfm2R+H
-	 5Qy/4EozjR/blMHD4J6ESup4En+wMoQE3gbIeakFabsfShNVMIaa/xqeiclbaT2LPEoQU
-	 ELXUX7KVIjF+Jr2zqUWNuqFgBesfdgdc1SyCxwliD9x6i+y57vZsDqKrz2EsFALfEsw==
+	bh=c/grzABhgrBQ8/IrA5G6GcEKHy2OSZTwhNr0CPP3+U4=;
+	b=n7Aafw7dtvjp/NZMfdX9RLQK1QCayVqAxwbOzf4+eLa3Uv+7G1UxX60dilhkHJh0NjDN
+	 0ADqbyDwK3O0wrRpMk8rTdAdz27KYYCYWAQvgLXq5S78mxyeFjG/ePktGRiPx24dCqJyV
+	 nww4ZsW9VOQ4nWf/dO+zX8rFdVBQNM57lh6nOmPVKGjLw7SoDcq/6fLC7KcxHdh2aE95M
+	 6fQGRmzhGltUr2IE0KZp6Br4q2pn9hk+nz5ON6E946Ue2vx75yN+vX73ZZgCqLS/oJSva
+	 2LqHk3Fw2ySBB9LXuxHFfTjwF/CAFEgJrjxETloI0YtJ8Hiftu95QKHL2B+zm7KTtkg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JrRw2VD2;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=If6Azv7y;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id B0926606A6AA;
-	Sun, 22 Nov 2026 19:37:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 3BAFC606A684;
+	Sun, 22 Nov 2026 19:37:48 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JrRw2VD2
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id B91A51F000C0;
-	Sun, 22 Nov 2026 19:37:38 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=If6Azv7y
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id E59221F000D1;
+	Sun, 22 Nov 2026 19:37:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795376259;
-	bh=lKuvDTI6FKXAAEbVhrzFDmxnTT5Wc4CNv/2+sIEwHRc=;
+	s=k20260515; t=1795376268;
+	bh=c/grzABhgrBQ8/IrA5G6GcEKHy2OSZTwhNr0CPP3+U4=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=JrRw2VD2LDlpWWnJ443LaoyqYPi4WgdTpxgCBEg8S1X4e6IoUvfRHh2uCryPfjSrB
-	 k49cshsGh1pQGyu8+ruFN5d5UZ84WoFrEgLMgZL33GuKh7Brduf4ZFFAMf8oJ5YeVe
-	 P5+logxlr1Mggk49m8VIlSPaAsMgwtpUd84l2GYBXS4JQzhRmyU1kB+6TwZ/FwxxFP
-	 TpBUzs/TXlv3gs+UJ16Cf0VGW6o7otugSJjLKPf51TNLQRNCN0a4c4ZxiL5bmTIcJA
-	 2hkuAJmkIf2j7Bq11dWJG+6VxJu6M2HyIMMaJTql4BEoanz/MSQ6sg6sqBmAtBU/UV
-	 E0hG4WNw5gekA==
+	b=If6Azv7y7srTCn6OR0qdqZQAwa1W7Gt05tNg4TPPtNZ0kqbU7S/HJIrOaVSbu5He2
+	 UcQYGZyFJswbruL02XotkP5Qo0sAiLgKUKGIQ8Gi8yiHFaR9w9q4Wx7olOPpVQs/Ky
+	 A9rTDmfwXa5kKjKsqhuSfUcv8eeNDe3A2PZuK0tdgw2gon96AVqaD6syspi5fkJ3Wo
+	 ScgOoGL5gTQFoAfLmxdcLAxxx/Ypx7zjqXVJyKlTiTYDeVpD48x/RK33TjzOrp5rLO
+	 ANINvuVSa4Z5EmpoCFu4ML34znZVg9/tvfMwXoQWObjGP9ozyW5Vp36n4R0Za6rYTG
+	 k9ENPgWMMUgug==
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: linux-fsdevel@vger.kernel.org
 Cc: Jarkko Sakkinen <jarkko@kernel.org>,
@@ -75,9 +75,9 @@ Cc: Jarkko Sakkinen <jarkko@kernel.org>,
 	Serge Hallyn <sergeh@kernel.org>,
 	Shuah Khan <skhan@linuxfoundation.org>,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: [RFC PATCH v7 24/26] docs: Document userland uAPI
-Date: Sun, 22 Nov 2026 21:35:37 +0200
-Message-ID: <20261122193539.3334213-25-jarkko@kernel.org>
+Subject: [RFC PATCH v7 26/26] MAINTAINERS: Add entry for USERLAND
+Date: Sun, 22 Nov 2026 21:35:39 +0200
+Message-ID: <20261122193539.3334213-27-jarkko@kernel.org>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20261122193539.3334213-1-jarkko@kernel.org>
 References: <20261122193539.3334213-1-jarkko@kernel.org>
@@ -92,134 +92,36 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Userspace orchestrators need a clear specification of what a userland
-is, its build and live state transitions, USERLAND_GET_NSFD,
-USERLAND_SHARE_NSFD, waitid(P_USERLAND), pidfd_send_signal(), mount-tree
-construction, user namespace ID mapping, credential rules, and process
-creation semantics.
-
-Add Documentation/userspace-api/userland.rst including the kernel-doc
-sections, type definitions, ioctl descriptions, and system call
-reference from include/linux/userland.h, include/uapi/linux/userland.h,
-include/uapi/linux/nsfs.h, kernel/userland.c, kernel/user_namespace.c,
-fs/fsopen.c, and fs/namespace.c, and register the userland ioctl magic
-in ioctl-number.rst.
+Record maintainership and mailing list routing for userlands across
+their uAPI headers, core implementation, documentation, and selftests.
 
 Signed-off-by: Jarkko Sakkinen <jarkko@kernel.org>
 ---
- Documentation/userspace-api/index.rst         |  1 +
- .../userspace-api/ioctl/ioctl-number.rst      |  1 +
- Documentation/userspace-api/userland.rst      | 77 +++++++++++++++++++
- 3 files changed, 79 insertions(+)
- create mode 100644 Documentation/userspace-api/userland.rst
+ MAINTAINERS | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/Documentation/userspace-api/index.rst b/Documentation/userspace-api/index.rst
-index a68b1bea57a8..ac665b8fea72 100644
---- a/Documentation/userspace-api/index.rst
-+++ b/Documentation/userspace-api/index.rst
-@@ -17,6 +17,7 @@ System calls
-    :maxdepth: 1
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 7cbce21ba45a..54d8f628cb87 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -29285,6 +29285,17 @@ F:	arch/um/
+ F:	arch/x86/um/
+ F:	fs/hostfs/
  
-    unshare
-+   userland
-    futex2
-    ebpf/index
-    ioctl/index
-diff --git a/Documentation/userspace-api/ioctl/ioctl-number.rst b/Documentation/userspace-api/ioctl/ioctl-number.rst
-index dbe462040999..4cf194e7b648 100644
---- a/Documentation/userspace-api/ioctl/ioctl-number.rst
-+++ b/Documentation/userspace-api/ioctl/ioctl-number.rst
-@@ -385,6 +385,7 @@ Code  Seq#    Include File                                             Comments
- 0xB8  01-02  uapi/misc/mrvl_cn10k_dpi.h                                Marvell CN10K DPI driver
- 0xB8  all    uapi/linux/mshv.h                                         Microsoft Hyper-V /dev/mshv driver
-                                                                        <mailto:linux-hyperv@vger.kernel.org>
-+0xB9  00-0F  uapi/linux/userland.h                                     userland uAPI
- 0xBA  00-0F  uapi/linux/liveupdate.h                                   Pasha Tatashin
-                                                                        <mailto:pasha.tatashin@soleen.com>
- 0xC0  00-0F  linux/usb/iowarrior.h
-diff --git a/Documentation/userspace-api/userland.rst b/Documentation/userspace-api/userland.rst
-new file mode 100644
-index 000000000000..e32ea3501472
---- /dev/null
-+++ b/Documentation/userspace-api/userland.rst
-@@ -0,0 +1,77 @@
-+.. SPDX-License-Identifier: GPL-2.0
++USERLAND
++M:	David Howells <dhowells@redhat.com>
++M:	Jarkko Sakkinen <jarkko@kernel.org>
++L:	linux-fsdevel@vger.kernel.org
++S:	Maintained
++F:	Documentation/userspace-api/userland.rst
++F:	include/linux/userland.h
++F:	include/uapi/linux/userland.h
++F:	kernel/userland.c
++F:	tools/testing/selftests/userland/
 +
-+=============
-+userland uAPI
-+=============
-+
-+Overview
-+========
-+
-+.. kernel-doc:: kernel/userland.c
-+   :doc: Overview
-+
-+Lifecycle
-+=========
-+
-+.. kernel-doc:: include/linux/userland.h
-+   :identifiers: userland_state
-+
-+Flags
-+=====
-+
-+.. kernel-doc:: include/uapi/linux/userland.h
-+   :identifiers: userland_flags
-+
-+Ioctls
-+======
-+
-+.. kernel-doc:: include/uapi/linux/userland.h
-+   :doc: USERLAND_GET_NSFD
-+
-+.. kernel-doc:: include/uapi/linux/userland.h
-+   :doc: USERLAND_SHARE_NSFD
-+
-+System calls
-+============
-+
-+.. kernel-doc:: kernel/userland.c
-+   :identifiers: sys_userland_open
-+
-+Process creation
-+================
-+
-+.. kernel-doc:: kernel/userland.c
-+   :doc: CLONE_INTO_USERLAND
-+
-+Process waiting
-+===============
-+
-+.. kernel-doc:: kernel/userland.c
-+   :doc: P_USERLAND
-+
-+Signal delivery
-+===============
-+
-+.. kernel-doc:: kernel/userland.c
-+   :doc: pidfd_send_signal
-+
-+Filesystem configuration
-+========================
-+
-+.. kernel-doc:: fs/fsopen.c
-+   :doc: FSCONFIG_SET_USERLAND
-+
-+Mount tree installation
-+=======================
-+
-+.. kernel-doc:: fs/namespace.c
-+   :doc: MOVE_MOUNT_T_MNTNS
-+
-+User namespace ID mapping
-+=========================
-+
-+.. kernel-doc:: include/uapi/linux/nsfs.h
-+   :identifiers: userns_idmap_extent userns_flags userns_idmap
-+
-+.. kernel-doc:: kernel/user_namespace.c
-+   :identifiers: sys_userns_set_idmap
+ USERSPACE COPYIN/COPYOUT (UIOVEC)
+ M:	Alexander Viro <viro@zeniv.linux.org.uk>
+ L:	linux-block@vger.kernel.org
 -- 
 2.47.3
 
