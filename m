@@ -1,78 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795301379;
-	b=5PgDyS5ej5zC9LyeIxs+5/whQgZ4Zpxe3Tfh2gTXtzB/exQ+h0wji6liil/LUVMv5KPj
-	 m3WUK16k0BlpRSBt3QnQRbYFqZPK2DzznmdFwrM7BxAFz0+KcN/GT2nj5TTwudSJXYs9l
-	 QBenK4Ovocs1wDYv9dzhBUVFS5SNaAwr/ZSgWq3UO0yjmXbiskCbA683UYB+9aMhunSZ8
-	 zzfgpjkdufJVsLNCSG1dTBfX8dYkiIf5kg+naaTzbEgvqDUQSgqh7H50Q5esd8h4TNWH7
-	 3Nvx1k/DL7yWa8bFQN0qs14KnL0Q8gZA0J9B2KU1O80Ket21i/1+dco92/8WE+Mdk6w==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795301379;
-	h=Received:DKIM-Signature:Received:From:Date:Subject:MIME-Version:
-	 Content-Type:Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
-	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
-	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=UTT8OkObfe6cRhBlKhj1MV4E7XO2MA6bMUAmOfnMFEg=;
-	b=MQr1J94nIwJTT73Ryr2xwOfxmZhVil6vH/5NXcr9crcWhWnDXzQ5en6PxG9YwggJ0MOc
-	 Qa4xIDah1pk48vWdRoIpL7SKrZUDVL6PGWVeBM9K1gOy4uEowz4tBPgblI+kddFTfvy7X
-	 20DtT7Rc2uLVTaLaewA/1T6ATbRnLj79Zy0uxS0rT7xmKYEkOGlXbNk0cdEUEw57+6SMq
-	 PKhEAL53zk6tWq5I28Kub220VaD5ryP5mF0i2GmBVLA4Xrxxlfw+jw47CtsVcH1rzriQp
-	 Y4hw0SK4Z6PyjjPiiOTukOkQc+ELvBCHT352Kne/n+YdcJKZxkpuvy59rO3GnltwT/Q==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VnyfW3nO;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1795310300;
+	b=WPYVOg6gOr+qSMQFLMSzVqS704O1lOZ2A/R1YcZOcmyIL3heJl5Rj9+avzAHFA2HdI0+
+	 RX24DF30vK8KbW5EbWA3IwIIS8aPeuFzazKXrB8HtR1bXSDgaZHigVHzeBAgMBizACLzc
+	 41CdNAgihQdtKS52d76U5495X9cgNPBtt17EtBiQqS6L4/1tRVVkDjprFXiS4mIZismCr
+	 CsfNLnkaVmBmjA8tmrqCaS2buwN0Whbk+QfhI44xQOVTsl35IltBT60k+xydJ1JToXd2k
+	 4kRGzoZTFbYIl3pDNW7P2lkBmL8LdXMZzZ5cqEJIgr4fMqvSEe0renbviBgRz5AP7pA==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795310300;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
+	 MIME-Version:Content-Transfer-Encoding;
+	bh=RY0oC16g4pVcARSzM2cC6w4tme3da83DOQJt8X7iSwg=;
+	b=RJPRdZLFBdJ7aAW8wq3/ecByxNxyEo0onR7o+8VirfwF8MKhbsHP8xyKCLn0X3unKJFh
+	 plqNrfYGOkpEp/p75yw59iwwUrhv7Zf5jq3XTLB5LrD6aJltXrkaXLDlZ5H88I0B1JSdA
+	 /pzTjENIR3XfYj+XL6irE/jTE2fnd0bz0RkxAUSFemtrAgvZUBTLMJH1RyldBGHxJP576
+	 UyF5J0WidY3IQlcP3Q1lcMDeBcP9mSUkMOq0A7f2g1xnQoVSDGxYxdbGvaZcJQDaEmt5d
+	 VypI8bm7IM+7dUcEbara6POmC9UxDpP71ngvTdIY74k4j6xJL2MWeSbcHcundB06ehw==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="N507s/tl";
+	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9FF56606A690;
-	Sat, 21 Nov 2026 22:49:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 1EFBA606A320;
+	Sun, 22 Nov 2026 01:18:19 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=VnyfW3nO
-Authentication-Results: smtp.kernel.org; arc=none smtp.remote-ip=100.80.115.77
-ARC-Seal: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256; cv=none;
-	t=1795301379;
-	b=jLnJbnADuZ4wAWt8au1J192Lt9wa+bwB0GGIaqGBbgiYQpaejFoPMw5OW9KyH5R+hn6O
-	 6e/du29p4K1oGqO9ALKLOstag/OCgjeIaFyFK/GkGEzW5ejAaN4syxQ8a7XpIlQI1j2WO
-	 jm3ovPiYxmOAM4xTpdBVl23JlOwudLDlHW8c+BnS6Ie4KIPJlNiSBBYqCv4uoZC2gG3wR
-	 FLnoyK1wlBUFJMTYZUsjEPjTTK48NhSVvc2ZN5Q4yHTu2azyIsphrRoG2c93RwGDx47SL
-	 jCtIml8yWzmno4/nyAaJd+aPs87hv0u5sUrYUugx7cJr7ALtLMKn2oUQ8EmiNyL6eRg==
-ARC-Message-Signature: i=1; d=kernel.org; s=arc20260519; a=rsa-sha256;
-	c=relaxed/relaxed; t=1795301379;
-	h=DKIM-Signature:Received:From:Date:Subject:MIME-Version:Content-Type:
-	 Message-Id:References:In-Reply-To:To:Cc:X-Mailer:
-	 X-Developer-Signature:X-Developer-Key:X-Endpoint-Received:
-	 X-Original-From:Reply-To:Content-Transfer-Encoding;
-	bh=UTT8OkObfe6cRhBlKhj1MV4E7XO2MA6bMUAmOfnMFEg=;
-	b=hsqA8J9aWl3/o4J2vgDjvj6bXPmzaBB/JrgdVuBt2qX9IB+Nt0K7N8zQd5MAsWKKN5+/
-	 Jiu7yBFidtVSrEux3TD4xRT5zoBqBtTy3GqzqEZNPsErMdcnHo0sgSictlMVl+LecpIbF
-	 BI9dGZW3FIjweRps84qgSHk/x8IDzdojLCH+0EwOkofm8HQKG85oC8BcZgiU5bQ6GtiZb
-	 gl4KihPS8N50qXpKvNeDn0QwYg+15jZuZAb/cAkG7gF/2iGNmLdzMgxDuByZjTug+37RR
-	 +wywqNjjesUNtDOzYrFY/cvYWZiHrBcKfPQiGAwrTyAbHQsd3DUtvPmCS7p0xfVQPtA==
-ARC-Authentication-Results: i=1; smtp.kernel.org; 
-	arc=none smtp.remote-ip=100.80.115.77
-Received: from lkml.kernel.org (nexus.subspace.kernel.org [100.80.115.77])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.kernel.org (Postfix) with ESMTPS id 2A1101F000CA;
-	Sat, 21 Nov 2026 22:49:38 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=N507s/tl
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 036241F000C6;
+	Sun, 22 Nov 2026 01:18:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795301379;
-	bh=UTT8OkObfe6cRhBlKhj1MV4E7XO2MA6bMUAmOfnMFEg=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To;
-	b=VnyfW3nO7soR0i1D035+F4GuV13+jGW/aPaTro/qL9EyF8AnlSe50+MzQMJJmtlzO
-	 LCDwaZgzAjhlykF5R/gere75pcIz6p1Ebrd7usgKK/mp/P8PkOKQt60lRujzjn9D1t
-	 c2kVlGFKRxVdJQq00njgtBkX6F11km+R7/EVCUJ9TZsXwEHIUGRDaEYfvWUM+cSG0I
-	 vMzpQqt8upNmPFxnEq3tMUqEesh8mPvokqMbk5d30MN2pih3WftwKEmQhhXbkOErZH
-	 ueiI15oWitB4B54+ez84Uyw4GVdJsOHJg2zUAOBclPyPkCAm48O4i9dSNFTU60VWSK
-	 LJwsYCDtj5fpQ==
-Received: from nexus.subspace.kernel.org (localhost [IPv6:::1])
-	by lkml.kernel.org (Postfix) with ESMTP id F3B1D4BE62;
-	Sat, 21 Nov 2026 22:49:36 +0000 (UTC)
-From: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>
-Date: Sat, 21 Nov 2026 15:49:23 -0700
-Subject: [PATCH 5/6] dyndbg.lds.S: fix lost dyndbg sections in modules
+	s=k20260515; t=1795310299;
+	bh=RY0oC16g4pVcARSzM2cC6w4tme3da83DOQJt8X7iSwg=;
+	h=From:To:Cc:Subject:Date;
+	b=N507s/tlkoHOxx6TlHiV6IAIlT7/JdsZZYDP6YtVcSExTAASZD7EArKUs3HwLAVB8
+	 uFZMfjWx+uScMKGec3tIy7EuqvXCmhjRhBxKH0fBY1glCk+epOTu3LZ48piiF2ejrR
+	 7fiHPi+1n/oshzItBvA7E8AmLlJrvutZCQ3AGVB+SdFqRCk7QDzqAZRL+3RxxlwGWE
+	 OUie0JL3S/aBSEhnkAOYw73ATAc4dj9sKJUEdB8ook4NlmCCIw+FCQ0KxBXCnwaKui
+	 zxJUmS2E+w6nGmYz6tp3NKfeWyx7GeDZLOUnBWhMLerAxu+RX8ErJM2msJ02thriZl
+	 LrAizr8IaGuIQ==
+From: Jarkko Sakkinen <jarkko@kernel.org>
+To: linux-fsdevel@vger.kernel.org
+Cc: Jarkko Sakkinen <jarkko@kernel.org>,
+	bpf@vger.kernel.org,
+	containers@lists.linux.dev,
+	linux-api@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-kselftest@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-security-module@vger.kernel.org,
+	Aleksa Sarai <aleksa@amutable.com>,
+	Alexander Mikhalitsyn <alex@amutable.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Andy Lutomirski <luto@amacapital.net>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	David Howells <dhowells@redhat.com>,
+	Giuseppe Scrivano <giuseppe@scrivano.org>,
+	Hugh Dickins <hughd@google.com>,
+	Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Josef Bacik <josef@toxicpanda.com>,
+	Kees Cook <kees@kernel.org>,
+	KP Singh <kpsingh@kernel.org>,
+	Lennart Poettering <lennart@poettering.net>,
+	Neal Gompa <neal@gompa.dev>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Paul Moore <paul@paul-moore.com>,
+	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
+	Serge Hallyn <sergeh@kernel.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+Subject: [RFC PATCH v6 00/26] userland: Userland containers
+Date: Sun, 22 Nov 2026 03:17:43 +0200
+Message-ID: <20261122011809.2667684-1-jarkko@kernel.org>
+X-Mailer: git-send-email 2.47.3
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -82,177 +87,368 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Message-Id: <20261121-vmlinux-lds-v1-5-49818f3f5cc0@gmail.com>
-References: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
-In-Reply-To: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com>
-To: Arnd Bergmann <arnd@arndb.de>, Jason Baron <jbaron@akamai.com>, 
- Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
- Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
- Aaron Tomlin <atomlin@atomlin.com>, 
- Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
- linux-modules@vger.kernel.org, Jim Cromie <jim.cromie@gmail.com>
-X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1795301375; l=5098;
- i=jim.cromie@gmail.com; s=20260203; h=from:subject:message-id;
- bh=VzsP1ToJjgJAp9UDySI4ByI7IFGoSIBhUQQ/fSWeluo=;
- b=h9nzpVBJz4uteoBt80zsnV8Hf8iD65fBRGPhEl1a7wMNjtBsi3JJdv5oAmwCjD1fWaqxP07yN
- KYMQ6K2FvMyDP96lanEiubSsDTBHeEg8xJq9Dinx07RL1lSzVaI6WnR
-X-Developer-Key: i=jim.cromie@gmail.com; a=ed25519;
- pk=C6E5ODlPQo7ZBynATXH9wg7K6HxP0pIXyf4s38Qw0XE=
-X-Endpoint-Received: by B4 Relay for jim.cromie@gmail.com/20260203 with
- auth_id=958
-X-Original-From: Jim Cromie <jim.cromie@gmail.com>
-Reply-To: jim.cromie@gmail.com
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-From: Jim Cromie <jim.cromie@gmail.com>
+OVERVIEW
+========
 
-With CONFIG_DRM_USE_DYNAMIC_DEBUG=y, several build configs had
-problems with __dyndbg* sections getting lost in drm drivers.  Fix
-this by following the model demonstrated in codetag.lds.h.
+A userland is an anonymous-inode control object (not an nsfs namespace
+itself) with separate build and live phases that binds together:
 
-Introduce include/asm-generic/dyndbg.lds.h, to bundle dynamic-debug's
-multiple sections together, into 2 macros:
+1. A full set of detached namespaces owned by a fresh user namespace,
+   with optional build-phase opt-in sharing (USERLAND_SHARE_NSFD).
+2. A dedicated PID namespace for spawning processes into, signaling
+   members, and polling or waiting on PID 1 exit.
+3. An initially empty mount namespace (CLONE_EMPTY_MNTNS) populated
+   directly in its target user namespace before going live, without
+   inheriting host mounts or cloning staged trees, while still allowing
+   new mounts to be attached at runtime.
 
-vmlinux.lds.h DATA_DATA: move the 2 BOUNDED_SECTION_BY(__dyndbg*)
-calls into dyndbg.lds.h DYNDBG_SECTIONS(). vmlinux.lds.h now includes
-the new file and calls the new macro.
+Work on this feature started in 2025 from David Howells' container object
+patch set [1], which I turned into a namespace for namespace roots and
+rebuilt around that premise.
 
-MOD_DYNDBG_SECTIONS keeps the 2 sections by name, aligns them and sets
-the output address to 0 when the sections are empty.
+While the patch set is manually written, the original motivation came
+from isolating LLM agents. Running untrusted agent workloads made it
+clear that OCI runtimes need to minimize their live configuration
+surface.
 
-dyndbg.lds.h includes (reuses) bounded-section.lds.h
+Assembling mounts, credentials, and namespaces inside helper processes
+with a half-configured container is what I see as the main challenge,
+and the existential debate around namespaces and container objects is an
+unfocused discussion topic.
 
-scripts/module.lds.S: now calls MOD_DYNDBG_SECTIONS right before the
-CODETAG macro (consistent with their placements in vmlinux.lds.h), and
-also includes dyndbg.lds.h
+[1] https://lore.kernel.org/all/155059610368.17079.2220554006494174417.stgit@warthog.procyon.org.uk/
 
-This isolates vmlinux.lds.h from further __dyndbg section additions.
+IMPLEMENTATION
+==============
 
-CC: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
-Reviewed-by: Petr Pavlu <petr.pavlu@suse.com>
----
-v3: move #includes to top, drop extra ALIGN(8) in DYNDBG_SECTIONS, add RvBy
+Standalone fd-based namespace configuration (patches 01-07) decouples
+user and mount namespace setup from live helper tasks. userns_set_idmap()
+atomically configures USERNS_SETGROUPS_ALLOWED policy and UID, GID, and
+project ID mappings on a CLONE_NEWUSER nsfs fd, checking current_cred()
+so an unprivileged creator can delegate the fd via SCM_RIGHTS to a
+privileged mapping daemon. move_mount(..., MOVE_MOUNT_T_MNTNS) operates
+on any non-anonymous mount namespace fd: on an empty mount namespace it
+installs "/" onto the nullfs root once, attaches relative submounts both
+before entry and into live mount namespaces, and supports
+MOVE_MOUNT_CLONE for recursive bind mounts without OPEN_TREE_CLONE.
 
-v2: Address linker script review feedback for relocatable modules.
+userland_open() allocates a userland instance backed by a pollable
+anonymous-inode fd, creating a fresh owning user namespace and a full
+set of detached namespaces: empty mount (CLONE_EMPTY_MNTNS), PID, UTS,
+IPC, network, cgroup, and time. ioctl(ufd, USERLAND_GET_NSFD, nstype)
+returns nsfs file descriptors for member namespaces, and
+ioctl(ufd, USERLAND_SHARE_NSFD, ns_fd) replaces a member cgroup, IPC,
+UTS, network, or time namespace while the userland is in USERLAND_INIT.
 
-MOD_DYNDBG_SECTIONS() used the BOUNDED_SECTION_BY() macro, which
-proved problematic for kernel modules for two reasons:
+Superblocks are configured directly in the target user namespace via
+fsopen(), FSCONFIG_SET_USERLAND, and fsmount() for filesystems opting
+into FS_USERLAND_MOUNT (tmpfs, ramfs, devpts, proc, mqueue) or
+FS_USERNS_DELEGATABLE, allowing unprivileged callers to assemble mounts
+without holding CAP_SYS_ADMIN in their own user namespace or entering
+the target user namespace first.
 
-1. Unwanted Empty Sections:
-   BOUNDED_SECTION_BY() automatically generates `__start` and `__stop`
-   symbols. When applied to `MOD_DYNDBG_SECTIONS()`, the linker assumes
-   the sections are populated due to the symbol definitions, forcing an
-   empty `__dyndbg` and `__dyndbg_classes` output section in every
-   compiled module, even those without dynamic debug configuration.
-   Since the module loader uses `section_objs()` to locate data via
-   ELF headers instead of relying on `__start`/`__stop` symbols, these
-   assignments are completely unnecessary.
+Once "/" is installed, processes are spawned into the userland via
+clone3() with CLONE_INTO_USERLAND and struct clone_args.userland, without
+mutating the caller in place. Pairing CLONE_INTO_USERLAND with
+CLONE_VFORK and opening the target binary via openat2(...,
+RESOLVE_IN_ROOT) on the retained "/" mount fd allows spawning with
+execveat() directly into the target root.
 
-2. Non-zero Output Addresses:
-   During relocatable linking (e.g., `ld.bfd -r`), omitting an explicit
-   base address causes the section to inherit the current location
-   counter. This results in non-zero sh_addr values in `.ko` files,
-   which is confusing, degrades compressibility, and can cause issues
-   with external tools parsing the ELF.
+The first entrant becomes PID 1; once it exits and
+zap_pid_ns_processes() reaps all members, poll() reports EPOLLHUP and
+waitid(P_USERLAND, ufd, &infop, options, NULL) returns init's exit
+status without consuming it. pidfd_send_signal(ufd, sig, NULL, 0) walks
+pid_ns->idr under tasklist_lock to signal member thread groups, and
+dedicated LSM hooks mediate userland allocation, teardown, namespace
+sharing, process entry, and signal delivery.
 
-Fix both issues by dropping `BOUNDED_SECTION_BY()` in favor of a simple
-`KEEP(*(...))` constraint and explicitly defining the sections with a `0`
-base address: `__dyndbg 0 : ALIGN(8) { ... }`.
+HOTPLUG
+=======
 
-fixup-inc-vml
----
- MAINTAINERS                       |  1 +
- include/asm-generic/dyndbg.lds.h  | 18 ++++++++++++++++++
- include/asm-generic/vmlinux.lds.h |  6 ++----
- scripts/module.lds.S              |  2 ++
- 4 files changed, 23 insertions(+), 4 deletions(-)
+1. Host calls userland_open().
+2. Host sets uid/gid maps with userns_set_idmap().
+3. Host populates "/" with MOVE_MOUNT_T_MNTNS, optionally combined with
+   MOVE_MOUNT_CLONE for bind mounts.
+4. Host spawns PID 1 with clone3(CLONE_INTO_USERLAND) (optionally
+   passing an AF_UNIX socketpair fd for communication).
+5. PID 1 watches /proc/self/ns/mnt via fanotify(FAN_REPORT_MNT |
+   FAN_MARK_MNTNS, FAN_MNT_ATTACH) or polls /proc/self/mountinfo.
+6. On hotplug, host mounts the filesystem via fsopen() /
+   fsconfig(FSCONFIG_SET_USERLAND) / fsmount() (plus optional
+   MOUNT_ATTR_IDMAP).
+7. Host creates the mountpoint with openat2(RESOLVE_IN_ROOT) + mkdirat()
+   and attaches the mount with MOVE_MOUNT_T_MNTNS.
+8. PID 1 receives FAN_MNT_ATTACH and queries the new mount via
+   statmount().
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index ccbcdc0799b9..1acdf6e8b30b 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9505,6 +9505,7 @@ DYNAMIC DEBUG
- M:	Jason Baron <jbaron@akamai.com>
- M:	Jim Cromie <jim.cromie@gmail.com>
- S:	Maintained
-+F:	include/asm-generic/dyndbg.lds.h
- F:	include/linux/dynamic_debug.h
- F:	lib/dynamic_debug.c
- F:	lib/test_dynamic_debug.c
-diff --git a/include/asm-generic/dyndbg.lds.h b/include/asm-generic/dyndbg.lds.h
-new file mode 100644
-index 000000000000..9d8951bef688
---- /dev/null
-+++ b/include/asm-generic/dyndbg.lds.h
-@@ -0,0 +1,18 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+#ifndef __ASM_GENERIC_DYNDBG_LDS_H
-+#define __ASM_GENERIC_DYNDBG_LDS_H
-+
-+#include <asm-generic/bounded_sections.lds.h>
-+#define DYNDBG_SECTIONS()					\
-+	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)			\
-+	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)
-+
-+#define MOD_DYNDBG_SECTIONS()						\
-+	__dyndbg 0 : ALIGN(8) {						\
-+		KEEP(*(__dyndbg))					\
-+	}								\
-+	__dyndbg_classes 0 : ALIGN(8) {					\
-+		KEEP(*(__dyndbg_classes))				\
-+	}
-+
-+#endif /* __ASM_GENERIC_DYNDBG_LDS_H */
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 20c49684d89d..f2f29f2e4e6c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -52,6 +52,7 @@
- 
- #include <asm-generic/bounded_sections.lds.h>
- #include <asm-generic/codetag.lds.h>
-+#include <asm-generic/dyndbg.lds.h>
- 
- #ifndef LOAD_OFFSET
- #define LOAD_OFFSET 0
-@@ -344,10 +345,7 @@
- 	*(.data..do_once)						\
- 	STRUCT_ALIGN();							\
- 	*(__tracepoints)						\
--	/* implement dynamic printk debug */				\
--	. = ALIGN(8);							\
--	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)		\
--	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)				\
-+	DYNDBG_SECTIONS()						\
- 	CODETAG_SECTIONS()						\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
-diff --git a/scripts/module.lds.S b/scripts/module.lds.S
-index d0f200428957..5950ff8edc31 100644
---- a/scripts/module.lds.S
-+++ b/scripts/module.lds.S
-@@ -5,6 +5,7 @@
-  */
- 
- #include <asm-generic/codetag.lds.h>
-+#include <asm-generic/dyndbg.lds.h>
- 
- SECTIONS {
- 	/DISCARD/ : {
-@@ -56,6 +57,7 @@ SECTIONS {
- 		*(.rodata..L*)
- 	}
- 
-+	MOD_DYNDBG_SECTIONS()
- 	MOD_SEPARATE_CODETAG_SECTIONS()
- }
- 
+CHANGES
+=======
 
--- 
-2.56.1
+v6:
+- Rename rootns to userland (CONFIG_USERLAND, userland_open(),
+  userland_ prefix, CLONE_INTO_USERLAND, FSCONFIG_SET_USERLAND,
+  P_USERLAND, USERLAND_GET_NSFD).
+- Replace ROOTNS_WAIT and ROOTNS_KILL ioctls with waitid(P_USERLAND) and
+  pidfd_send_signal() support for userland file descriptors.
+- Add build-phase USERLAND_SHARE_NSFD ioctl and security_userland_share()
+  LSM hook to opt cgroup, IPC, UTS, network, or time namespaces into an
+  existing nsfs fd before process entry.
+- Pass USERNS_SETGROUPS_ALLOWED via userns_set_idmap() flags instead of
+  in-struct request flags.
+- Gate FSCONFIG_SET_USERLAND and unprivileged fsopen() on explicit
+  FS_USERLAND_MOUNT opt-in (tmpfs, ramfs, devpts, proc, mqueue), refresh
+  fc->cred on bind, bound userns_set_idmap() size to PAGE_SIZE (-E2BIG),
+  enforce projid_map privilege checks and atomic ns->flags updates, fix
+  cross-userns slave mount locking in attach_recursive_mnt(), reject
+  SB_NOUSER and cross-mntns nsfs loops in MOVE_MOUNT_CLONE, and walk
+  ancestor PIDNS_ADDING flags in CLONE_INTO_USERLAND (Sashiko).
 
+v5:
+- Heavy reduction of cc-list. More added by request.
+- Re-slice the patch set into standalone fd-based user and mount
+  namespace configuration (01-07) followed by rootns (08-25), and split
+  proc, ipc/mqueue, and bpf_lsm changes into separate commits.
+- Add userns_set_idmap() system call to atomically configure setgroups
+  and UID, GID, and project ID mappings on CLONE_NEWUSER nsfs fds
+  without /proc/<pid>/*_map, checking current_cred() so unprivileged
+  userns fds can be delegated via SCM_RIGHTS to a privileged mapping
+  daemon (Andy Lutomirski).
+- Add MOVE_MOUNT_CLONE with MOVE_MOUNT_T_MNTNS in move_mount() to
+  recursively bind-clone host mount subtrees into a target mount
+  namespace fd without OPEN_TREE_CLONE.
+- Clarify in overview and uAPI documentation that rootns is an
+  anonymous-inode control object rather than an nsfs namespace.
+- Fix upfront pidns ancestry check in ROOTNS_WAIT, bootstrap -EINVAL
+  preservation in CLONE_INTO_ROOTNS, FSCONFIG_SET_ROOTNS user_ns
+  delegation and fsmount() rootns_bound/seq_origin handling, proc
+  pidns= mount option override check, cross-userns anonymous mount
+  MNT_LOCKED propagation, and selftest wide-arch _IOC_NONE, socket
+  blocking, and cleanup handling (Sashiko).
+- Extend selftests/rootns with userns_set_idmap(), SCM_RIGHTS
+  delegation, MOVE_MOUNT_CLONE, and hotplug mount coverage.
+
+v4:
+- A single syscall API (and shenanigans e.g., in fsconfig).
+- I use a similar API model as I used in SGX driver, as like enclaves,
+  containers are "closures". Instead of /dev/sgx_enclave like device
+  file, anon inode is used.
+- Consolidate rootns_create(), rootns_wait(), and rootns_kill() into a
+  single rootns() system call plus ROOTNS_WAIT and ROOTNS_KILL ioctls,
+  dropping rusage from ROOTNS_WAIT.
+- LSM: lbs_rootns security blob management and security_rootns_alloc(),
+  security_rootns_free(), security_rootns_clone(), and
+  security_rootns_kill() LSM hooks wired into bpf_lsm.
+- Disallow CLONE_VM with CLONE_INTO_ROOTNS across time namespaces, require
+  CAP_SYS_CHROOT, preserve caller umask, reset dumpability on user
+  namespace transitions, and fix ROOTNS_WAIT, FSCONFIG_SET_ROOTNS,
+  fsmount(), and MOVE_MOUNT_T_MNTNS locking and permission checks
+  (Sashiko).
+- Rewrite selftests/rootns in Python. I used similar structure as I've
+  used in selftests/tpm2. This "along the lines" mimics Cells style
+  container manager. Rootns is a quite typical no policy solution and
+  Cells is a managed solution, and they are at the far ends, which can
+  also be witnessed from the patch set sizes.
+
+  The question really is where we want to draw the borderline. I'm
+  neither favoring nor supporting any possible solution because I don't
+  know. I'm just saying where they live as a software stack.
+- Update documentation and architecture syscall tables for rootns().
+
+v3:
+- The patch set size increased predominantly because the coverage of
+  kselftest had to widened to cover the introduced changes.
+- Replace MOVE_MOUNT_T_ROOTNS_ROOT with MOVE_MOUNT_T_MNTNS targeting
+  mnt_ns nsfs fds, and add ioctl(ROOTNS_GET_NSFD) to open member
+  namespace fds (Andy Lutomirski).
+- Allow unprivileged fsopen(), FSCONFIG_SET_ROOTNS, and fsmount() to
+  configure and mount FS_USERNS_MOUNT filesystems directly in the target
+  user namespace without entering it first (Andy Lutomirski).
+- Fix locking, refcounting, credential/dumpability/timens setup,
+  pivot_root() lookup, and cross-userns mount checks across copy_rootns(),
+  CLONE_INTO_ROOTNS, rootns_kill(), FSCONFIG_SET_ROOTNS, and move_mount()
+  (Sashiko).
+- Mark PowerPC rootns syscalls nospu (Sashiko).
+- Update documentation and kselftests.
+
+v2:
+- Drop rootns provenance tracking (rootns_id and rootns_may_setns()) and
+  rely on user_namespace ownership for setns() isolation (Andy
+  Lutomirski).
+- Replace the rootns_enter() system call with clone3(CLONE_INTO_ROOTNS)
+  and struct clone_args.rootns (CLONE_ARGS_SIZE_VER3), allowing
+  CLONE_VM | CLONE_VFORK and compatible per-child clone3() flags (Andy
+  Lutomirski).
+- Drop the spurious task_no_new_privs() check in may_enter_rootns_creds()
+  (Andy Lutomirski).
+- Update documentation, Kconfig, syscall tables, and kselftests for
+  CLONE_INTO_ROOTNS.
+
+VERSIONS
+========
+
+v5: https://lore.kernel.org/linux-fsdevel/20261121000844.1863324-1-jarkko@kernel.org/
+v4: https://lore.kernel.org/linux-fsdevel/20261119224312.1037966-1-jarkko@kernel.org/
+v3: https://lore.kernel.org/linux-fsdevel/20261118193539.240065-1-jarkko@kernel.org/
+v2: https://lore.kernel.org/linux-fsdevel/20261117231352.3816603-1-jarkko@kernel.org/
+v1: https://lore.kernel.org/linux-fsdevel/20261117050841.3289652-1-jarkko@kernel.org/
+
+Cc: bpf@vger.kernel.org
+Cc: containers@lists.linux.dev
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-kselftest@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-security-module@vger.kernel.org
+Cc: Aleksa Sarai <aleksa@amutable.com>
+Cc: Alexander Mikhalitsyn <alex@amutable.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christian Brauner <brauner@kernel.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Giuseppe Scrivano <giuseppe@scrivano.org>
+Cc: Hugh Dickins <hughd@google.com>
+Cc: Jan Kara <jack@suse.cz>
+Cc: Jeff Layton <jlayton@kernel.org>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Josef Bacik <josef@toxicpanda.com>
+Cc: Kees Cook <kees@kernel.org>
+Cc: KP Singh <kpsingh@kernel.org>
+Cc: Lennart Poettering <lennart@poettering.net>
+Cc: Neal Gompa <neal@gompa.dev>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Paul Moore <paul@paul-moore.com>
+Cc: Pavel Tikhomirov <ptikhomirov@virtuozzo.com>
+Cc: Serge Hallyn <sergeh@kernel.org>
+Cc: Shuah Khan <skhan@linuxfoundation.org>
+Cc: Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+
+Jarkko Sakkinen (26):
+  userns: Factor out idmap validation and commit helpers
+  userns: Add userns_set_idmap() system call
+  arch: Wire up userns_set_idmap() system call
+  mount: Add mnt_ns_get_root()
+  mount: Enforce mount_too_revealing() for foreign mntns
+  mount: Support MOVE_MOUNT_T_MNTNS in move_mount()
+  mount: Support MOVE_MOUNT_CLONE with MOVE_MOUNT_T_MNTNS
+  userns: Factor out install_user_ns_cred()
+  nsproxy: Expose create_new_namespaces()
+  userland: Add core infrastructure
+  userland: Track init lifecycle via copy_process() and pid_namespace
+  userland: Add userland_open() system call
+  userland: Add USERLAND_GET_NSFD ioctl
+  userland: Add USERLAND_SHARE_NSFD ioctl
+  exit: Support P_USERLAND in waitid()
+  signal: Support userland fds in pidfd_send_signal()
+  fork: Support CLONE_INTO_USERLAND in clone3()
+  fs: Support FSCONFIG_SET_USERLAND in fsconfig()
+  proc: Implement ->set_userland() fs_context operation
+  ipc/mqueue: Implement ->set_userland() fs_context operation
+  security: Add userland LSM hooks
+  bpf: Register userland LSM hooks
+  arch: Wire up userland_open() system call
+  docs: Document userland uAPI
+  selftests/userland: Add userland test suite
+  MAINTAINERS: Add entry for USERLAND
+
+ Documentation/userspace-api/index.rst         |    1 +
+ .../userspace-api/ioctl/ioctl-number.rst      |    1 +
+ Documentation/userspace-api/userland.rst      |   73 +
+ MAINTAINERS                                   |   11 +
+ arch/alpha/kernel/syscalls/syscall.tbl        |    2 +
+ arch/arm/tools/syscall.tbl                    |    2 +
+ arch/arm64/tools/syscall_32.tbl               |    2 +
+ arch/m68k/kernel/syscalls/syscall.tbl         |    2 +
+ arch/microblaze/kernel/syscalls/syscall.tbl   |    2 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl     |    2 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl     |    2 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl     |    2 +
+ arch/parisc/kernel/syscalls/syscall.tbl       |    2 +
+ arch/powerpc/kernel/syscalls/syscall.tbl      |    2 +
+ arch/s390/kernel/syscalls/syscall.tbl         |    2 +
+ arch/sh/kernel/syscalls/syscall.tbl           |    2 +
+ arch/sparc/kernel/syscalls/syscall.tbl        |    2 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |    2 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |    2 +
+ arch/xtensa/kernel/syscalls/syscall.tbl       |    2 +
+ fs/devpts/inode.c                             |    4 +-
+ fs/filesystems.c                              |   15 +
+ fs/fs_context.c                               |   21 +-
+ fs/fsopen.c                                   |  137 +-
+ fs/internal.h                                 |    7 +-
+ fs/namespace.c                                |  352 ++-
+ fs/proc/root.c                                |   26 +-
+ fs/ramfs/inode.c                              |    2 +-
+ include/linux/cred.h                          |    4 +-
+ include/linux/fs.h                            |    1 +
+ include/linux/fs_context.h                    |    6 +
+ include/linux/lsm_hook_defs.h                 |    8 +
+ include/linux/lsm_hooks.h                     |    3 +
+ include/linux/mnt_namespace.h                 |    2 +
+ include/linux/nsfs.h                          |    1 +
+ include/linux/nsproxy.h                       |    8 +-
+ include/linux/pid_namespace.h                 |    4 +
+ include/linux/sched/task.h                    |    6 +
+ include/linux/security.h                      |   37 +
+ include/linux/syscalls.h                      |    5 +
+ include/linux/user_namespace.h                |    9 +-
+ include/linux/userland.h                      |  107 +
+ include/uapi/asm-generic/unistd.h             |   10 +-
+ include/uapi/linux/mount.h                    |    5 +-
+ include/uapi/linux/nsfs.h                     |   46 +
+ include/uapi/linux/sched.h                    |    5 +
+ include/uapi/linux/userland.h                 |   58 +
+ include/uapi/linux/wait.h                     |    1 +
+ init/Kconfig                                  |   10 +
+ ipc/mqueue.c                                  |   18 +-
+ kernel/Makefile                               |    2 +
+ kernel/bpf/bpf_lsm.c                          |   11 +
+ kernel/cred.c                                 |   27 +-
+ kernel/exit.c                                 |    4 +
+ kernel/fork.c                                 |   71 +-
+ kernel/nsproxy.c                              |   15 +-
+ kernel/pid_namespace.c                        |    2 +
+ kernel/signal.c                               |    4 +
+ kernel/sys_ni.c                               |    4 +
+ kernel/user_namespace.c                       |  419 ++-
+ kernel/userland.c                             |  701 +++++
+ mm/shmem.c                                    |    5 +-
+ scripts/syscall.tbl                           |    2 +
+ security/lsm_init.c                           |    6 +
+ security/security.c                           |   72 +
+ tools/include/uapi/asm-generic/unistd.h       |   10 +-
+ .../perf/arch/arm/entry/syscalls/syscall.tbl  |    2 +
+ .../arch/mips/entry/syscalls/syscall_n64.tbl  |    2 +
+ .../arch/powerpc/entry/syscalls/syscall.tbl   |    2 +
+ .../perf/arch/s390/entry/syscalls/syscall.tbl |    2 +
+ tools/perf/arch/sh/entry/syscalls/syscall.tbl |    2 +
+ .../arch/sparc/entry/syscalls/syscall.tbl     |    2 +
+ .../arch/x86/entry/syscalls/syscall_32.tbl    |    2 +
+ .../arch/x86/entry/syscalls/syscall_64.tbl    |    2 +
+ .../arch/xtensa/entry/syscalls/syscall.tbl    |    2 +
+ tools/scripts/syscall.tbl                     |    2 +
+ tools/testing/selftests/Makefile              |    1 +
+ tools/testing/selftests/userland/Makefile     |    5 +
+ tools/testing/selftests/userland/config       |   10 +
+ .../testing/selftests/userland/test_smoke.sh  |   10 +
+ .../selftests/userland/userland_cells.py      | 1088 ++++++++
+ .../selftests/userland/userland_test.py       | 2306 +++++++++++++++++
+ 82 files changed, 5663 insertions(+), 168 deletions(-)
+ create mode 100644 Documentation/userspace-api/userland.rst
+ create mode 100644 include/linux/userland.h
+ create mode 100644 include/uapi/linux/userland.h
+ create mode 100644 kernel/userland.c
+ create mode 100644 tools/testing/selftests/userland/Makefile
+ create mode 100644 tools/testing/selftests/userland/config
+ create mode 100755 tools/testing/selftests/userland/test_smoke.sh
+ create mode 100644 tools/testing/selftests/userland/userland_cells.py
+ create mode 100755 tools/testing/selftests/userland/userland_test.py
+
+--
+2.47.3
 
