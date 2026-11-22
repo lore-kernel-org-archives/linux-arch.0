@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795376161;
-	b=I/m/WknjkepquTHZzeigYfg3TxX3yHJGFeZfWf1fPwQLWNhCKsKr+E32Oo7UGqq4QW/T
-	 a1F8fBZzwQnt/2Dfk+1mqjZXN8xadmAlIkhqLicWOm4/pNTAnXDwNoOFuHewaGTVYgWjR
-	 tEMhkALAOzYh+RqGu9qR1msJyyoubRXP8sVr7CuKPPuNslN08qayV1z5BTRlUn/OOuMVh
-	 Ipbx9lxEDBPF+0NOzjRv+dalwwHXdka3MBi2r+tC9cm35y3J/R0rajarHqWtGhpHscULz
-	 x3yPOzXECz779wsn+Shs5CWicnWaDfcWHKGEjBU46yN/UwpiVrCgN5kKs4qfprSoAng==
+	t=1795376169;
+	b=KBc4d0WKaiojPjH3+HtJqLYHKeJRRVFJUv9i52PRFywaZZ/xCYz188IEZsVbqX6oRNnP
+	 kcFwIbw5qrmqkCB2oG1DCApHwCUnA8H3rF/M3gSBoEtvqv7oqAm0Za/vfTPbpZIXyxs1L
+	 r/7QB8J+oi6jraLYCBGWCxATMI3Pi8jrVCf2lzHbjmALah/ljFKi8ixKdfMXwoxsxo0WM
+	 Ml5vjzYMOa/0QyoyE3gqCrsTDdDUWdW20QJxywAaeC3W6/UuK3A6Ju7gTHZWdjtkRLZTg
+	 utobAAh30Nbw1LW0UJ5vwpMOuSyAW0qQvX14SEsDru4Ng27/+P7VYkN3IWngDis9/Zg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795376161;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795376169;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=PxWsspzEioIIwUqnuiIeYKp1fTe5D8PzGx83Wd5XdHY=;
-	b=uN4bDiJt4K/gBOp0Yn3/NndacLmnAE+IyoCelvck80qqMIZGAvvmyjvI8X88GN6rcruG
-	 GRu2l5J0+29shwyprW+y2jRfMq83R80fA1GAQABpqRyC5EYBSCKenzGNOM8E+1MjsgALo
-	 mdgmnk49UzvCAGa3JtAzCqzPkxOkuhReDQEpjgjiqfVddGOtZ82osQX3kVEVk1ylsz19M
-	 MSkv/FXYiN30KJsLXbOfQaAqTu2EtgFnCPDWgUBHAe5Gnd2q8ImBS3zCjHQF3Hjto00dm
-	 buovwfa83f7qkSZAhsBlb1ouPDfeGEAj/kkPU7Ia8zgByPmobEcXMcYcclxgmj3CcMA==
+	bh=M0Jcf1onBvCVtufFcrdOL5QCVPkyz3xxS4zQsg/IEp0=;
+	b=AMv99aiDJKtzxjfMqvKSoqpCbvKV15CMKrC3RZagqFEk9tVm8g6PnwKbEjgZV+MUcl+5
+	 SA7JbAeA2X1no8N6URpcBnDZLJZQAe3w7ZfdKqtp/UehQhsavW/nKDSLz8jM0oQEPcQyv
+	 snFSb8QrEJboeePJkkhCiJ/iAN6jgzn7QTi05pfy1/4hAsKVXZmRnEtK4PUl+nFuPuXQL
+	 gYhNwrRPDxZjRLf8SDR1l6XtUNFcXArf8qbfc+2wepbBXsLUwq6CbpIvtNNFUvaxonNIk
+	 w2j9VnCwdixW0fP1vJifvAJbrmBl0PbTRfg4i7hDeBXd77nZFXMcO+Uh4qwKpLzw40w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DFiqTxJB;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=h7ZUfA60;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 46200606A32C;
-	Sun, 22 Nov 2026 19:36:01 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id AB002606A32C;
+	Sun, 22 Nov 2026 19:36:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DFiqTxJB
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id C697E1F000C0;
-	Sun, 22 Nov 2026 19:35:59 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=h7ZUfA60
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 6FAB41F000CF;
+	Sun, 22 Nov 2026 19:36:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795376160;
-	bh=PxWsspzEioIIwUqnuiIeYKp1fTe5D8PzGx83Wd5XdHY=;
+	s=k20260515; t=1795376169;
+	bh=M0Jcf1onBvCVtufFcrdOL5QCVPkyz3xxS4zQsg/IEp0=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=DFiqTxJBeq3OOH2VDJJY2sRb16klNa8m8RHt5Abh/YsPImOZ5nu0uM/UuMH+1ycLe
-	 S+SXiQ9ZdkEJGKkPN8frshQVWuicTWsoG5qYiFtE16U0SbJ6N0d/pprgRSmcbMWB0L
-	 0fc+vdB1MX5xOtwmvvCKQVbCxtNDWEr972W+bhnrLZB08bFuYj96P+xs8sX24UVzV5
-	 vR6e0SgrDbPp5c3KER4nWHsM3H80dhGu3haKOn8CZtqET9eS+adDfRk0TJeYI2DcSh
-	 DNDD/KxSNtFTnTtbxIpVpUpwPU2Jqbe3L0B6Jmlu7Ie34V9iCvX0vbkLcG4h/jk/TN
-	 FUckdOsdfl/JQ==
+	b=h7ZUfA60FNui4/mwZs0pyabViCDUQIR+fYWNycoi6GbJsfLe2FuTN4GllES9A0mug
+	 cCSnigmbXRghrHGxmtPpXl7Ww5NfPcKOkOVc73nCm0wcXFTj2tOgepZYihqFxh9kMS
+	 BqzFUUiYuO4gNnZWQKEd8fyg6Kh+JaljazXuaiUye3WO1zsFfVvp0JgNCsImDkMbDK
+	 TTDWr0AIR3JN92B6TawmACviMCQ7B9CYKgw49caks4b8n/jgHBAic52aecEHL6+73p
+	 qTvGpn0MhhEoPvsuHI46SLFiDhE0oOjmJX4KyTleuHYGNrth5ZifYZEI/K4zSSIUpI
+	 g2y0Cvd2Q4v5A==
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: linux-fsdevel@vger.kernel.org
 Cc: Jarkko Sakkinen <jarkko@kernel.org>,
@@ -75,9 +75,9 @@ Cc: Jarkko Sakkinen <jarkko@kernel.org>,
 	Serge Hallyn <sergeh@kernel.org>,
 	Shuah Khan <skhan@linuxfoundation.org>,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: [RFC PATCH v7 01/26] userns: Factor out idmap validation and commit helpers
-Date: Sun, 22 Nov 2026 21:35:14 +0200
-Message-ID: <20261122193539.3334213-2-jarkko@kernel.org>
+Subject: [RFC PATCH v7 03/26] arch: Wire up userns_set_idmap() system call
+Date: Sun, 22 Nov 2026 21:35:16 +0200
+Message-ID: <20261122193539.3334213-4-jarkko@kernel.org>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20261122193539.3334213-1-jarkko@kernel.org>
 References: <20261122193539.3334213-1-jarkko@kernel.org>
@@ -92,322 +92,328 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-map_write() and its permission helpers validate extent ranges, check
-root and unprivileged self-mappings, translate parent ID ranges, sort
-extents, and install the resulting map inline for procfs text writes,
-preventing non-procfs callers from reusing the same validation and
-commit path.
-
-Extract idmap_maps_root(), unpriv_idmap_permitted(),
-validate_and_insert_extent(), free_new_idmap(), resolve_new_idmap(), and
-commit_new_idmap() with no functional change.
+Expose userns_set_idmap() (473, 583 on Alpha) across all architecture
+system call tables, asm-generic unistd.h, and the mirrored copies under
+tools/.
 
 Signed-off-by: Jarkko Sakkinen <jarkko@kernel.org>
 ---
- kernel/user_namespace.c | 229 +++++++++++++++++++++-------------------
- 1 file changed, 122 insertions(+), 107 deletions(-)
+ arch/alpha/kernel/syscalls/syscall.tbl              | 1 +
+ arch/arm/tools/syscall.tbl                          | 1 +
+ arch/arm64/tools/syscall_32.tbl                     | 1 +
+ arch/m68k/kernel/syscalls/syscall.tbl               | 1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl         | 1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl           | 1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl           | 1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl           | 1 +
+ arch/parisc/kernel/syscalls/syscall.tbl             | 1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl            | 1 +
+ arch/s390/kernel/syscalls/syscall.tbl               | 1 +
+ arch/sh/kernel/syscalls/syscall.tbl                 | 1 +
+ arch/sparc/kernel/syscalls/syscall.tbl              | 1 +
+ arch/x86/entry/syscalls/syscall_32.tbl              | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl              | 1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl             | 1 +
+ include/uapi/asm-generic/unistd.h                   | 6 +++++-
+ scripts/syscall.tbl                                 | 1 +
+ tools/include/uapi/asm-generic/unistd.h             | 6 +++++-
+ tools/perf/arch/arm/entry/syscalls/syscall.tbl      | 1 +
+ tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl | 1 +
+ tools/perf/arch/powerpc/entry/syscalls/syscall.tbl  | 1 +
+ tools/perf/arch/s390/entry/syscalls/syscall.tbl     | 1 +
+ tools/perf/arch/sh/entry/syscalls/syscall.tbl       | 1 +
+ tools/perf/arch/sparc/entry/syscalls/syscall.tbl    | 1 +
+ tools/perf/arch/x86/entry/syscalls/syscall_32.tbl   | 1 +
+ tools/perf/arch/x86/entry/syscalls/syscall_64.tbl   | 1 +
+ tools/perf/arch/xtensa/entry/syscalls/syscall.tbl   | 1 +
+ tools/scripts/syscall.tbl                           | 1 +
+ 29 files changed, 37 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
-index cd748e1cbace..caba2ac33077 100644
---- a/kernel/user_namespace.c
-+++ b/kernel/user_namespace.c
-@@ -884,6 +884,22 @@ VISIBLE_IF_KUNIT int uid_gid_map_sort(struct uid_gid_map *map)
- }
- EXPORT_SYMBOL_IF_KUNIT(uid_gid_map_sort);
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index 52e3538cc7df..60d330a51476 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -512,3 +512,4 @@
+ 580	common	listns				sys_listns
+ 581	common	rseq_slice_yield		sys_rseq_slice_yield
+ 582	common	fchroot				sys_fchroot
++583	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 55717ed32c27..d055515e98cd 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -487,3 +487,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/arm64/tools/syscall_32.tbl b/arch/arm64/tools/syscall_32.tbl
+index df2d1d82fb3c..a18982ead3bf 100644
+--- a/arch/arm64/tools/syscall_32.tbl
++++ b/arch/arm64/tools/syscall_32.tbl
+@@ -484,3 +484,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index ba7a4d8903d0..e89ec7d54b8c 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -472,3 +472,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index 76d7cbe2a133..0dfcd6f9e4e7 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -478,3 +478,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index 9ae88e4eac61..882ff15f3e6d 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -411,3 +411,4 @@
+ 470	n32	listns				sys_listns
+ 471	n32	rseq_slice_yield		sys_rseq_slice_yield
+ 472	n32	fchroot				sys_fchroot
++473	n32	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index 83dc93a0712f..daa95049baef 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -387,3 +387,4 @@
+ 470	n64	listns				sys_listns
+ 471	n64	rseq_slice_yield		sys_rseq_slice_yield
+ 472	n64	fchroot				sys_fchroot
++473	n64	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 9c62429c9b7b..9e0040399fef 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -460,3 +460,4 @@
+ 470	o32	listns				sys_listns
+ 471	o32	rseq_slice_yield		sys_rseq_slice_yield
+ 472	o32	fchroot				sys_fchroot
++473	o32	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+index 88adc4016cce..b77482e68d1a 100644
+--- a/arch/parisc/kernel/syscalls/syscall.tbl
++++ b/arch/parisc/kernel/syscalls/syscall.tbl
+@@ -471,3 +471,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index cfbb70039ff0..973562f20a94 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -563,3 +563,4 @@
+ 470	common	listns				sys_listns
+ 471	nospu	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	nospu	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index 1b45e68a217b..19d7b234b31b 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -399,3 +399,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index ace068dff0de..252e6f9aa04c 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -476,3 +476,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index 5b9fe0e8140f..1263d0e825c1 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -518,3 +518,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 2c172ef48dfd..0f8c81c584e0 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -478,3 +478,4 @@
+ 470	i386	listns			sys_listns
+ 471	i386	rseq_slice_yield	sys_rseq_slice_yield
+ 472	i386	fchroot			sys_fchroot
++473	i386	userns_set_idmap	sys_userns_set_idmap
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index d5b6045b0090..5452b7567bf8 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -397,6 +397,7 @@
+ 470	common	listns			sys_listns
+ 471	common	rseq_slice_yield	sys_rseq_slice_yield
+ 472	common	fchroot			sys_fchroot
++473	common	userns_set_idmap	sys_userns_set_idmap
  
-+static bool idmap_maps_root(const struct uid_gid_map *new_map)
-+{
-+	unsigned int idx;
-+
-+	for (idx = 0; idx < new_map->nr_extents; idx++) {
-+		const struct uid_gid_extent *e;
-+
-+		if (new_map->nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
-+			e = &new_map->extent[idx];
-+		else
-+			e = &new_map->forward[idx];
-+		if (e->lower_first == 0)
-+			return true;
-+	}
-+	return false;
-+}
- /**
-  * verify_root_map() - check the uid 0 mapping
-  * @file: idmapping file
-@@ -900,22 +916,9 @@ static bool verify_root_map(const struct file *file,
- 			    struct user_namespace *map_ns,
- 			    struct uid_gid_map *new_map)
- {
--	int idx;
- 	const struct user_namespace *file_ns = file->f_cred->user_ns;
--	struct uid_gid_extent *extent0 = NULL;
--
--	for (idx = 0; idx < new_map->nr_extents; idx++) {
--		if (new_map->nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
--			extent0 = &new_map->extent[idx];
--		else
--			extent0 = &new_map->forward[idx];
--		if (extent0->lower_first == 0)
--			break;
--
--		extent0 = NULL;
--	}
+ #
+ # Due to a historical design error, certain syscalls are numbered differently
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index d354bb231796..f10b491c873c 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -443,3 +443,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 5b7e77a7c736..695eac2d356b 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -867,8 +867,12 @@ __SYSCALL(__NR_rseq_slice_yield, sys_rseq_slice_yield)
+ #define __NR_fchroot 472
+ __SYSCALL(__NR_fchroot, sys_fchroot)
  
--	if (!extent0)
-+	if (!idmap_maps_root(new_map))
- 		return true;
++/* kernel/user_namespace.c */
++#define __NR_userns_set_idmap 473
++__SYSCALL(__NR_userns_set_idmap, sys_userns_set_idmap)
++
+ #undef __NR_syscalls
+-#define __NR_syscalls 473
++#define __NR_syscalls 474
  
- 	if (map_ns == file_ns) {
-@@ -938,6 +941,103 @@ static bool verify_root_map(const struct file *file,
- 	return true;
- }
- 
-+static int validate_and_insert_extent(struct uid_gid_map *new_map,
-+				      struct uid_gid_extent *extent)
-+{
-+	if ((extent->first == (u32)-1) || (extent->lower_first == (u32)-1))
-+		return -EINVAL;
-+
-+	if ((extent->first + extent->count) <= extent->first)
-+		return -EINVAL;
-+	if ((extent->lower_first + extent->count) <= extent->lower_first)
-+		return -EINVAL;
-+
-+	if (mappings_overlap(new_map, extent))
-+		return -EINVAL;
-+
-+	if (new_map->nr_extents >= UID_GID_MAP_MAX_EXTENTS)
-+		return -EINVAL;
-+
-+	return uid_gid_map_insert_extent(new_map, extent);
-+}
-+
-+static void free_new_idmap(struct uid_gid_map *new_map)
-+{
-+	if (new_map->nr_extents > UID_GID_MAP_MAX_BASE_EXTENTS) {
-+		kfree(new_map->forward);
-+		kfree(new_map->reverse);
-+	}
-+	memset(new_map, 0, sizeof(*new_map));
-+}
-+
-+static int resolve_new_idmap(struct uid_gid_map *new_map,
-+			     struct uid_gid_map *parent_map)
-+{
-+	unsigned int idx;
-+
-+	if (new_map->nr_extents == 0)
-+		return -EINVAL;
-+
-+	for (idx = 0; idx < new_map->nr_extents; idx++) {
-+		struct uid_gid_extent *e;
-+		u32 lower_first;
-+
-+		if (new_map->nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
-+			e = &new_map->extent[idx];
-+		else
-+			e = &new_map->forward[idx];
-+
-+		lower_first = map_id_range_down(parent_map,
-+						e->lower_first,
-+						e->count);
-+		if (lower_first == (u32)-1)
-+			return -EPERM;
-+
-+		e->lower_first = lower_first;
-+	}
-+
-+	return uid_gid_map_sort(new_map);
-+}
-+
-+static void commit_new_idmap(struct uid_gid_map *map,
-+			     struct uid_gid_map *new_map)
-+{
-+	if (new_map->nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS) {
-+		memcpy(map->extent, new_map->extent,
-+		       new_map->nr_extents * sizeof(new_map->extent[0]));
-+	} else {
-+		map->forward = new_map->forward;
-+		map->reverse = new_map->reverse;
-+	}
-+	/*
-+	 * Pairs with smp_rmb() in map_id_range_down(), map_id_range_up(),
-+	 * and m_start().
-+	 */
-+	smp_wmb();
-+	map->nr_extents = new_map->nr_extents;
-+	memset(new_map, 0, sizeof(*new_map));
-+}
-+
-+static bool unpriv_idmap_permitted(const struct user_namespace *ns,
-+				   const struct cred *cred, int cap_setid,
-+				   unsigned long ns_flags,
-+				   const struct uid_gid_map *new_map)
-+{
-+	u32 id;
-+
-+	if (new_map->nr_extents != 1 || new_map->extent[0].count != 1 ||
-+	    !uid_eq(ns->owner, cred->euid))
-+		return false;
-+
-+	id = new_map->extent[0].lower_first;
-+	if (cap_setid == CAP_SETUID)
-+		return uid_eq(make_kuid(ns->parent, id), cred->euid);
-+	if (cap_setid == CAP_SETGID)
-+		return !(ns_flags & USERNS_SETGROUPS_ALLOWED) &&
-+		       gid_eq(make_kgid(ns->parent, id), cred->egid);
-+	return false;
-+}
-+
  /*
-  * Parse the decimal u32 at *pos, up to the next whitespace or NUL, and
-  * leave *pos pointing at that character.
-@@ -966,8 +1066,7 @@ static ssize_t map_write(struct file *file, const char __user *buf,
- {
- 	struct seq_file *seq = file->private_data;
- 	struct user_namespace *map_ns = seq->private;
--	struct uid_gid_map new_map;
--	unsigned idx;
-+	struct uid_gid_map new_map = {};
- 	struct uid_gid_extent extent;
- 	char *kbuf, *pos, *next_line;
- 	ssize_t ret;
-@@ -1002,8 +1101,6 @@ static ssize_t map_write(struct file *file, const char __user *buf,
- 	 */
- 	mutex_lock(&userns_state_mutex);
+  * 32 bit systems traditionally used different
+diff --git a/scripts/syscall.tbl b/scripts/syscall.tbl
+index 0ab531605120..7ba073cc0e80 100644
+--- a/scripts/syscall.tbl
++++ b/scripts/syscall.tbl
+@@ -413,3 +413,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/include/uapi/asm-generic/unistd.h b/tools/include/uapi/asm-generic/unistd.h
+index 5b7e77a7c736..695eac2d356b 100644
+--- a/tools/include/uapi/asm-generic/unistd.h
++++ b/tools/include/uapi/asm-generic/unistd.h
+@@ -867,8 +867,12 @@ __SYSCALL(__NR_rseq_slice_yield, sys_rseq_slice_yield)
+ #define __NR_fchroot 472
+ __SYSCALL(__NR_fchroot, sys_fchroot)
  
--	memset(&new_map, 0, sizeof(struct uid_gid_map));
--
- 	ret = -EPERM;
- 	/* Only allow one successful write to the map */
- 	if (map->nr_extents != 0)
-@@ -1052,98 +1149,28 @@ static ssize_t map_write(struct file *file, const char __user *buf,
- 		if (*pos != '\0')
- 			goto out;
- 
--		/* Verify we have been given valid starting values */
--		if ((extent.first == (u32) -1) ||
--		    (extent.lower_first == (u32) -1))
--			goto out;
--
--		/* Verify count is not zero and does not cause the
--		 * extent to wrap
--		 */
--		if ((extent.first + extent.count) <= extent.first)
--			goto out;
--		if ((extent.lower_first + extent.count) <=
--		     extent.lower_first)
--			goto out;
--
--		/* Do the ranges in extent overlap any previous extents? */
--		if (mappings_overlap(&new_map, &extent))
--			goto out;
--
--		if ((new_map.nr_extents + 1) == UID_GID_MAP_MAX_EXTENTS &&
--		    (next_line != NULL))
--			goto out;
--
--		ret = uid_gid_map_insert_extent(&new_map, &extent);
-+		ret = validate_and_insert_extent(&new_map, &extent);
- 		if (ret < 0)
- 			goto out;
- 		ret = -EINVAL;
- 	}
--	/* Be very certain the new map actually exists */
++/* kernel/user_namespace.c */
++#define __NR_userns_set_idmap 473
++__SYSCALL(__NR_userns_set_idmap, sys_userns_set_idmap)
 +
- 	if (new_map.nr_extents == 0)
- 		goto out;
+ #undef __NR_syscalls
+-#define __NR_syscalls 473
++#define __NR_syscalls 474
  
- 	ret = -EPERM;
--	/* Validate the user is allowed to use user id's mapped to. */
- 	if (!new_idmap_permitted(file, map_ns, cap_setid, &new_map))
- 		goto out;
+ /*
+  * 32 bit systems traditionally used different
+diff --git a/tools/perf/arch/arm/entry/syscalls/syscall.tbl b/tools/perf/arch/arm/entry/syscalls/syscall.tbl
+index 55717ed32c27..d055515e98cd 100644
+--- a/tools/perf/arch/arm/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/arm/entry/syscalls/syscall.tbl
+@@ -487,3 +487,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl b/tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl
+index 83dc93a0712f..daa95049baef 100644
+--- a/tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl
++++ b/tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl
+@@ -387,3 +387,4 @@
+ 470	n64	listns				sys_listns
+ 471	n64	rseq_slice_yield		sys_rseq_slice_yield
+ 472	n64	fchroot				sys_fchroot
++473	n64	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl b/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
+index cfbb70039ff0..973562f20a94 100644
+--- a/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
+@@ -563,3 +563,4 @@
+ 470	common	listns				sys_listns
+ 471	nospu	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	nospu	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/s390/entry/syscalls/syscall.tbl b/tools/perf/arch/s390/entry/syscalls/syscall.tbl
+index 1b45e68a217b..19d7b234b31b 100644
+--- a/tools/perf/arch/s390/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/s390/entry/syscalls/syscall.tbl
+@@ -399,3 +399,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/sh/entry/syscalls/syscall.tbl b/tools/perf/arch/sh/entry/syscalls/syscall.tbl
+index ace068dff0de..252e6f9aa04c 100644
+--- a/tools/perf/arch/sh/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/sh/entry/syscalls/syscall.tbl
+@@ -476,3 +476,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/sparc/entry/syscalls/syscall.tbl b/tools/perf/arch/sparc/entry/syscalls/syscall.tbl
+index 5b9fe0e8140f..1263d0e825c1 100644
+--- a/tools/perf/arch/sparc/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/sparc/entry/syscalls/syscall.tbl
+@@ -518,3 +518,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/perf/arch/x86/entry/syscalls/syscall_32.tbl b/tools/perf/arch/x86/entry/syscalls/syscall_32.tbl
+index 2c172ef48dfd..0f8c81c584e0 100644
+--- a/tools/perf/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/tools/perf/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -478,3 +478,4 @@
+ 470	i386	listns			sys_listns
+ 471	i386	rseq_slice_yield	sys_rseq_slice_yield
+ 472	i386	fchroot			sys_fchroot
++473	i386	userns_set_idmap	sys_userns_set_idmap
+diff --git a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
+index d5b6045b0090..5452b7567bf8 100644
+--- a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -397,6 +397,7 @@
+ 470	common	listns			sys_listns
+ 471	common	rseq_slice_yield	sys_rseq_slice_yield
+ 472	common	fchroot			sys_fchroot
++473	common	userns_set_idmap	sys_userns_set_idmap
  
--	ret = -EPERM;
--	/* Map the lower ids from the parent user namespace to the
--	 * kernel global id space.
--	 */
--	for (idx = 0; idx < new_map.nr_extents; idx++) {
--		struct uid_gid_extent *e;
--		u32 lower_first;
--
--		if (new_map.nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
--			e = &new_map.extent[idx];
--		else
--			e = &new_map.forward[idx];
--
--		lower_first = map_id_range_down(parent_map,
--						e->lower_first,
--						e->count);
--
--		/* Fail if we can not map the specified extent to
--		 * the kernel global id space.
--		 */
--		if (lower_first == (u32) -1)
--			goto out;
--
--		e->lower_first = lower_first;
--	}
--
--	/*
--	 * If we want to use binary search for lookup, this clones the extent
--	 * array and sorts both copies.
--	 */
--	ret = uid_gid_map_sort(&new_map);
-+	ret = resolve_new_idmap(&new_map, parent_map);
- 	if (ret < 0)
- 		goto out;
- 
--	/* Install the map */
--	if (new_map.nr_extents <= UID_GID_MAP_MAX_BASE_EXTENTS) {
--		memcpy(map->extent, new_map.extent,
--		       new_map.nr_extents * sizeof(new_map.extent[0]));
--	} else {
--		map->forward = new_map.forward;
--		map->reverse = new_map.reverse;
--	}
--	smp_wmb();
--	map->nr_extents = new_map.nr_extents;
--
-+	commit_new_idmap(map, &new_map);
- 	*ppos = count;
- 	ret = count;
- out:
--	if (ret < 0 && new_map.nr_extents > UID_GID_MAP_MAX_BASE_EXTENTS) {
--		kfree(new_map.forward);
--		kfree(new_map.reverse);
--		map->forward = NULL;
--		map->reverse = NULL;
--		map->nr_extents = 0;
--	}
--
-+	free_new_idmap(&new_map);
- 	mutex_unlock(&userns_state_mutex);
- 	kfree(kbuf);
- 	return ret;
-@@ -1213,20 +1240,8 @@ static bool new_idmap_permitted(const struct file *file,
- 	/* Don't allow mappings that would allow anything that wouldn't
- 	 * be allowed without the establishment of unprivileged mappings.
- 	 */
--	if ((new_map->nr_extents == 1) && (new_map->extent[0].count == 1) &&
--	    uid_eq(ns->owner, cred->euid)) {
--		u32 id = new_map->extent[0].lower_first;
--		if (cap_setid == CAP_SETUID) {
--			kuid_t uid = make_kuid(ns->parent, id);
--			if (uid_eq(uid, cred->euid))
--				return true;
--		} else if (cap_setid == CAP_SETGID) {
--			kgid_t gid = make_kgid(ns->parent, id);
--			if (!(ns->flags & USERNS_SETGROUPS_ALLOWED) &&
--			    gid_eq(gid, cred->egid))
--				return true;
--		}
--	}
-+	if (unpriv_idmap_permitted(ns, cred, cap_setid, ns->flags, new_map))
-+		return true;
- 
- 	/* Allow anyone to set a mapping that doesn't require privilege */
- 	if (!cap_valid(cap_setid))
+ #
+ # Due to a historical design error, certain syscalls are numbered differently
+diff --git a/tools/perf/arch/xtensa/entry/syscalls/syscall.tbl b/tools/perf/arch/xtensa/entry/syscalls/syscall.tbl
+index d354bb231796..f10b491c873c 100644
+--- a/tools/perf/arch/xtensa/entry/syscalls/syscall.tbl
++++ b/tools/perf/arch/xtensa/entry/syscalls/syscall.tbl
+@@ -443,3 +443,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
+diff --git a/tools/scripts/syscall.tbl b/tools/scripts/syscall.tbl
+index 0ab531605120..7ba073cc0e80 100644
+--- a/tools/scripts/syscall.tbl
++++ b/tools/scripts/syscall.tbl
+@@ -413,3 +413,4 @@
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
+ 472	common	fchroot				sys_fchroot
++473	common	userns_set_idmap		sys_userns_set_idmap
 -- 
 2.47.3
 
