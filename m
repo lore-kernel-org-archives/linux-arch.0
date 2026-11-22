@@ -1,75 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795378222;
-	b=tefoGA4mKMnL+H6k9Feig+D72r8RxWXIEmWc1Fzu77fA0rx/5gR6Eb3Sj8RdAkJUV9fw
-	 IYeGlNBkO/KKek2S3RsiCkvPSGrT0k2gAOQSBW4zfPIKrkVBok51hFU9SiWlbx18ZSzlq
-	 71o9AYEWXnKpfHEuJzbsAmw1cdf30J7txZ4AqC9YENHiPcDn5DlB7G7dPlb/jcmJGqnJs
-	 dNwRbwg+VZ5iNOgY7MmG8MyARYM2AOJy9BXTY1o90LDjFboV5WCqFjLUbHscC4gHUrt9m
-	 dAjjSuAHkf/F5sDoiutfsSKcyKf5ABL8CHtgbu8XA4gtOGntGG2uVO1nI/c9yxtASaQ==
+	t=1795379284;
+	b=lhRwsbBcE8CC3oEG9PlmejTlLgoK633nzCvnUmrowSDyUnMPBvLmiIUuA1EVMusuqxCP
+	 GmWrqo3craAJoZYcxHY/yzTF5/xh8tiPWyFpGQdUU+R7H5UTy6JQuSQRGUwkkF9kLLi+x
+	 5ypVMBkymtdS2aAcPEnf/lYSn9QC16FHONMtYDmWpt9NjD0nKBU/DjlPnT8z/fpdWxBOZ
+	 4aGntLO6OBp9QX1toPOlCKU5sPTc3gsx2GGHrcOMrDq3BRuiLo1detYMLmd73nKE057YY
+	 xvqn6BGvrQmL7x5RitS1Xj7sMvG7dZOTD4EYVjJZtJ3RNwpx+/7/Eco8dqrvutkw4vg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795378222;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-Id:
-	 In-Reply-To:References:X-Mailer:Mime-Version:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=+FsNSHYaB061hlu2KABqxgrNYuq8vEgF2fs6tSZjLEU=;
-	b=MAEx8xEb0zIZHts1MOGVBeWSurRe/mQZu7Ao4pRRJ6gRT5n3f1y2BqohdaC/UEGAyw9Y
-	 q4lU4tsFQl7JzqESfPrxmv5pqDmTwTS3Pos2BpVOc3CawX9FJqHl73NbS/9DmvDz6oWv8
-	 NMApQcKSN0AO8Wq15SrjVb8FvNLX70QMXIuHQFT6GWHN3UUWVpFMqkDmGRLuOA2CwrBb1
-	 qFGMLNlwK2TM9rn1YZaN+k7eO26GkBkW63tfxZYEgDEAg2PA2hOeuU90WRhO+lOxyxoIs
-	 JJpapZihrEZZIG4iOoIFtotEHcAnVxEydZXVUdqFQBmNkL5cLl6Nt56cknJ3bQkKMeA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795379284;
+	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
+	 In-Reply-To:References:Subject:From:To:Cc:Date;
+	bh=hX4n2ELcNNj0/4nHT8RN7SbsIUQvyFqPuov+TG5Nv9g=;
+	b=0PpT/jxKVddrsw+T1qelY5W5A9EGWH4NJQaZtQadGNIVNi9Y8FoLwpaRMUhV/bmeYU0z
+	 GHca0wBngnckJ9HMvGta6cpXHZqQ27HSp6J2ikpTPkmO6ydDsQL/xtLh6KrhgxYZNXCB7
+	 CBcqHfwRKXRZqS4aAVZyCXodvcjcA7eEKmmBpRj86g57ZTQgLiiGZW9lBJe0U3//aEINd
+	 v016eNA1pinA6kIzPE67EnLq7+aIZC4zhvKCsKjkrD7w/6tPsEiwHFhnbygHY/EB7YeGp
+	 ydGrGBCstSienFbSGrrvRo4aUpFGRxW2zs/O1QSDbPgEzA0ZcV5pFQABGAulSj2hytA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=OeKs4h20;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="DtQFC/+B";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0D1B606A32E;
-	Sun, 22 Nov 2026 20:10:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9D14606A31A;
+	Sun, 22 Nov 2026 20:28:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=OeKs4h20
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E8EB11F000D8;
-	Sun, 22 Nov 2026 20:10:20 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1795378222;
-	bh=+FsNSHYaB061hlu2KABqxgrNYuq8vEgF2fs6tSZjLEU=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=OeKs4h20pS30oNZ1IR6GnomWw5DqimBeyeF3s3kvf9vG6T6et1HFpXwu+3RUD3kAl
-	 VTBl8DZ7dNxpuLlaF0l10G+XbXn4Bh8/advm28c8V+2c9NNnSdrLUBtzuJz1FfZvob
-	 aI+udgeSDGFiJYNYNYYS0x1Dy9+r3s2cQyGX418c=
-Date: Sun, 22 Nov 2026 12:10:20 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Muchun Song <muchun.song@linux.dev>, Oscar Salvador <osalvador@suse.de>,
- Naoya Horiguchi <nao.horiguchi@gmail.com>, Mel Gorman <mgorman@suse.de>,
- Andy Whitcroft <apw@canonical.com>, Miaohe Lin <linmiaohe@huawei.com>,
- Michal Hocko <mhocko@suse.com>, Rik van Riel <riel@surriel.com>, Hugh
- Dickins <hughd@google.com>, Baolin Wang <baolin.wang@linux.alibaba.com>,
- Vivek Kasireddy <vivek.kasireddy@intel.com>, Dave Airlie
- <airlied@redhat.com>, Jason Gunthorpe <jgg@ziepe.ca>, Lorenzo Stoakes
- <ljs@kernel.org>, "Liam R. Howlett" <liam@infradead.org>, Vlastimil Babka
- <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan
- <surenb@google.com>, Jonathan Corbet <corbet@lwn.net>, Shuah Khan
- <skhan@linuxfoundation.org>, Randy Dunlap <rdunlap@infradead.org>, Peter Xu
- <peterx@redhat.com>, Breno Leitao <leitao@debian.org>, Will Deacon
- <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick
- Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Heiko
- Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander
- Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger
- <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, Arnd
- Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-kernel@vger.kernel.org,
- Gerd Hoffmann <kraxel@redhat.com>, linux-doc@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, stable@kernel.org,
- Josef Bacik <josef@toxicpanda.com>
-Subject: Re: [PATCH v2 04/15] mm/hugetlb: account temporary folios
- separately
-Message-Id: <20261122121020.4c0964fa03c2255e29fd43d7@linux-foundation.org>
-In-Reply-To: <5f477c4f-9874-4f51-ab84-5b044a3ea568@kernel.org>
-References: <20261116-fixes_hugetlb-v2-0-4dd9e94ea9ac@kernel.org>
-	<20261116-fixes_hugetlb-v2-4-4dd9e94ea9ac@kernel.org>
-	<45997a78-95bd-4e50-b433-f64237f9ec1a@kernel.org>
-	<5f477c4f-9874-4f51-ab84-5b044a3ea568@kernel.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=DtQFC/+B
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 579341F000C0;
+	Sun, 22 Nov 2026 20:28:00 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795379283;
+	bh=hX4n2ELcNNj0/4nHT8RN7SbsIUQvyFqPuov+TG5Nv9g=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date;
+	b=DtQFC/+BjIVL35yRIkQAYiez++FX6dq1X7g9+U5wiM9l5aQa2bCiQa0lA2KTXkgKO
+	 2GT1VmmiI5zeFd1FOhAPus/+fS4ofCKzqBssX2tUSpnCu5DOjAqzn3puJ0tq8KB9t4
+	 GpNPbpdGJuuLtuJfgKRWiznvitvtiWUv388C8tOsf0YN4/CfgUZ1IiMn3x35uwU0Mn
+	 1Ao9M5lEIvKdmb/YeWSZ7g4sl3nh/deToqadEqFwGkeoAk1OyDwjyExdU9l/1PjW8N
+	 jHMgktO+4YczGQbKoF+Q9d+vLGJmsYwWWN9aZj/3h6aCyWyoR5o2gpSdRDOswa7+zR
+	 QEgyW1cP1w0QQ==
+Content-Type: multipart/mixed; boundary="===============7306649944735902366=="
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -78,72 +48,71 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+Message-Id: <b6da91bd7d0e63cbf8a3d96298191544d46afbc7d0ba1a7fa55b996f7d7cd7c3@mail.kernel.org>
+In-Reply-To: <20261122193539.3334213-11-jarkko@kernel.org>
+References: <20261122193539.3334213-11-jarkko@kernel.org>
+Subject: Re: [RFC PATCH v7 10/26] userland: Add core infrastructure
+From: bot+bpf-ci@kernel.org
+To: jarkko@kernel.org,linux-fsdevel@vger.kernel.org
+Cc: jarkko@kernel.org,bpf@vger.kernel.org,containers@lists.linux.dev,linux-api@vger.kernel.org,linux-arch@vger.kernel.org,linux-doc@vger.kernel.org,linux-kernel@vger.kernel.org,linux-kselftest@vger.kernel.org,linux-mm@kvack.org,linux-security-module@vger.kernel.org,aleksa@amutable.com,alex@amutable.com,viro@zeniv.linux.org.uk,luto@amacapital.net,arnd@arndb.de,brauner@kernel.org,dhowells@redhat.com,ebiggers@kernel.org,giuseppe@scrivano.org,hughd@google.com,jack@suse.cz,jlayton@kernel.org,corbet@lwn.net,josef@toxicpanda.com,kees@kernel.org,kpsingh@kernel.org,lennart@poettering.net,neal@gompa.dev,oleg@redhat.com,paul@paul-moore.com,ptikhomirov@virtuozzo.com,sergeh@kernel.org,skhan@linuxfoundation.org,zygmunt.krynicki@canonical.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
+Date: Sun, 22 Nov 2026 20:28:00 +0000 (UTC)
+
+--===============7306649944735902366==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
-On Sun, 22 Nov 2026 19:44:35 +0100 "David Hildenbrand (Arm)" <david@kernel.org> wrote:
+> userland: Add core infrastructure
 
-> > In combination with
-> > 
-> > 	mm/hugetlb: preserve persistent flags when returning folios to the pool
-> > 
-> > This results in an issue during boot.
-> > 
-> > I think the following is required:
-> > 
-> > diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-> > index bfc88d42ef0d..aa6ad8d93266 100644
-> > --- a/mm/hugetlb.c
-> > +++ b/mm/hugetlb.c
-> > @@ -1804,8 +1804,8 @@ void free_huge_folio(struct folio *folio)
-> >                 h->resv_huge_pages++;
-> > 
-> >         if (folio_test_hugetlb_temporary(folio)) {
-> > -               folio_clear_hugetlb_temporary(folio);
-> >                 remove_hugetlb_folio(h, folio, false);
-> > +               folio_clear_hugetlb_temporary(folio);
-> >                 spin_unlock_irqrestore(&hugetlb_lock, flags);
-> >                 update_and_free_hugetlb_folio(h, folio, true);
-> >         } else if (h->surplus_huge_pages_node[nid] &&
-> > 
-> > I'll test real quick whether that resolves CI issues ...
-> > 
-> 
-> Yes, that makes it work. @Andrew, can you fix that up?
+TL;DR:
+- USERLAND_ALL_FLAGS in the uapi header becomes fixed ABI; adding flags later
+  may break rebuilt programs, so consider keeping it kernel-internal
+- USERLAND_CLOSE_ON_EXEC naming nit: other flags use *_CLOEXEC
 
-np.
+> diff --git a/include/uapi/linux/userland.h b/include/uapi/linux/userland.h
+> new file mode 100644
+> --- /dev/null
+> +++ b/include/uapi/linux/userland.h
 
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Subject: mm-hugetlb-account-temporary-folios-separately-fix
-Date: Sun, 22 Nov 2026 19:21:43 +0100
+[ ... ]
 
-In combination with
+> +enum userland_flags {
+> +	USERLAND_KILL_ON_CLOSE	= 0x00000001,
+> +	USERLAND_CLOSE_ON_EXEC	= 0x00000002,
+> +	USERLAND_ALL_FLAGS	= 0x00000003,
+> +};
 
-	mm/hugetlb: preserve persistent flags when returning folios to the pool
+Should the USERLAND_ALL_FLAGS mask be exported in the uapi header?  The
+later userland_open() syscall validates with:
 
-This results in an issue during boot.
+  if (flags & ~USERLAND_ALL_FLAGS)
+          return -EINVAL;
 
-This fix is required.
+Once released, the value of this mask is fixed ABI.  If a later kernel adds
+a flag and grows the mask, a program rebuilt against the new header that
+uses USERLAND_ALL_FLAGS would get -EINVAL on older kernels.  If the mask is
+left unchanged, the in-kernel check stops covering the new flag.
 
-Link: https://patch.msgid.link/45997a78-95bd-4e50-b433-f64237f9ec1a@kernel.org
-Signed-off-by: "David Hildenbrand (Arm)" <david@kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+fanotify hit this: include/uapi/linux/fanotify.h marks FAN_ALL_CLASS_BITS,
+FAN_ALL_INIT_FLAGS and FAN_ALL_MARK_FLAGS as "Deprecated - do not use this
+in programs and do not add new flags here!", and the valid masks live in
+include/linux/fanotify.h (FANOTIFY_INIT_FLAGS).  Other fd-returning
+syscalls keep their valid-flag masks kernel-internal, for example
+CLONE_LEGACY_FLAGS in include/linux/sched/task.h and VALID_RESOLVE_FLAGS in
+include/linux/fcntl.h.  Would it make sense to move the mask to
+include/linux/userland.h?
 
- mm/hugetlb.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Also, this isn't a bug, but should USERLAND_CLOSE_ON_EXEC be spelled
+USERLAND_CLOEXEC?  The other close-on-exec flags under include/uapi all use
+the *_CLOEXEC form (FSOPEN_CLOEXEC, FSMOUNT_CLOEXEC, OPEN_TREE_CLOEXEC,
+MFD_CLOEXEC, EFD_CLOEXEC, ...), and the name cannot be changed after the
+ABI is released.
 
---- a/mm/hugetlb.c~mm-hugetlb-account-temporary-folios-separately-fix
-+++ a/mm/hugetlb.c
-@@ -1792,8 +1792,8 @@ void free_huge_folio(struct folio *folio
- 		h->resv_huge_pages++;
- 
- 	if (folio_test_hugetlb_temporary(folio)) {
--		folio_clear_hugetlb_temporary(folio);
- 		remove_hugetlb_folio(h, folio, false);
-+		folio_clear_hugetlb_temporary(folio);
- 		spin_unlock_irqrestore(&hugetlb_lock, flags);
- 		update_and_free_hugetlb_folio(h, folio, true);
- 	} else if (h->surplus_huge_pages_node[nid]) {
-_
 
+---
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
+
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/45063222848
+--===============7306649944735902366==--
