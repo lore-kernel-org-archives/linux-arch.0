@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795376251;
-	b=1KarJaDuhjPeTn49ZGEKlTwIKjr8XzSCKHh0peoo3NOXaIy3vEwF1rL6LXloYk8v51ZZ
-	 RlX1JlZ72qV4Amv0QVI/8XwDrN3sdVxqfkrZR2q9NVfugoZ1iXB555CVrmYfOoNkjodRC
-	 o1u0YhUjmp67RmbcdgPwdLWpN904b9N3eC5r0dhDttT/JbF4ZsLH8admpZd9+1YkAxP1S
-	 VsHXy12YMqYgaOt2PM802RuGtuVwLNd161z8ciJoaZZzUpuuv8QvxobPJIBBGWAZZGPhb
-	 cg8Tas63IPIyedpkGPO6qmuMWmZwCJRlTxoRe/YedPS2AVHD6rOARcm1eKHEoLCwX2w==
+	t=1795376259;
+	b=MMZhef/T629x52jtCpAuqz1fa2VOnTRE98+CfYSLsRZ9ztthkWSnx0SH0WLISuoxDvc9
+	 Fj+eR271g4ppLA7FGuLuYzZe23TcukBST+UlQM+xOYfYYAs2MGmN8xdUC0uB1qSNJXvLG
+	 Mh158cQDCQRBHq9JA1bNooiOUqX0PB+9wt85VXu+UyaS80OLbFcr7b4HGDNDo8OWr3ZMq
+	 cefkC95IBmEU5oivQSoD8kw2oCeJNoqhFOQj2NOIqi+OcYnuap+UApwlVHF2+XcG92D0p
+	 e4OFyv5SRAUWsWmCYug4AW9UckutUrX5wYwZ9gZibbHW50WZmU1OUzidFGccY08XIkQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795376251;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795376259;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=zs4d8Qildq2fNc6PLk+GUR8ZjIlQZmHZPkOwBRx3+1A=;
-	b=Pu14LMi6C0MVv0oYIfo4K0I0/bq8AEjm6iw9e2cG7G+3C9SK6JIo9z8L7GaGyYaMVlM7
-	 +cWvZfJLrNuvBx2Z3fML1/7ngla2VJU4XMw7s2qZ11m99uW1cvZD3Fu1PWsFtHMrO3A2N
-	 wSbW+xfw4DDGtboAiQjHJkw1C3ogSxHQPBHtBcgmgxexA68Sl9VzyqeSG16hcuTrRt8hs
-	 GIvTN6/SAMq7RBCvlZ6vSxMsaNPN6MjARkTxmECJkzMkcQ1JdoMmwOeFIZx8sun8Pl9cA
-	 thdy7BulebM0baxX9QtSKy5kZr7rxTSXmXf8p5FKVsN9/hG5Ix+ja3V57yiE9sNK9Lw==
+	bh=lKuvDTI6FKXAAEbVhrzFDmxnTT5Wc4CNv/2+sIEwHRc=;
+	b=kNT5Pbm94mW7Y+OmsJw+eGQUuDHnL2GURY7ckUXGETkICavsBm34f+S/y/xMGJhCJ3Qd
+	 htbJXaN2IhpA9yNHZmFXe/yCmJNnnLkGyjXS5NKSLRR1AG18w3LKYQyOW7bLaO8EDRFB0
+	 E0suIbZVCbkF/UecvKtjB2G1mF/xJr+aCb+pfXa3wSHMvDiFyx9COkEBsGvluxJfm2R+H
+	 5Qy/4EozjR/blMHD4J6ESup4En+wMoQE3gbIeakFabsfShNVMIaa/xqeiclbaT2LPEoQU
+	 ELXUX7KVIjF+Jr2zqUWNuqFgBesfdgdc1SyCxwliD9x6i+y57vZsDqKrz2EsFALfEsw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=W8nWhqyY;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JrRw2VD2;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 67B84606A6AD;
-	Sun, 22 Nov 2026 19:37:31 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id B0926606A6AA;
+	Sun, 22 Nov 2026 19:37:39 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=W8nWhqyY
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 193F91F000C0;
-	Sun, 22 Nov 2026 19:37:30 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JrRw2VD2
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id B91A51F000C0;
+	Sun, 22 Nov 2026 19:37:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795376250;
-	bh=zs4d8Qildq2fNc6PLk+GUR8ZjIlQZmHZPkOwBRx3+1A=;
+	s=k20260515; t=1795376259;
+	bh=lKuvDTI6FKXAAEbVhrzFDmxnTT5Wc4CNv/2+sIEwHRc=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=W8nWhqyY1l/5oIhxo9AusbNPDS7pNe2c7jdlfibiK9O4J7YFbmrpPsuK6dub2ROAe
-	 rn9773eP+vZgMLsdrGpMNtNwUR97O+i7Ymi7QxvdMtYxyu/B5vZtW0/SSzz9CikZZG
-	 zz2so70cW+rNG9k2mcDrKZFtWEFpUpG1MUttpQAI7FZabGlKL8TGb/tF7vF0ZmWO80
-	 Hm87LXNBNvD3YulVza7xOlYl39k1q+U50EdgVJtvNyOJtHreMMEnqffEYjwpr841I8
-	 Iu4gBtD2Cfw8Lt+5t4n478r/phiivzEwhQSTNlPRapp8t/upmoP72EBoqdD5BcfafY
-	 ZTCS4Or2D4EEA==
+	b=JrRw2VD2LDlpWWnJ443LaoyqYPi4WgdTpxgCBEg8S1X4e6IoUvfRHh2uCryPfjSrB
+	 k49cshsGh1pQGyu8+ruFN5d5UZ84WoFrEgLMgZL33GuKh7Brduf4ZFFAMf8oJ5YeVe
+	 P5+logxlr1Mggk49m8VIlSPaAsMgwtpUd84l2GYBXS4JQzhRmyU1kB+6TwZ/FwxxFP
+	 TpBUzs/TXlv3gs+UJ16Cf0VGW6o7otugSJjLKPf51TNLQRNCN0a4c4ZxiL5bmTIcJA
+	 2hkuAJmkIf2j7Bq11dWJG+6VxJu6M2HyIMMaJTql4BEoanz/MSQ6sg6sqBmAtBU/UV
+	 E0hG4WNw5gekA==
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: linux-fsdevel@vger.kernel.org
 Cc: Jarkko Sakkinen <jarkko@kernel.org>,
@@ -75,9 +75,9 @@ Cc: Jarkko Sakkinen <jarkko@kernel.org>,
 	Serge Hallyn <sergeh@kernel.org>,
 	Shuah Khan <skhan@linuxfoundation.org>,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: [RFC PATCH v7 22/26] bpf: Register userland LSM hooks
-Date: Sun, 22 Nov 2026 21:35:35 +0200
-Message-ID: <20261122193539.3334213-23-jarkko@kernel.org>
+Subject: [RFC PATCH v7 24/26] docs: Document userland uAPI
+Date: Sun, 22 Nov 2026 21:35:37 +0200
+Message-ID: <20261122193539.3334213-25-jarkko@kernel.org>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20261122193539.3334213-1-jarkko@kernel.org>
 References: <20261122193539.3334213-1-jarkko@kernel.org>
@@ -92,56 +92,134 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-BPF LSM programs need sleepable and untrusted hook classifications for
-the userland LSM hooks in order to attach policies to userland
-allocation, namespace sharing, cloning, signaling, and release.
+Userspace orchestrators need a clear specification of what a userland
+is, its build and live state transitions, USERLAND_GET_NSFD,
+USERLAND_SHARE_NSFD, waitid(P_USERLAND), pidfd_send_signal(), mount-tree
+construction, user namespace ID mapping, credential rules, and process
+creation semantics.
 
-Register bpf_lsm_userland_alloc, bpf_lsm_userland_share,
-bpf_lsm_userland_clone, and bpf_lsm_userland_kill in
-sleepable_lsm_hooks, and bpf_lsm_userland_alloc and
-bpf_lsm_userland_free in untrusted_lsm_hooks under CONFIG_USERLAND.
+Add Documentation/userspace-api/userland.rst including the kernel-doc
+sections, type definitions, ioctl descriptions, and system call
+reference from include/linux/userland.h, include/uapi/linux/userland.h,
+include/uapi/linux/nsfs.h, kernel/userland.c, kernel/user_namespace.c,
+fs/fsopen.c, and fs/namespace.c, and register the userland ioctl magic
+in ioctl-number.rst.
 
 Signed-off-by: Jarkko Sakkinen <jarkko@kernel.org>
 ---
- kernel/bpf/bpf_lsm.c | 11 +++++++++++
- 1 file changed, 11 insertions(+)
+ Documentation/userspace-api/index.rst         |  1 +
+ .../userspace-api/ioctl/ioctl-number.rst      |  1 +
+ Documentation/userspace-api/userland.rst      | 77 +++++++++++++++++++
+ 3 files changed, 79 insertions(+)
+ create mode 100644 Documentation/userspace-api/userland.rst
 
-diff --git a/kernel/bpf/bpf_lsm.c b/kernel/bpf/bpf_lsm.c
-index 468e63dbd922..ac8508a6b242 100644
---- a/kernel/bpf/bpf_lsm.c
-+++ b/kernel/bpf/bpf_lsm.c
-@@ -16,6 +16,7 @@
- #include <linux/btf_ids.h>
- #include <linux/ima.h>
- #include <linux/bpf-cgroup.h>
-+#include <linux/userland.h>
+diff --git a/Documentation/userspace-api/index.rst b/Documentation/userspace-api/index.rst
+index a68b1bea57a8..ac665b8fea72 100644
+--- a/Documentation/userspace-api/index.rst
++++ b/Documentation/userspace-api/index.rst
+@@ -17,6 +17,7 @@ System calls
+    :maxdepth: 1
  
- /* For every LSM hook that allows attachment of BPF programs, declare a nop
-  * function where a BPF program can be attached. Notably, we qualify each with
-@@ -404,6 +405,12 @@ BTF_ID(func, bpf_lsm_task_setscheduler)
- BTF_ID(func, bpf_lsm_userns_create)
- BTF_ID(func, bpf_lsm_bdev_alloc_security)
- BTF_ID(func, bpf_lsm_bdev_setintegrity)
-+#ifdef CONFIG_USERLAND
-+BTF_ID(func, bpf_lsm_userland_alloc)
-+BTF_ID(func, bpf_lsm_userland_share)
-+BTF_ID(func, bpf_lsm_userland_clone)
-+BTF_ID(func, bpf_lsm_userland_kill)
-+#endif /* CONFIG_USERLAND */
- BTF_SET_END(sleepable_lsm_hooks)
- 
- BTF_SET_START(untrusted_lsm_hooks)
-@@ -420,6 +427,10 @@ BTF_ID(func, bpf_lsm_sk_free_security)
- BTF_ID(func, bpf_lsm_task_free)
- BTF_ID(func, bpf_lsm_bdev_alloc_security)
- BTF_ID(func, bpf_lsm_bdev_free_security)
-+#ifdef CONFIG_USERLAND
-+BTF_ID(func, bpf_lsm_userland_alloc)
-+BTF_ID(func, bpf_lsm_userland_free)
-+#endif /* CONFIG_USERLAND */
- BTF_SET_END(untrusted_lsm_hooks)
- 
- bool bpf_lsm_is_sleepable_hook(u32 btf_id)
+    unshare
++   userland
+    futex2
+    ebpf/index
+    ioctl/index
+diff --git a/Documentation/userspace-api/ioctl/ioctl-number.rst b/Documentation/userspace-api/ioctl/ioctl-number.rst
+index dbe462040999..4cf194e7b648 100644
+--- a/Documentation/userspace-api/ioctl/ioctl-number.rst
++++ b/Documentation/userspace-api/ioctl/ioctl-number.rst
+@@ -385,6 +385,7 @@ Code  Seq#    Include File                                             Comments
+ 0xB8  01-02  uapi/misc/mrvl_cn10k_dpi.h                                Marvell CN10K DPI driver
+ 0xB8  all    uapi/linux/mshv.h                                         Microsoft Hyper-V /dev/mshv driver
+                                                                        <mailto:linux-hyperv@vger.kernel.org>
++0xB9  00-0F  uapi/linux/userland.h                                     userland uAPI
+ 0xBA  00-0F  uapi/linux/liveupdate.h                                   Pasha Tatashin
+                                                                        <mailto:pasha.tatashin@soleen.com>
+ 0xC0  00-0F  linux/usb/iowarrior.h
+diff --git a/Documentation/userspace-api/userland.rst b/Documentation/userspace-api/userland.rst
+new file mode 100644
+index 000000000000..e32ea3501472
+--- /dev/null
++++ b/Documentation/userspace-api/userland.rst
+@@ -0,0 +1,77 @@
++.. SPDX-License-Identifier: GPL-2.0
++
++=============
++userland uAPI
++=============
++
++Overview
++========
++
++.. kernel-doc:: kernel/userland.c
++   :doc: Overview
++
++Lifecycle
++=========
++
++.. kernel-doc:: include/linux/userland.h
++   :identifiers: userland_state
++
++Flags
++=====
++
++.. kernel-doc:: include/uapi/linux/userland.h
++   :identifiers: userland_flags
++
++Ioctls
++======
++
++.. kernel-doc:: include/uapi/linux/userland.h
++   :doc: USERLAND_GET_NSFD
++
++.. kernel-doc:: include/uapi/linux/userland.h
++   :doc: USERLAND_SHARE_NSFD
++
++System calls
++============
++
++.. kernel-doc:: kernel/userland.c
++   :identifiers: sys_userland_open
++
++Process creation
++================
++
++.. kernel-doc:: kernel/userland.c
++   :doc: CLONE_INTO_USERLAND
++
++Process waiting
++===============
++
++.. kernel-doc:: kernel/userland.c
++   :doc: P_USERLAND
++
++Signal delivery
++===============
++
++.. kernel-doc:: kernel/userland.c
++   :doc: pidfd_send_signal
++
++Filesystem configuration
++========================
++
++.. kernel-doc:: fs/fsopen.c
++   :doc: FSCONFIG_SET_USERLAND
++
++Mount tree installation
++=======================
++
++.. kernel-doc:: fs/namespace.c
++   :doc: MOVE_MOUNT_T_MNTNS
++
++User namespace ID mapping
++=========================
++
++.. kernel-doc:: include/uapi/linux/nsfs.h
++   :identifiers: userns_idmap_extent userns_flags userns_idmap
++
++.. kernel-doc:: kernel/user_namespace.c
++   :identifiers: sys_userns_set_idmap
 -- 
 2.47.3
 
