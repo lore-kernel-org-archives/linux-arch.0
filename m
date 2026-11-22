@@ -1,44 +1,44 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795376173;
-	b=uBOddxOuhj8vMUDTmGV0ZDiPfIoRM04Uz7CZOmCkfTXXncH3jZMHx7lmwQhdZ0Az2Suf
-	 xWvxI7Alt6iQLeDr0ZfxdAb6rdsWmUddbWNxWtvbGJSdtw4jkI/NncMDApx5bqtyBWhBk
-	 XcZI8rBcHeixVBsUWd9uKuiq3Y+hCI3TErjSOQMbWQuFZgEibrGI3P61ja68Ogq4pj1WN
-	 esMcoCUMes6zA9mMe34kmoA4UOxVx5RkpYX3sCVwwh2zzVnMeGb5/uukmCEc20PCwbN0n
-	 BQBFykZWm+OpID9rHhIRIRTIohsAqGf0Z7+FDnkkl8n7nyHQ94vZdHnTOck8Ekpe6zA==
+	t=1795376183;
+	b=za2UcAQlp1rZSwMgUPsGXASwNhbAhw68VxWQ4yuuefIy54eqfZw8dVPQ5XmzLg0RvNfu
+	 m9fWAcRprmXLP6nUVbo50T8DvF8vEs3R+LQ1kW7Ft8oSDpP/hDmffh3yFuV+VidnUvXVU
+	 lqBNo9zn5wRIm2g6RMHqnoV5gsgAQlIoT+S+kX1wDSz6oWHAWEcPnQCZa6/qn0cqD47Zv
+	 WxqHZ57BGko9f12NeEiz/9tWnFXuPzTUta+Q57erLVu9SXRkirrLvAZZ00AqS0bo2MG8P
+	 l3aUp1aCuGZ23IOWg76g44SZbbycSgrDuDtVgDJnvImNnztiDUAfv448WcadIzp5MhA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795376173;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795376183;
 	h=Received:DKIM-Signature:From:To:Cc:Subject:Date:Message-ID:X-Mailer:
 	 In-Reply-To:References:MIME-Version:Content-Transfer-Encoding;
-	bh=vM1mKrQLSyzANBNyG1aKfJTP501fkwwz9TXQLi7bGuQ=;
-	b=s0H3D5pU8VAOPt5p+syq3G1EZIdKU6N/y4Xzbab9FM6qGnrV5sYgsiNx6RU4krsJJ/NB
-	 Aa1f3SGdZ5C/QGUHOt58M7ohuYVDrtqCXG1IPTrYHOJYwaw4RRu4lTxdJ3glmu5VPACWS
-	 fZPuzQ0ORo877BbiPtQcmqK8c8daK5DFXRk+V4nTc47YOnVE9eubKT5QOz5f1Rc+WhLgj
-	 /LuunyAnNfw3PWI3arJMCgvJb3HlGHDNDiYRVkr7TGhUQsxbwqeD6Ql/6278bu0RT9jyR
-	 2k1l18KBIGeEKwMgHJP3t9RtT9FpLX5icI8oPszAud5/YM6SjxObsDHzKVX0TnifFUw==
+	bh=5jrAX1PmfNtv6uOvZGmkwX1H7UPYJH6p5kmtKInrUTc=;
+	b=ajTwh8xG5SvYY9ejK09+2U2yeaBnenmOpSH1UJUaqpkJGB1GosSW75mJd4APUTEzqhQT
+	 osSHmRVN6mV1UxQ5ieqpeyMZOpUAkGHuT2ph86gVQAbTmrVItkUNdW462EtfCEttVwhhD
+	 1QlaRSXRPhJNy4JwAL4C/iqKJV3DF5W78nD0lte4gHbWaUwqDPRQojSzY4nHZWpZsDhsL
+	 oA2UvjvotPQwwJGJ9qvHdglIFL5Jzhm3OToHm/onUprbQ9m6lRV80xA5Xj9KGV440GbSl
+	 O207t2qRZ4uYHv++7cTxOt53t1SffJqFSqjnjW4ENM5HWOVcfkquyf9jaqoJfJFjiVA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ML3xN9f1;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Br9beAXp;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 9C669606A32D;
-	Sun, 22 Nov 2026 19:36:13 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 03DB0606A332;
+	Sun, 22 Nov 2026 19:36:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ML3xN9f1
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id AD8231F0093E;
-	Sun, 22 Nov 2026 19:36:12 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=Br9beAXp
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 421061F000C0;
+	Sun, 22 Nov 2026 19:36:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795376173;
-	bh=vM1mKrQLSyzANBNyG1aKfJTP501fkwwz9TXQLi7bGuQ=;
+	s=k20260515; t=1795376182;
+	bh=5jrAX1PmfNtv6uOvZGmkwX1H7UPYJH6p5kmtKInrUTc=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=ML3xN9f1NmOT9C4XtO9B3G/pEraSCkk+fGaUGxmfXkMSy6TKIXwr5mJ/3Vb0BQdJx
-	 bc4Zgm5HzTPW7ytnpBWX+mvGnJJToKTeHouV6VOQ4K0ixbrEDJTitMQrGpBFHfl/YQ
-	 Uupc2uCAxIGiBsYzn50mAhzkLjT7HECBIIA83ovrkQSr1W0+ZEjB4dtS+3WxjZm+DD
-	 WUEB8tzZ2u5Ytdu9lYsERqyGEtHbrar1iun2ztFzU6sHSkfUhgdjFFouEhwNv/3QaK
-	 mjpaCN5iKa1Kot+n2y5Rwu+az720n6eoCHJuGinUAhRjNbLRwVb6KGTnrvVjvRx6Kj
-	 1lk1dgq8Y6CjA==
+	b=Br9beAXprFGij/+40/DsIWOg+MKu+1rmUGEdQmx2e1C6wg/wAYxaxU9+E5PcqnIXH
+	 d5gerPs13OrDyCLG301s/dqW/l79pgAw2umYn3k9dTUSJnecT0POE1ZAbSb9jIEiGn
+	 c7n+0MZH54bUU195vbobf1ECTDJ2dftZizqLY5avzGNyJGbCYRSwM+B05QpmUxh2T/
+	 opf800SdJ7o1TyszlbvFiTkIkYmlPBjsj/61bvm3BJlRFEHVNvFfVNUtSdxXhtCJFJ
+	 HCfxakC4I9L14bYYvur262S9TF5Gww9UDY5q2iS+0nzmExopckW8sR/fSeJwowbMOH
+	 1XaXpF6P5Zfdg==
 From: Jarkko Sakkinen <jarkko@kernel.org>
 To: linux-fsdevel@vger.kernel.org
 Cc: Jarkko Sakkinen <jarkko@kernel.org>,
@@ -75,9 +75,9 @@ Cc: Jarkko Sakkinen <jarkko@kernel.org>,
 	Serge Hallyn <sergeh@kernel.org>,
 	Shuah Khan <skhan@linuxfoundation.org>,
 	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: [RFC PATCH v7 04/26] mount: Add mnt_ns_get_root()
-Date: Sun, 22 Nov 2026 21:35:17 +0200
-Message-ID: <20261122193539.3334213-5-jarkko@kernel.org>
+Subject: [RFC PATCH v7 06/26] mount: Support MOVE_MOUNT_T_MNTNS in move_mount()
+Date: Sun, 22 Nov 2026 21:35:19 +0200
+Message-ID: <20261122193539.3334213-7-jarkko@kernel.org>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20261122193539.3334213-1-jarkko@kernel.org>
 References: <20261122193539.3334213-1-jarkko@kernel.org>
@@ -92,70 +92,438 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Empty mount namespaces created with CLONE_EMPTY_MNTNS start with only an
-internal nullfs root mount until a real root filesystem is mounted over
-it, and external callers have no helper to resolve the live root path of
-an unentered mount namespace.
+move_mount() currently resolves target paths only against the caller's
+filesystem view or anonymous mount fds, preventing an external manager
+from populating an empty mount namespace or hot-mounting into an
+existing container's mount namespace without entering it first.
 
-Add mnt_ns_get_root() to look up "/" with LOOKUP_DOWN from the mount
-namespace's base root mount and return -ENOENT if no filesystem has been
-mounted over the initial nullfs root yet.
+Add MOVE_MOUNT_T_MNTNS to attach detached anonymous mount trees into a
+target mount namespace nsfs file descriptor. Installing "/" attaches the
+initial root mount onto the nullfs root of an empty mount namespace at
+most once, while relative target paths resolve with LOOKUP_IN_ROOT
+beneath the live mount namespace root and reject root-mount aliases
+under namespace_lock().
+
+Check CAP_SYS_ADMIN in the target mount namespace's owning user
+namespace instead of caller may_mount(), check nsfs mount loops against
+the destination mount namespace, and lock moved mount trees inside
+attach_recursive_mnt() when crossing user namespace boundaries.
 
 Co-developed-by: David Howells <dhowells@redhat.com>
 Signed-off-by: David Howells <dhowells@redhat.com>
 Signed-off-by: Jarkko Sakkinen <jarkko@kernel.org>
 ---
- fs/namespace.c                | 16 ++++++++++++++++
- include/linux/mnt_namespace.h |  2 ++
- 2 files changed, 18 insertions(+)
+ fs/namespace.c             | 235 +++++++++++++++++++++++++++++++------
+ include/uapi/linux/mount.h |   3 +-
+ 2 files changed, 199 insertions(+), 39 deletions(-)
 
 diff --git a/fs/namespace.c b/fs/namespace.c
-index aecd05ac0170..781380945d78 100644
+index 1bb9f90a6523..93dd11da7e73 100644
 --- a/fs/namespace.c
 +++ b/fs/namespace.c
-@@ -6708,6 +6708,22 @@ static void mntns_put(struct ns_common *ns)
- 	put_mnt_ns(to_mnt_ns(ns));
+@@ -2202,7 +2202,8 @@ struct mnt_namespace *mnt_ns_from_dentry(struct dentry *dentry)
+ 	return to_mnt_ns(get_proc_ns(dentry->d_inode));
  }
  
-+int mnt_ns_get_root(struct mnt_namespace *mnt_ns, struct path *root)
-+{
-+	int err;
-+
-+	err = vfs_path_lookup(mnt_ns->root->mnt.mnt_root, &mnt_ns->root->mnt,
-+			      "/", LOOKUP_DOWN, root);
-+	if (err)
-+		return err;
-+	if (root->mnt == &mnt_ns->root->mnt) {
-+		path_put(root);
-+		*root = (struct path){};
-+		return -ENOENT;
-+	}
-+	return 0;
+-static bool mnt_ns_loop(struct dentry *dentry)
++static bool mnt_ns_loop_target(struct dentry *dentry,
++			       struct mnt_namespace *target_mnt_ns)
+ {
+ 	/* Could bind mounting the mount namespace inode cause a
+ 	 * mount namespace loop?
+@@ -2212,7 +2213,12 @@ static bool mnt_ns_loop(struct dentry *dentry)
+ 	if (!mnt_ns)
+ 		return false;
+ 
+-	return current->nsproxy->mnt_ns->ns.ns_id >= mnt_ns->ns.ns_id;
++	return target_mnt_ns->ns.ns_id >= mnt_ns->ns.ns_id;
 +}
 +
- static int mntns_install(struct nsset *nsset, struct ns_common *ns)
++static bool mnt_ns_loop(struct dentry *dentry)
++{
++	return mnt_ns_loop_target(dentry, current->nsproxy->mnt_ns);
+ }
+ 
+ struct mount *copy_tree(struct mount *src_root, struct dentry *dentry,
+@@ -2423,10 +2429,11 @@ static bool __has_children(struct mount *mnt, struct dentry *dentry)
+  *
+  * locks: mount_locked_reader || namespace_shared && pinned(subtree)
+  */
+-static bool check_for_nsfs_mounts(struct mount *subtree)
++static bool check_for_nsfs_mounts(struct mount *subtree,
++				  struct mnt_namespace *target_mnt_ns)
  {
- 	struct nsproxy *nsproxy = nsset->nsproxy;
-diff --git a/include/linux/mnt_namespace.h b/include/linux/mnt_namespace.h
-index 0acd1089d149..98188d1f7428 100644
---- a/include/linux/mnt_namespace.h
-+++ b/include/linux/mnt_namespace.h
-@@ -8,6 +8,7 @@
+ 	for (struct mount *p = subtree; p; p = next_mnt(p, subtree))
+-		if (mnt_ns_loop(p->mnt.mnt_root))
++		if (mnt_ns_loop_target(p->mnt.mnt_root, target_mnt_ns))
+ 			return false;
+ 	return true;
+ }
+@@ -2464,7 +2471,7 @@ struct vfsmount *clone_private_mount(const struct path *path)
+ 		if (!anon_ns_root(old_mnt))
+ 			return ERR_PTR(-EINVAL);
  
- struct mnt_namespace;
- struct fs_struct;
-+struct path;
- struct user_namespace;
- struct ns_common;
+-		if (!check_for_nsfs_mounts(old_mnt))
++		if (!check_for_nsfs_mounts(old_mnt, current->nsproxy->mnt_ns))
+ 			return ERR_PTR(-EINVAL);
+ 	}
  
-@@ -15,6 +16,7 @@ extern struct mnt_namespace init_mnt_ns;
+@@ -2564,12 +2571,16 @@ int count_mounts(struct mnt_namespace *ns, struct mount *mnt)
+ enum mnt_tree_flags_t {
+ 	MNT_TREE_BENEATH = BIT(0),
+ 	MNT_TREE_PROPAGATION = BIT(1),
++	MNT_TREE_MNTNS = BIT(2),
++	MNT_TREE_MNTNS_INIT = BIT(3),
+ };
  
- extern struct mnt_namespace *copy_mnt_ns(u64, struct mnt_namespace *,
- 		struct user_namespace *, struct fs_struct *);
-+int mnt_ns_get_root(struct mnt_namespace *mnt_ns, struct path *root);
- extern void put_mnt_ns(struct mnt_namespace *ns);
- DEFINE_FREE(put_mnt_ns, struct mnt_namespace *, if (!IS_ERR_OR_NULL(_T)) put_mnt_ns(_T))
- extern struct ns_common *from_mnt_ns(struct mnt_namespace *);
+ /**
+  * attach_recursive_mnt - attach a source mount tree
+  * @source_mnt: mount tree to be attached
+  * @dest:	the context for mounting at the place where the tree should go
++ * @src_user_ns: owning user namespace of @source_mnt for MOVE_MOUNT_T_MNTNS,
++ *               or NULL
+  *
+  *  NOTE: in the table below explains the semantics when a source mount
+  *  of a given type is attached to a destination mount of a given type.
+@@ -2632,13 +2643,15 @@ enum mnt_tree_flags_t {
+  *         Otherwise a negative error code is returned.
+  */
+ static int attach_recursive_mnt(struct mount *source_mnt,
+-				const struct pinned_mountpoint *dest)
++				const struct pinned_mountpoint *dest,
++				struct user_namespace *src_user_ns)
+ {
+ 	struct mount *dest_mnt = dest->parent;
+ 	struct mountpoint *dest_mp = dest->mp;
+ 	HLIST_HEAD(tree_list);
+ 	struct mnt_namespace *ns = dest_mnt->mnt_ns;
+ 	struct user_namespace *user_ns = ns->user_ns;
++	bool cross_src = src_user_ns && !in_userns(ns->user_ns, src_user_ns);
+ 	struct pinned_mountpoint root = {};
+ 	struct mountpoint *shorter = NULL;
+ 	struct mount *child, *p;
+@@ -2725,11 +2738,22 @@ static int attach_recursive_mnt(struct mount *source_mnt,
+ 	hlist_add_head(&source_mnt->mnt_hash, &tree_list);
+ 
+ 	hlist_for_each_entry_safe(child, n, &tree_list, mnt_hash) {
++		struct user_namespace *child_user_ns =
++			child->mnt_parent->mnt_ns->user_ns;
++		bool cross_child_src = cross_src &&
++				       !in_userns(child_user_ns, src_user_ns);
+ 		struct mount *q;
++
+ 		hlist_del_init(&child->mnt_hash);
+-		/* Notice when we are propagating across user namespaces */
+-		if (child->mnt_parent->mnt_ns->user_ns != user_ns)
++		/*
++		 * Notice when we are propagating or attaching a foreign
++		 * source tree across user namespaces.
++		 */
++		if (child_user_ns != user_ns || cross_child_src) {
+ 			lock_mnt_tree(child);
++			if (cross_child_src && list_empty(&child->mnt_expire))
++				child->mnt.mnt_flags |= MNT_LOCKED;
++		}
+ 		q = __lookup_mnt(&child->mnt_parent->mnt,
+ 				 child->mnt_mountpoint);
+ 		commit_tree(child);
+@@ -2937,7 +2961,7 @@ static int graft_tree(struct mount *mnt, const struct pinned_mountpoint *mp)
+ 	      d_is_dir(mnt->mnt.mnt_root))
+ 		return -ENOTDIR;
+ 
+-	return attach_recursive_mnt(mnt, mp);
++	return attach_recursive_mnt(mnt, mp, NULL);
+ }
+ 
+ static int may_change_propagation(const struct mount *m)
+@@ -3131,7 +3155,7 @@ static int do_loopback(const struct path *path, const char *old_name,
+ 		return PTR_ERR(mnt);
+ 
+ 	/* the copy may carry mount namespace files from below the source */
+-	if (recurse && !check_for_nsfs_mounts(mnt))
++	if (recurse && !check_for_nsfs_mounts(mnt, current->nsproxy->mnt_ns))
+ 		err = -EINVAL;
+ 	else
+ 		err = graft_tree(mnt, &mp);
+@@ -3776,9 +3800,12 @@ static inline bool may_use_mount(struct mount *mnt)
+ 
+ static int do_move_mount(const struct path *old_path,
+ 			 const struct path *new_path,
+-			 enum mnt_tree_flags_t flags)
++			 enum mnt_tree_flags_t flags,
++			 struct mnt_namespace *target_mnt_ns)
+ {
+ 	struct mount *old = real_mount(old_path->mnt);
++	struct user_namespace *src_user_ns = NULL;
++	struct mnt_namespace *dest_mnt_ns;
+ 	int err;
+ 	bool beneath = flags & MNT_TREE_BENEATH;
+ 
+@@ -3792,7 +3819,30 @@ static int do_move_mount(const struct path *old_path,
+ 	if (IS_ERR(mp.parent))
+ 		return PTR_ERR(mp.parent);
+ 
+-	if (check_mnt(old)) {
++	if (flags & MNT_TREE_MNTNS) {
++		u64 seq;
++
++		if (!anon_ns_root(old) || old->mnt_ns == mp.parent->mnt_ns ||
++		    mp.parent->mnt_ns != target_mnt_ns)
++			return -EINVAL;
++		seq = old->mnt_ns->seq_origin;
++		if (seq && seq != target_mnt_ns->ns.ns_id &&
++		    seq != current->nsproxy->mnt_ns->ns.ns_id)
++			return -EINVAL;
++		src_user_ns = old->mnt_ns->user_ns;
++		if (flags & MNT_TREE_MNTNS_INIT) {
++			if (mp.parent != target_mnt_ns->root)
++				return -EBUSY;
++		} else if (mp.mp->m_dentry == mp.parent->mnt.mnt_root) {
++			const struct mount *m = mp.parent;
++
++			while (m != target_mnt_ns->root && mnt_has_parent(m) &&
++			       m->mnt_mountpoint == m->mnt_parent->mnt.mnt_root)
++				m = m->mnt_parent;
++			if (m == target_mnt_ns->root)
++				return beneath ? -EINVAL : -EBUSY;
++		}
++	} else if (check_mnt(old)) {
+ 		/* if the source is in our namespace... */
+ 		/* ... it should be detachable from parent */
+ 		if (!mnt_has_parent(old) || IS_MNT_LOCKED(old))
+@@ -3840,12 +3890,14 @@ static int do_move_mount(const struct path *old_path,
+ 	 */
+ 	if (IS_MNT_SHARED(mp.parent) && tree_contains_unbindable(old))
+ 		return -EINVAL;
+-	if (!check_for_nsfs_mounts(old))
++	dest_mnt_ns = is_anon_ns(mp.parent->mnt_ns) ?
++		      current->nsproxy->mnt_ns : mp.parent->mnt_ns;
++	if (!check_for_nsfs_mounts(old, dest_mnt_ns))
+ 		return -ELOOP;
+ 	if (mount_is_ancestor(old, mp.parent))
+ 		return -ELOOP;
+ 
+-	return attach_recursive_mnt(old, &mp);
++	return attach_recursive_mnt(old, &mp, src_user_ns);
+ }
+ 
+ static int do_move_mount_old(const struct path *path, const char *old_name)
+@@ -3860,7 +3912,7 @@ static int do_move_mount_old(const struct path *path, const char *old_name)
+ 	if (err)
+ 		return err;
+ 
+-	return do_move_mount(&old_path, path, 0);
++	return do_move_mount(&old_path, path, 0, NULL);
+ }
+ 
+ /*
+@@ -4725,7 +4777,8 @@ SYSCALL_DEFINE3(fsmount, int, fs_fd, unsigned int, flags,
+ 
+ static inline int vfs_move_mount(const struct path *from_path,
+ 				 const struct path *to_path,
+-				 enum mnt_tree_flags_t mflags)
++				 enum mnt_tree_flags_t mflags,
++				 struct mnt_namespace *target_mnt_ns)
+ {
+ 	int ret;
+ 
+@@ -4736,7 +4789,123 @@ static inline int vfs_move_mount(const struct path *from_path,
+ 	if (mflags & MNT_TREE_PROPAGATION)
+ 		return do_set_group(from_path, to_path);
+ 
+-	return do_move_mount(from_path, to_path, mflags);
++	return do_move_mount(from_path, to_path, mflags, target_mnt_ns);
++}
++
++static int lookup_move_mount_from(int from_dfd,
++				  const char __user *from_pathname,
++				  unsigned int flags, struct path *from_path)
++{
++	unsigned int uflags = 0;
++	unsigned int lflags = 0;
++
++	if (flags & MOVE_MOUNT_F_EMPTY_PATH)
++		uflags = AT_EMPTY_PATH;
++
++	CLASS(filename_maybe_null, from_name)(from_pathname, uflags);
++	if (!from_name && from_dfd >= 0) {
++		CLASS(fd_raw, f_from)(from_dfd);
++		if (fd_empty(f_from))
++			return -EBADF;
++
++		*from_path = fd_file(f_from)->f_path;
++		path_get(from_path);
++		return 0;
++	}
++
++	if (flags & MOVE_MOUNT_F_SYMLINKS)
++		lflags |= LOOKUP_FOLLOW;
++	if (flags & MOVE_MOUNT_F_AUTOMOUNTS)
++		lflags |= LOOKUP_AUTOMOUNT;
++	return filename_lookup(from_dfd, from_name, lflags, from_path, NULL);
++}
++
++/**
++ * DOC: MOVE_MOUNT_T_MNTNS
++ *
++ * ``MOVE_MOUNT_T_MNTNS`` installs detached anonymous mount trees into a target
++ * mount namespace ``nsfs`` file descriptor supplied as ``to_dfd``:
++ *
++ * 1. ``to_pathname`` of ``"/"`` attaches the initial root mount onto the
++ *    ``nullfs`` root of an empty mount namespace at most once.
++ *
++ * 2. Relative ``to_pathname`` values resolve beneath the live root of the
++ *    target mount namespace.
++ *
++ * Capability is checked against ``CAP_SYS_ADMIN`` in the target mount
++ * namespace's owning user namespace, and source trees crossing user namespace
++ * boundaries are locked with ``MNT_LOCKED`` and locked mount flags.
++ */
++static int move_mount_mntns(int from_dfd, const char __user *from_pathname,
++			    int to_dfd, const char __user *to_pathname,
++			    unsigned int flags, enum mnt_tree_flags_t mflags)
++{
++	struct path from_path __free(path_put) = {};
++	struct path to_path __free(path_put) = {};
++	struct mnt_namespace *target_mnt_ns;
++	unsigned int lflags;
++	struct ns_common *ns;
++	bool is_root;
++	int ret;
++
++	CLASS(filename_maybe_null, to_name)(to_pathname, AT_EMPTY_PATH);
++	if (IS_ERR(to_name))
++		return PTR_ERR(to_name);
++	if (!to_name)
++		return -EINVAL;
++
++	CLASS(fd, f_mntns)(to_dfd);
++	if (fd_empty(f_mntns))
++		return -EBADF;
++	if (!proc_ns_file(fd_file(f_mntns)))
++		return -EINVAL;
++
++	ns = get_proc_ns(file_inode(fd_file(f_mntns)));
++	if (ns->ns_type != CLONE_NEWNS)
++		return -EINVAL;
++
++	target_mnt_ns = to_mnt_ns(ns);
++	if (is_anon_ns(target_mnt_ns))
++		return -EINVAL;
++	if (!ns_capable(target_mnt_ns->user_ns, CAP_SYS_ADMIN))
++		return -EPERM;
++
++	is_root = to_name->name[0] == '/' && to_name->name[1] == '\0';
++	if (is_root) {
++		if (flags & MOVE_MOUNT_BENEATH)
++			return -EINVAL;
++
++		to_path.mnt = mntget(&target_mnt_ns->root->mnt);
++		to_path.dentry = dget(target_mnt_ns->root->mnt.mnt_root);
++		mflags |= MNT_TREE_MNTNS_INIT;
++	} else {
++		struct path mntns_root __free(path_put) = {};
++
++		if (to_name->name[0] == '/')
++			return -EINVAL;
++
++		ret = mnt_ns_get_root(target_mnt_ns, &mntns_root);
++		if (ret)
++			return ret;
++
++		lflags = LOOKUP_IN_ROOT;
++		if (flags & MOVE_MOUNT_T_SYMLINKS)
++			lflags |= LOOKUP_FOLLOW;
++		if (flags & MOVE_MOUNT_T_AUTOMOUNTS)
++			lflags |= LOOKUP_AUTOMOUNT;
++		ret = filename_lookup(AT_FDCWD, to_name, lflags, &to_path,
++				      &mntns_root);
++		if (ret)
++			return ret;
++	}
++
++	ret = lookup_move_mount_from(from_dfd, from_pathname, flags,
++				     &from_path);
++	if (ret)
++		return ret;
++
++	return vfs_move_mount(&from_path, &to_path, mflags | MNT_TREE_MNTNS,
++			      target_mnt_ns);
+ }
+ 
+ /*
+@@ -4758,7 +4927,7 @@ SYSCALL_DEFINE5(move_mount,
+ 	enum mnt_tree_flags_t mflags = 0;
+ 	int ret = 0;
+ 
+-	if (!may_mount())
++	if (!(flags & MOVE_MOUNT_T_MNTNS) && !may_mount())
+ 		return -EPERM;
+ 
+ 	if (flags & ~MOVE_MOUNT__MASK)
+@@ -4771,6 +4940,13 @@ SYSCALL_DEFINE5(move_mount,
+ 	if (flags & MOVE_MOUNT_SET_GROUP)	mflags |= MNT_TREE_PROPAGATION;
+ 	if (flags & MOVE_MOUNT_BENEATH)		mflags |= MNT_TREE_BENEATH;
+ 
++	if (unlikely(flags & MOVE_MOUNT_T_MNTNS)) {
++		if (flags & (MOVE_MOUNT_T_EMPTY_PATH | MOVE_MOUNT_SET_GROUP))
++			return -EINVAL;
++		return move_mount_mntns(from_dfd, from_pathname,
++					to_dfd, to_pathname, flags, mflags);
++	}
++
+ 	uflags = 0;
+ 	if (flags & MOVE_MOUNT_T_EMPTY_PATH)
+ 		uflags = AT_EMPTY_PATH;
+@@ -4794,29 +4970,12 @@ SYSCALL_DEFINE5(move_mount,
+ 			return ret;
+ 	}
+ 
+-	uflags = 0;
+-	if (flags & MOVE_MOUNT_F_EMPTY_PATH)
+-		uflags = AT_EMPTY_PATH;
+-
+-	CLASS(filename_maybe_null,from_name)(from_pathname, uflags);
+-	if (!from_name && from_dfd >= 0) {
+-		CLASS(fd_raw, f_from)(from_dfd);
+-		if (fd_empty(f_from))
+-			return -EBADF;
+-
+-		return vfs_move_mount(&fd_file(f_from)->f_path, &to_path, mflags);
+-	}
+-
+-	lflags = 0;
+-	if (flags & MOVE_MOUNT_F_SYMLINKS)
+-		lflags |= LOOKUP_FOLLOW;
+-	if (flags & MOVE_MOUNT_F_AUTOMOUNTS)
+-		lflags |= LOOKUP_AUTOMOUNT;
+-	ret = filename_lookup(from_dfd, from_name, lflags, &from_path, NULL);
++	ret = lookup_move_mount_from(from_dfd, from_pathname, flags,
++				     &from_path);
+ 	if (ret)
+ 		return ret;
+ 
+-	return vfs_move_mount(&from_path, &to_path, mflags);
++	return vfs_move_mount(&from_path, &to_path, mflags, NULL);
+ }
+ 
+ /*
+diff --git a/include/uapi/linux/mount.h b/include/uapi/linux/mount.h
+index ac865edac517..7d413418426a 100644
+--- a/include/uapi/linux/mount.h
++++ b/include/uapi/linux/mount.h
+@@ -75,9 +75,10 @@
+ #define MOVE_MOUNT_T_SYMLINKS		0x00000010 /* Follow symlinks on to path */
+ #define MOVE_MOUNT_T_AUTOMOUNTS		0x00000020 /* Follow automounts on to path */
+ #define MOVE_MOUNT_T_EMPTY_PATH		0x00000040 /* Empty to path permitted */
++#define MOVE_MOUNT_T_MNTNS		0x00000080 /* Resolve to_dfd as mntns fd */
+ #define MOVE_MOUNT_SET_GROUP		0x00000100 /* Set sharing group instead */
+ #define MOVE_MOUNT_BENEATH		0x00000200 /* Mount beneath top mount */
+-#define MOVE_MOUNT__MASK		0x00000377
++#define MOVE_MOUNT__MASK		0x000003f7
+ 
+ /*
+  * fsopen() flags.
 -- 
 2.47.3
 
