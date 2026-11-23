@@ -1,69 +1,68 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795441983;
-	b=vKrL0iM5D9709hIMd86GwMn/kjU2+CL2bvHGSL3ZgHPMCeNnu7WueBnPM+1q67S1CE9S
-	 pCf/7mq0AkoidTqCqjqcMSWJ5zBf6fe7/OlF45FVyq8PajS1TONFhmF9hkals3vrzA2zg
-	 hBGmapje3/HywILsSOFhqxa0FFF1CtZnY//Vid1rZsoluUPlMzer6FdVKf4UVP4SQpoif
-	 GD+4CMtDOEVtYJraqATJTgZX1vQCM4vx0Nrk25L5PqHDgU0TalISStPySDDKA/djAbEfX
-	 saQEJDpHyFjX3G8rcbTX+4wfs+qBrTK4VqNOvd5OVBsEMwRk9ylxgbjQmD07ge6hg3g==
+	t=1795442763;
+	b=HteVB1HhEutf87ilxpD5kpg5PuC/OE7/9Yf2TnACs95+KhJggJz6I6Q47tRnUAmcejvx
+	 wRyEmFweEh6uCMHabSaf8LYSipq8R2Rj+HMFzlRyojM1gjl+DlRpjtFGA51utvWFmbNFu
+	 wn4Il1WFxKA/GDkxaBGNILnoH6hjLuKCZzc0cYi9e6fOreuOmKXAFQMLHLa/8K7me4WfL
+	 IorkaSKlpHZ6zOLT3JenhxXieB9iQ4rxREesa0vy67lGYV53BUAGka7NOF7AYQBMlzfRy
+	 /lqJLD7xwmdPtPm+OfjOlHPslFJ8OH/Vz+E4Ds5sljTybXhjWY3TwrYSilcSB+LUhmA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795441983;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
-	bh=w7l6GOVj1ta19VMv5L9sRcj+U6VdIqUJoDJrYzcoSww=;
-	b=rH13m4SBBf4Hn4AuL2mkJJzlL9amwJYnSFbGaRjy0xSXsgfnTWeATYBDwFjdVWsovK6T
-	 5LsGcLwoywgiP/FLF+E81VkRHr1qlc4rsc/BGmFC4NTXHCP6Cb2WnNkHYBg90trl51p4h
-	 9ZOm8q1fcUP4xCwy4j/bosIf0bKjx+66Sio/cdfm2JErtQ81c/RXAthgoDWGdEikphe9r
-	 yO+GaaFwMxe3xRaS3iZXWC1Ynzl9j7ie1rbzODhS9kPkFIau7MAlK4fTuTMC7NLNnwtso
-	 MOuev/TvlDYKig2Fg3OIwGMlCKHFheJT3SMajxiHjQaE7dFjqiREO6n18KBgFsAtLzg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795442763;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=ZhrfZY0fbfvRqh4m81PmC72i9FRlptZs7yDrySCwPr4=;
+	b=SYtFgVqelkAzocufmb4qojWHGB8xkuvXRGmKrM6PPGSK35VaDLCnoDSC4QGgt/nek7/o
+	 qHfjOlW2H+PscwYdVzezYjdNvL6Wrua5wLeyl46JTlzhYzr1ZlxZmeZBr+P9moG0aaGqq
+	 qlMLfhWNTEb1Z+pSrQtBsHud9zP+ylMlZk6sJaIDJEAL5aUCXGxi11jsGfrWQ0yc07bii
+	 kP4T505oFx8IotoZgBUQUf+dYi29rZh5N9tJGFNgdK2ktGtFYhTuiFyL/wGn7ARAtcAEp
+	 CpdMGqbIdyHwj3yRub7uzfaoxVlpz7+vBtbwmPuZSQKAfrQGMRaUihRenvFomFD3Hrg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YvgjBJDe;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=RNxcIodY;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C033E606A321;
-	Mon, 23 Nov 2026 13:53:03 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id F0193606A32A;
+	Mon, 23 Nov 2026 14:06:02 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YvgjBJDe
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DF0C11F000C6;
-	Mon, 23 Nov 2026 13:52:56 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=RNxcIodY
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id D36961F000CF;
+	Mon, 23 Nov 2026 14:06:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795441983;
-	bh=w7l6GOVj1ta19VMv5L9sRcj+U6VdIqUJoDJrYzcoSww=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=YvgjBJDeY6bRVM//Ef/CR3wqhigSAXRBKPMQZnFSl5rRLTYBReyZxGh4KYDN8PZjg
-	 e1+q37zjOWNa/zW6PenUUWn4c+VSxL3VGzz/+YMEB6zdCxuNSRKkYB0fP4i+Q14BwT
-	 C/JymHhoTW1bVfQOv01xOXfAgeEuNJ0kuGBFXXQmTrpRqNPhoqIr3HHlAdhY+r4bUD
-	 O/4WA+RiRgRRCs1i/0nEIMC5nXuVPNWyHrrDqCwNAZDqOsUYPVCgi46EHQtaywgH7d
-	 t/KS4bMveDBrIxMGKCwvWZuMAhNU1gWeMuXMmM73wRDtKsvO63AyJoLgR4ttgh5g7b
-	 E3/6pDDp/TlTQ==
-From: Pratyush Yadav <pratyush@kernel.org>
-To: Tarun Sahu <tarunsahu@google.com>
-Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
- <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
-  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
- <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
-  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
-  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
-  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
-  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
-  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
-  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
-  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
-  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
-  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
-  linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v4 04/19] liveupdate: Reference struct luo_file_set_ser
- via serialized pointer
-In-Reply-To: <20261110050202.529473-5-tarunsahu@google.com> (Tarun Sahu's
-	message of "Tue, 10 Nov 2026 05:01:47 +0000")
-References: <20261110050202.529473-1-tarunsahu@google.com>
-	<20261110050202.529473-5-tarunsahu@google.com>
-Date: Mon, 23 Nov 2026 13:52:55 +0000
-Message-ID: <2vxzwlq3zmbs.fsf@kernel.org>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	s=k20260515; t=1795442762;
+	bh=ZhrfZY0fbfvRqh4m81PmC72i9FRlptZs7yDrySCwPr4=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=RNxcIodYicyykOWzJV9ac41R/wLtMtTMT0f/m7QOJ6ld+W2V4NCjmrvht5+ezWSqk
+	 Dy3cclszSYRA92VabFyR/cC0uPGOyYPHssIDBCdfY+KgqULwwUey6pUnHB73Wz2LlR
+	 hkvMBoXjf7CrpiBPOawkWFvKWPg3qpI0I0BA69XEEhog6RMMjCMYfTFgbRasThroj3
+	 3VZZgT2wtToaSR3IXgQGEzMZxs3Ms6FWViRaFd9Loduz7vVzijOuh6nSFxj66HY9ck
+	 NEhojYrvdZmhi6MyoIHwjX3SFqytTuELhGvYjoQLWNYl5Hp0HF12MLor0raNKqJDPd
+	 nl02fB8BrjaLw==
+Date: Mon, 23 Nov 2026 16:05:58 +0200
+From: Jarkko Sakkinen <jarkko@kernel.org>
+To: bot+bpf-ci@kernel.org
+Cc: linux-fsdevel@vger.kernel.org, bpf@vger.kernel.org,
+	containers@lists.linux.dev, linux-api@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	linux-mm@kvack.org, linux-security-module@vger.kernel.org,
+	aleksa@amutable.com, alex@amutable.com, viro@zeniv.linux.org.uk,
+	luto@amacapital.net, arnd@arndb.de, brauner@kernel.org,
+	dhowells@redhat.com, ebiggers@kernel.org, giuseppe@scrivano.org,
+	hughd@google.com, jack@suse.cz, jlayton@kernel.org, corbet@lwn.net,
+	josef@toxicpanda.com, kees@kernel.org, kpsingh@kernel.org,
+	lennart@poettering.net, neal@gompa.dev, oleg@redhat.com,
+	paul@paul-moore.com, ptikhomirov@virtuozzo.com, sergeh@kernel.org,
+	skhan@linuxfoundation.org, zygmunt.krynicki@canonical.com,
+	ast@kernel.org, andrii@kernel.org, daniel@iogearbox.net,
+	martin.lau@kernel.org, eddyz87@gmail.com, yonghong.song@linux.dev,
+	mason@kernel.org, ihor.solodrai@linux.dev
+Subject: Re: [RFC PATCH v7 07/26] mount: Support MOVE_MOUNT_CLONE with
+ MOVE_MOUNT_T_MNTNS
+Message-ID: <awRIRrGwOi97H15D@kernel.org>
+References: <20261122193539.3334213-8-jarkko@kernel.org>
+ <cac1fa0b133e15e7c67629319df17a0d25747093535aa246f44a75cb1073e2ed@mail.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -73,29 +72,88 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <cac1fa0b133e15e7c67629319df17a0d25747093535aa246f44a75cb1073e2ed@mail.kernel.org>
 
-On Tue, Nov 10 2026, Tarun Sahu wrote:
+On Sun, Nov 22, 2026 at 08:28:11PM +0000, bot+bpf-ci@kernel.org wrote:
+> Should the clone be reported to LSMs as a bind, for example through a
+> separate hook, a flag passed to security_move_mount(), or a call to the
+> bind-mount mediation?
 
-> struct luo_session_ser currently embeds struct luo_file_set_ser directly
-> by value. Embedding struct luo_file_set_ser couples the session layout's
-> size and field offsets to struct luo_file_set_ser, preventing either
-> structure from appending fields independently across kexec.
->
-> Convert struct luo_session_ser to hold a DECLARE_KHOSER_PTR pointer to
-> struct luo_file_set_ser instead of embedding it by value. Reserve space
-> for both structures in each session block-set entry, placing struct
-> luo_file_set_ser immediately after struct luo_session_ser, and bump
-> LUO_ABI_COMPATIBLE from luo-v5 to luo-v6.
->
-> Signed-off-by: Tarun Sahu <tarunsahu@google.com>
+Mediation can be trivially achieved:
 
-Apart from the static asserts,
+diff --git a/security/apparmor/include/mount.h b/security/apparmor/include/mount.h
+index 46834f828179..d771ee240d42 100644
+--- a/security/apparmor/include/mount.h
++++ b/security/apparmor/include/mount.h
+@@ -43,7 +43,7 @@ int aa_move_mount_old(const struct cred *subj_cred,
+                      const char *old_name);
+ int aa_move_mount(const struct cred *subj_cred,
+                  struct aa_label *label, const struct path *from_path,
+-                 const struct path *to_path);
++                 const struct path *to_path, unsigned int flags);
 
-Reviewed-by: Pratyush Yadav (Google) <pratyush@kernel.org>
+ int aa_new_mount(const struct cred *subj_cred,
+                 struct aa_label *label, const char *dev_name,
+diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+index aefa71bc1cd2..797944de8273 100644
+--- a/security/apparmor/lsm.c
++++ b/security/apparmor/lsm.c
+@@ -751,7 +751,7 @@ static int apparmor_move_mount(const struct path *from_path,
+        label = __begin_current_label_crit_section(&needput);
+        if (!unconfined(label))
+                error = aa_move_mount(current_cred(), label, from_path,
+-                                     to_path);
++                                     to_path, flags);
+        __end_current_label_crit_section(label, needput);
 
-[...]
+        return error;
+diff --git a/security/apparmor/mount.c b/security/apparmor/mount.c
+index 4ed7b9136beb..8d3db6bfdfb6 100644
+--- a/security/apparmor/mount.c
++++ b/security/apparmor/mount.c
+@@ -423,13 +423,15 @@ int aa_mount_change_type(const struct cred *subj_cred,
 
--- 
-Regards,
-Pratyush Yadav
+ int aa_move_mount(const struct cred *subj_cred,
+                  struct aa_label *label, const struct path *from_path,
+-                 const struct path *to_path)
++                 const struct path *to_path, unsigned int flags)
+ {
+        struct aa_profile *profile;
+        char *to_buffer = NULL, *from_buffer = NULL;
++       unsigned long mnt_flags = (flags & MOVE_MOUNT_CLONE) ?
++                                 (MS_BIND | MS_REC) : MS_MOVE;
+        int error;
+        DEFINE_AUDIT_MOUNT(ad, OP_MOUNT, subj_cred);
+-       ad.mnt.flags = MS_MOVE;
++       ad.mnt.flags = mnt_flags;
+
+        AA_BUG(!label);
+        AA_BUG(!from_path);
+@@ -441,12 +443,12 @@ int aa_move_mount(const struct cred *subj_cred,
+        if (!to_buffer || !from_buffer)
+                goto out;
+
+-       if (!our_mnt(from_path->mnt))
++       if (!(flags & MOVE_MOUNT_CLONE) && !our_mnt(from_path->mnt))
+                /* moving a mount detached from the namespace */
+                from_path = NULL;
+        error = fn_for_each(label, profile,
+                        match_mnt(profile, to_path, to_buffer, from_path,
+-                                 from_buffer, NULL, MS_MOVE, NULL, false,
++                                 from_buffer, NULL, mnt_flags, NULL, false,
+                                  &ad));
+ out:
+        aa_put_buffer(to_buffer);
+@@ -467,7 +469,7 @@ int aa_move_mount_old(const struct cred *subj_cred, struct aa_label *label,
+        if (error)
+                return error;
+
+-       error = aa_move_mount(subj_cred, label, &old_path, path);
++       error = aa_move_mount(subj_cred, label, &old_path, path, 0);
+        path_put(&old_path);
+
+        return error;
+
+Br, Jarkko
