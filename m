@@ -1,111 +1,69 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=103.168.172.148
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795443439;
-	b=jbG7HYhsl6q6PhL8ZqR27zXKzhKppMf8kQmeOWJfPoNvPSh3UiX7DhEgyOeYbqnxAg2P
-	 FuJCQtjbx3vUStCAxi3NXopthw49YqiqJBJaD/8AIJPCToeJb3irm21BJuoc5Yx3y96LU
-	 5GEItC5Iz7RffEiPcFENrb8r68E0GeR5eUVqEV8Xr6yuqnSY2d0Tv3w892r14ODs6Btls
-	 QmWuqKjVI4gNlJx+2JSuPZmJOdnfEFPJKdhT2R8zdqd+yhtZg5h9d3fsfrcFdHHBUthWn
-	 cVbjoCRIbToARJUuAmvxpFIlUf5T+CIw1WgYmxEgx5U/L3LNZjOWpc/dtA+MNNkJyKw==
+	t=1795445804;
+	b=uynXIVkH2LrMM99yrd1JBJO4q7IMthuv162HaC1cW+2pX74krIm2MtNDiXkFcsBPf5jG
+	 lYc9BLE9UcP+RugAyAYZ9hnU3TZooQUhNFiPcTuVf6p1NTXCOrKsDencuJfKPqRY4xyuS
+	 wpQHpAiNbkOn8fWjuPvjt66dNCPmBVxgUByWN/PVvo+AktjuHlgdNQSqnGjKKAyt6gXht
+	 WJ3pWqLgzr/bI3/Zn15PP2RSoa+f//p4KGnhaXkAbQn0b+ISbfrrRC80PRhJ46eY0neZD
+	 g4u4K8Kgin1k5G09yllmhrLDocr8W4kcavbeIrzB+F9iS8hKCHkgT0BGrioP4gh3i4g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795443439;
-	h=DMARC-Filter:Received:Received:DKIM-Signature:DKIM-Signature:
-	 X-DKIM2-Info:DKIM2-Signature:X-DKIM2-Info:Message-Instance:
-	 X-ME-Sender:X-ME-Proxy-Cause:X-ME-Proxy:Feedback-ID:Received:X-Mailer:
-	 MIME-Version:X-ThreadId:Date:From:To:Cc:Message-Id:In-Reply-To:
-	 References:Subject:Content-Type:Content-Transfer-Encoding;
-	bh=BHJ91NJtNYQ6/J6+FaRGzznho5yPOY/r3tuo2Sshg1o=;
-	b=ZcTMN78DzyJCZoDqq+VUNmx5dN6f5fTLdir0WwCl/M+wUhcHcj0ojV6VRWzztpK+TUjL
-	 C6iKVuAR1FtOC9zHwh9bXlTDyXSrfE+CkScgl62q52nc5Vy4OgqrowcmHgBKBhTfXdzV7
-	 VIILLdHdrDLMQZaZDN+xPe7Wub85lMmywX/kfcUJdqNIn+CAJ6vGOKSlPRzL4/T/1QAxJ
-	 kH4aP/MajLyjd5MCOHmvTAGHOwAmSYSKkoUqv/Z+uw24koeBRP2vgwp6+h4dn1N+1HtNw
-	 5j2SIDtagtgDQy8flgdIo9eWedmfIYlurD3thAvvdnFza/6JTgUZVc/fReJNfM1wqpg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795445804;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
+	bh=JOZamLNrX3zI1FIx1Zgz/K1EJ0SMnsfMEV0ESniCNAw=;
+	b=JTcgIoVrTvCqme3RZd4Wo8s5t/TLMKNC7fL9WTYbmjfbNcepPbt0hxLdodSzAP3/8vnF
+	 KytdIXTxfPVnJfzdnrIf7MmQf+xbr6ctGnhL6VrCYhkS+0G35ehpHBnt1LA8izkA06L05
+	 P7SNQg9nNEl4jZKrBXLC8udc8PJuucwnsHGyBmlgCKQ8+L6VB+ZwQfSZuTF2lyvdA0pEV
+	 ho5WjKzUA1dZgy4u6LQF/LX82pIISFhqZC8rni0FpYUU+cfZPhdVPtoCDx6zMynkFBNAl
+	 nqCBqhKQRCYFil1Hw+9TnRShGtuNTv5mWheW6vshdzc/+v6TUWeguP5QYehRXC3hbiA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=arndb.de;
-	spf=pass smtp.mailfrom=arndb.de;
-	dkim=pass header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=cPLj8Yt9;
-	dkim=pass header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm3 header.b=hC6LIkJb;
-	arc=none smtp.remote-ip=103.168.172.148
-Received: from fout-a5-smtp.messagingengine.com (fout-a5-smtp.messagingengine.com [103.168.172.148])
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YqWv2qyj;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9391E606A31A
-	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 14:17:18 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9391E606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ADC17606A338;
+	Mon, 23 Nov 2026 14:56:44 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=arndb.de header.i=@arndb.de header.a=rsa-sha256 header.s=fm2 header.b=cPLj8Yt9;
-	dkim=pass (2048-bit key, unprotected) header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm3 header.b=hC6LIkJb
-Received: from ams-compute-02.internal (ams-compute-02.internal [10.64.2.62])
-	by mailfout.phl.internal (Postfix) with ESMTP id AC935EC0BA6
-	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 09:17:17 -0500 (EST)
-Received: from ams-imap-03 ([10.64.2.23])
-  by ams-compute-02.internal (MEProxy); Mon, 23 Nov 2026 09:17:17 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm2; t=1795443431;
-	 x=1795529831; bh=BHJ91NJtNYQ6/J6+FaRGzznho5yPOY/r3tuo2Sshg1o=; b=
-	cPLj8Yt9KDzFT9oOBUn+/GuSsf5mynsPFU3peaGSzzjdcM3xPq2nCeDkNchhwU0y
-	agEnTSgyBbGQ/yirLqdAtbec6K/eMPAPx84L678ABrYcb+wpXySl2GHRp4LB9WLN
-	CFo2ebu58MUl9iNZ9Ieq9B5w0n8KUsPK5DwUz9m8y9EZ7/GezgGomuFh9mdki4r/
-	+BIiXtKtzOGG5D+kuw3mpodMWyr20zPfOAhpC9pxJqrf1XcU6K399GtXsEQMc/8R
-	39qj2UCf7kgamdATa+Pl6YH54Dj6cd0VQx4T8GjJ0eSyaIyzVoR7OVUL9GzpK8m7
-	+ruoO3v7zMRO6WezXgniMQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1795443431; x=
-	1795529831; bh=BHJ91NJtNYQ6/J6+FaRGzznho5yPOY/r3tuo2Sshg1o=; b=h
-	C6LIkJbKj92f5S7k/JXfyeaid1Af9ZzNDUOfhQPFxJP9BRVK8CoFu3txAUBGFSdE
-	kDtEOIgPiZzvlCZbCv4YLx/KipUoHlpFtABBaFDzTO/Eo99zurKqUHK11ZRFH3nk
-	zrK7lUHYw/5sxSK66fxI2EBGUdhZg116RSbILC1OuB62zbnw2sD4sW3+a4PBWhw+
-	vIkMNp+LX1SFD5zMvRTmes4VjgpqWOOFse8Womzu4lb2d/5udJ8V95DWmA0O1EvJ
-	RGzmtn81sr/9oZLy7H3BztHTIli/UeDdJz4S0o8+2QlJ2kzB0w3ffJ58MILv/tOp
-	VBsPDLa1+OUIFoA4NwwtQ==
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-09;
-	repo=github.com/dkim2wg/interop; date=2026-11-03; sw=lmtpprox;
-	action=sign d=arndb.de a=rsa-sha256;
-DKIM2-Signature: i=1; m=1; t=1795443431; d=arndb.de;
-	mf=PGFybmRAYXJuZGIuZGU+;
-	rt=PGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPg==;
-	s=fm2:rsa-sha256:Eh9eVPfrpMi7mjehworciRBtoLjoCMJ18d+Ac4HnOQWrZjN
-	HTofiHW2YbiEDwEYRmmIMKsnhOfXIjrj5Zh+xe3LXLhS1zKrT0gWChuvCCt7S/sI
-	pjYLIJPXOo+iZUPQ8BxHusSxUurx6wrX7lsUFYE4RDLs8K/3yXOS0P62wJFcrzgV
-	SXOEhpxsOdiVaemlhfDLtNMsRjRvU5iqxCY3bikDyedNTJJVe6L0Umx9YIDwDiEk
-	JTDkkS3FrS2oEQY6TVNzVMwEky0KUcpA5d+PmSCcdJk+1fHr3RwDifzHVrvpuSwq
-	45f2UtJeFp/IF7Jjjw6CKsAV1f7hCJe714i7OUA==;
-X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-09;
-	repo=github.com/dkim2wg/interop; date=2026-11-03; sw=lmtpprox;
-	action=mi-m=1; hc=12;
-	hn=cc,content-transfer-encoding,content-type,date,feedback-id,
-	from,in-reply-to,message-id,mime-version,references,subject,to;
-Message-Instance: m=1; h=sha256:Sap56MIkcyZT8r4cYNPG+lEt8q7zj6cm/hR6DX/YHXU=:rDsMBjpfa65jK66igtyHf1M93PmlfJObl6/94lUiVSI=;
-X-ME-Sender: <xms:4koEa8b6jWHk9Km-gWsvkjXKBe9FOycLSAoQHdX1x28WgylltvrlXg>
-    <xme:4koEayN-2NZ5tuVMTv_F6M4wNcDyjmgtjmjdAzvHywIA7KHMufFQZrYw4q170T5Th
-    fPdBGfTNlodLlNUN9knmz7mxDJr9FP9Hc2uPOv3pg8T14AiyewMGhM>
-X-ME-Proxy-Cause: dmFkZTGFrwq2MF5SSuOMe3naqs9tbtMAmc3XEG2p+PrgD+xfiVSS77ldCceRFMgHOXXvSL
-    Ging+R6VT6K3yz4OUeCdmIETXjNj7XXI0r9Tg2543OHjiuaKhMh+yVJAoB6OkAWbwGP/U3
-    JowxnSxhNhDyTsBNjiM7LlqkLGWpphbuTeJ0WjErvJ9KhK0fJtLolaHFC6Kw2talXF2YGF
-    JN7yWyVcYnsY66wGn8uoBc1Op9fn/HtafFpC/Ha3Z7ng5ziTGTERGiQYQq5K4ZdS/5JuDE
-    HH1gfdWjYiM0bW96wZfgClnWGF2XIAu99qwAHGam6Iwuv/kahBWnYmwWVFrVPNzzZ/ahP5
-    U1UkBFU5ZxOctbFZFvYR87OCQ9D85IrFkHXF9AU7aFYWG6vLW8lI9uDg5E561v2/5hKHQA
-    sjQFn5A8NcDFUKKIz/Gj2N6XcZVOTlbQkDMhl7pFKmJR0nTwtc/ea8J3ozLffLR/0wUUbB
-    iamGkspUsbgem4niF9wBtKb8Aybdc10XaTbLUSATly8dgGeAoj4vWgf2FM9ltEDrHvDjNY
-    51emBC5k6bV+SyYpJacMFkokFxMkxKPk9r+T99bzSjJsfdRVRAC/r+2KM3FJJSK6C1f8wW
-    I+V82FhA+/RpOowStt3CO/53UAvaoCC1+Mr9HKqAkD73+MJL10fMk/SelFXQ
-X-ME-Proxy: <xmx:5UoEa7zTEzd5mDVuAJ0khzXfAhl-NnyAwD2CijXl1cunNEN88JhvqQ>
-    <xmx:5UoEa4LmzfnQ4K0KUaYuA7sCKQ4bXebQmmhpsTBdhtm50HSfa0pUZw>
-    <xmx:5UoEa9456MjeyYgj744opH-waU6skY_xuQzxaCDvT7bwukaslpL8Pw>
-    <xmx:5UoEa2xmieeiTKUZnDvuF-Yhydil8f6ZkK_qEXx5P2wofodg1yRZbQ>
-    <xmx:50oEa5l_6AC-8c6ZgGJR10cedMu4FgnH1XmeVBS7jPfPPs2PoWN-CFom>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.ams.internal (Postfix, from userid 501)
-	id 6EB4832A009C; Mon, 23 Nov 2026 09:17:06 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YqWv2qyj
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DD6091F000EF;
+	Mon, 23 Nov 2026 14:56:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795445804;
+	bh=JOZamLNrX3zI1FIx1Zgz/K1EJ0SMnsfMEV0ESniCNAw=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=YqWv2qyjcmNEHZr5ibzz7SsD3Sv0fNqsfzxZTHwNk4UHOxkfmYvkT6oOT0BiMl7wm
+	 /QbzGWI73gNRm2cAqHQpSotGxxCtw2NN85IosI9IXgAw7CnM4SiMCTJxlOfOHqBd0P
+	 FEVIPm6SNuG4PHCNJdCGS4Lo+fIqw6FXLYityRX4nJq+Edu0X2+p0co49qeNLhMcX4
+	 4OSNEgIfA8AqfmtMS3MDIjbFejZ5juflZnGcXMH2BSqpTZgLqpO3I3jOvmof6eNqwo
+	 ntivX1iXJkxlIdDiq+2av3GWxI+Ez9VQvgXdD7vO5JJlmMftHUsStroK2tk4HW/kkV
+	 mIcWQfwg6fLNg==
+From: Pratyush Yadav <pratyush@kernel.org>
+To: Tarun Sahu <tarunsahu@google.com>
+Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
+ <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
+  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
+ <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
+  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
+  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
+  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
+  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
+  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
+  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
+  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
+  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
+  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
+  linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI
+ compatibility
+In-Reply-To: <20261110050202.529473-6-tarunsahu@google.com> (Tarun Sahu's
+	message of "Tue, 10 Nov 2026 05:01:48 +0000")
+References: <20261110050202.529473-1-tarunsahu@google.com>
+	<20261110050202.529473-6-tarunsahu@google.com>
+Date: Mon, 23 Nov 2026 14:56:36 +0000
+Message-ID: <2vxzse0rzjdn.fsf@kernel.org>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -115,55 +73,121 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-ThreadId: AMjdjL9dYp0J
-Date: Mon, 23 Nov 2026 15:16:41 +0100
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-Cc: "Kees Cook" <kees@kernel.org>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
- linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org,
- loongarch@lists.linux.dev, linux-s390@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, linux-mips@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-sh@vger.kernel.org,
- linux-alpha@vger.kernel.org, "Paul Walmsley" <pjw@kernel.org>,
- "Andy Chiu" <andybnac@gmail.com>, "Magnus Lindholm" <linmag7@gmail.com>
-Message-Id: <b7b8e8cd-d0ba-4e37-93f3-0fa209207124@app.fastmail.com>
-In-Reply-To: 
- <20261123110111-6431e85f-39a4-427e-b545-2e7a590a6c19@linutronix.de>
-References: <20261123-at-vector-size-arch-v3-0-d342dae9e843@linutronix.de>
- <ec5359c1-c16e-4177-8dfa-2ae5ab8a874f@app.fastmail.com>
- <20261123110111-6431e85f-39a4-427e-b545-2e7a590a6c19@linutronix.de>
-Subject: Re: [PATCH v3 00/15] exec: Remove AT_VECTOR_SIZE_ARCH from UAPI
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
 
-On Mon, Nov 23, 2026, at 11:03, Thomas Wei=C3=9Fschuh wrote:
-> On Mon, Nov 23, 2026 at 10:44:40AM +0100, Arnd Bergmann wrote:
->> On Mon, Nov 23, 2026, at 10:37, Thomas Wei=C3=9Fschuh wrote:
->> > There is nothing userspace can do with this value. In the kernel is
->> > always combined with AT_VECTOR_SIZE_BASE, which is not exposed to
->> > userspace and also changes from time to time.
->> >
->> > Move the symbol to kernel-internal headers.
->> >
->> > Meant to be applied through the asm-generic or execve tree.
->> > The default recipient list was huge. I trimmed it to only the
->> > architecture lists.
->> >
->> > Signed-off-by: Thomas Wei=C3=9Fschuh <thomas.weissschuh@linutronix.=
-de>
->>=20
->> Hi Thomas,
->>=20
->> I'm happy to take this through the asm-generic tree. I've already
->> made sure it all applies and the patches look good to me. I'd
->> wait a few more days for additional Ack or any other replies,
->> let me know once you think I should apply this version.
+On Tue, Nov 10 2026, Tarun Sahu wrote:
+
+> Serialized structures in KHO and Live Update Orchestrator currently rely
+> on whole-structure compatibility strings or monolithic version fields to
+> validate handed-over state across kexec. Any change to a serialized
+> structure, even an optional additive field, requires bumping the
+> compatibility string or version number and breaks live update between
+> adjacent kernels.
 >
-> This v3 is functionally identical to v1 and v2 which have been on the
-> list of a long time. I am not sure how much more feedback will come.
-> IMO it can already be applied to gain more exposure in -next.
+> Introduce a generic feature header (struct kho_ser_hdr) for serialized
+> binary structures in include/linux/kho/abi/feature.h. Each subsystem
+> groups the fields of its serialized structure under feature indices,
+> starting with index 0 for base fields. When a subsystem adds a new
+> capability, it appends new fields to the end of its payload structure
+> under a new feature index. Retired fields are kept in place so existing
+> field offsets never shift; if the type or format of a field needs to
+> change, the existing field and feature are kept intact until retired and
+> a new feature index with an appended field of the new type is added.
+> Only when a change requires a complete break in the serialized layout or
+> semantics that feature flags cannot handle, a new handler or format can
+> be introduced with an incremented version number.
+>
+> Each feature belongs to either a required feature space or an optional
+> feature space. Both spaces are numbered independently starting from 0.
+> In the serialized header, required features occupy the first nr_required
+> bits, followed immediately by nr_optional bits for optional features:
+>
+>   struct kho_ser_hdr {
+>           __u32 size;
+>           __u16 nr_required;
+>           __u16 nr_optional;
+>           __aligned_u64 flags[];
+>   };
+>
+> A set bit indicates that the feature is present in the payload. The
+> truth table for deserialization:
+>
+>   Source bit       Target            Action
+>   Not set          -                 Accept: feature absent
+>   Optional set     unknown or known  Accept: ignore or use the data
+>   Required set     known             Accept: use the feature data
+>   Required set     unknown           Reject: -EOPNOTSUPP
+>
+> During deserialization, the target kernel only validates required
+> features: if the source set any required feature bit at or beyond the
+> known required feature count of the target kernel, validation fails with
+> -EOPNOTSUPP. Optional features are never rejected; the target kernel
+> simply checks whether known optional features are present before reading
+> their data.
 
-Fair enough, pushed out to the asm-generic tree now.
+I've been thinking more about this recently, and I don't think we need
+to differentiate between optional and required flags. I think all we
+need is "feature flags".
 
-     Arnd
+Let me explain this by taking my KHO map patches [0] as the example, since
+they got me thinking about this in the first place.
+
+I sent out RFC v1 with no multi-entry support and static depth. During
+the review, we figured out that we should support multi-index entries
+and dynamic depth. Both of them need breaking ABI changes. If you use
+these features, a kernel that doesn't understand them will break.
+
+Now let's say for argument's sake that we merged my RFC v1 as-is, and
+later down the line realized that we needed multi-index and dynamic
+depth. They are backwards incompatible ABI changes, and so need required
+flags called say KHO_MAP_F_MULTI_INDEX and KHO_MAP_F_DYN_DEPTH.
+
+If memfd_luo does not know what features the incoming kernel supports,
+it can't really ever use these flags. Because it can not guarantee at
+all that the live update would succeed. So without information of what
+the incoming kernel supports, you can only ever add optional flags.
+
+From the conversations we've had at LPC and in the bi-weeklies (and also
+[1]), we want to supply a specification for all the features the
+incoming kernel understands via a uAPI.
+
+Once memfd_luo knows whether the incoming kernel supports
+KHO_MAP_F_MULTI_INDEX or KHO_MAP_F_DYN_DEPTH, it can choose to use them,
+or go with the less efficient single-slot entries. It makes that
+decision when writing out the serialization structures at runtime based
+on the spec provided. Backwards compatibility is kept by looking at what
+the incoming kernel supports, and only using what it can understand.
+
+When we have all this available, I don't see the point in
+differentiating between optional and required features at the ABI level.
+At the ABI level, all that matters is what the incoming kernel
+understands. If the incoming kernel does not understand a specific
+field, the outgoing kernel should just not use it. There's no point.
+Best case, it gets ignored.
+
+The semantics of required or optional then become "can I describe this
+object with the capabilities I can use?". If the answer is yes,
+serialization succeeds, if the answer is no, serialization fails. So
+with this, KHO_MAP_F_MULTI_INDEX or KHO_MAP_F_DYN_DEPTH are indeed
+optional. All memfds can be described without these, they just will be
+less efficient.
+
+The only thing that the optional flag buys us is to add backwards ABI
+compatible changes _until_ we add the ability to export the
+specification of the incoming kernel. Since that should be coming in the
+near future, I don't think the churn of optional flags is worth it.
+
+So in short, here's my proposal: we only do "feature flags". The
+serializer should know what the incoming side understands, and it should
+only use the features that are understood. It should simply not use
+anything else. If it can't describe an object with the flags available
+to use, serialization fails.
+
+[0] https://lore.kernel.org/kexec/20261116134013.1636689-1-pratyush@kernel.org/
+[1] https://lore.kernel.org/kexec/CA+CK2bCnS8wcVDbOymBGeJB6pDUkknOpF22EynbwSV=D5=J4ow@mail.gmail.com/
+
+[...]
+
+-- 
+Regards,
+Pratyush Yadav
