@@ -1,77 +1,45 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795393574;
-	b=n2o/OFk77fcUGA46Sc0QZ9o6CMcVH0jmTSkY7IhLC5tjTsAEc+jUW8HWH/rn2JNsUHwA
-	 brubhQM4D7W1Nqpew5fu7ukUs43VVPoEDkuaR1McI6x6o6m1Q7jfRaDRzT3nbilh89Cab
-	 BpWowLSzhuJkTgNKX0vZEBzaTWPFLMz8/JqI235LrfA58turEUKsJUpZ2nB7Z3/WbMPe0
-	 n+Un2EYMp2jGxx42EkHxek3AD/+spn1Ggu2+WaG1wVXRhbuxsppGOdpd0NGay1Tu/J/10
-	 PJjjsiVzZojwMCFkW4E4pTiCP8SjlMTZcCEilnWlscyVqDtsfrd5br2W8WKa8CDwpmw==
+	t=1795394390;
+	b=wkR17IfvotiDZVaJ1nwcvGSQcpOKIC86iqa+iXWa9cxlfkMg6FVEJtk5kbj+1wQbSdZY
+	 5dCXJvLZ2eEgRAJS93yiGGMALdsBkNoeZGdROG/WZOqFTQQ07rsHfu6HBPTJzjEArN7+Y
+	 Z+JiIbvg6Hyx9rBBAL+5+OT6g2n5Nqc6Dh9CN8G9HJ30HL8nFtk6Gh/VznjQOWTGd+eWU
+	 7gFcpNdM+MxjbqTJ1q6GvRYseQG8wLEhEztaIFqMbt5+beEfQ0yFgSVrmXFwku4NYhkWb
+	 /o/CZihtXzFNfw+hXeBJ5jeSD0lR3SAGh5wG+rMNmwikSpw6yoHe8CrmFt/kC8OpZVw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795393574;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=Np7fZSYURVKo0ykLKnKN/e1CFyZ5GmziW7UTv6oqkBg=;
-	b=JPghQysTF/xfVx2xM+qwIFL0XwQDHoxXDFpZzxpqnLidbstXL90Y3ncwVfZh1FZcvt4o
-	 7bELXuB08zd3HEn6+3TmsQOZ5J02UGQ1C606Q5EUTawcgMQ8K6HqAeg3UqIDTxmnsn33x
-	 0EHaj4NZr8mr/vh6Ekf/uy4i03+bDetjnLL/PNXMggbfANql4oc9p4cVau0QmzsrqYjeD
-	 GFVkM9npoZwPx9jHL2Z6FyuVZMSSfcqm/XLExYJoemBXDlYkHl/IcCir9KI+K7BdeiKr/
-	 dXAnFFX5yWUDopjQFppchNCIsBcEccr1gNwLm7dWU3S6kFUVwwIxd/P0Jg6V4In8gyg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795394390;
+	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
+	 In-Reply-To:References:Subject:From:To:Cc:Date;
+	bh=PoQAgAi4SsG/ALVfUnoUkJyn+DyGMuCfLxAQhCZvy1U=;
+	b=GJHzsyXOo0H6H1aQ6RlR8veU31WCbBKk2I78A6BqBKpux2U9yQL9nd/jE9uIErv2FguM
+	 DT7ceDugUbQa1BziJVbn5L5TKFC77D96RBGZWvjNSWmWCYuH+uFXVWeOH9nzFgIo1ePPh
+	 eFHQV3f4oE6rs7MX73N68mlU2GRyXnO1/B1IVXDc1qL3A4ryPdQiyU/ZHAxm2hxW+cdB8
+	 Ts5rta9JEO0PRpVZ1A3ntOnzx5uamovgDlyTxG3bjKgEINmMUCRTV9qDqNO7Pvb9ATSEE
+	 7CnVPSbSZzWkf34z2dB18t8WqjuLlJzzF9AJCxIJWfIJWLv2lxBh9iq39+qAryMH3KA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XTTYuAtT;
+	dkim=fail reason="signature verification failed" header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=jQyg0+hy;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 92486606A320;
-	Mon, 23 Nov 2026 00:26:14 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A44EE606A31A;
+	Mon, 23 Nov 2026 00:39:50 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XTTYuAtT
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 77F411F000C6;
-	Mon, 23 Nov 2026 00:26:13 +0000 (UTC)
+	dkim=fail reason="signature verification failed" (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=jQyg0+hy
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 879B01F000CA;
+	Mon, 23 Nov 2026 00:39:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795393574;
-	bh=Np7fZSYURVKo0ykLKnKN/e1CFyZ5GmziW7UTv6oqkBg=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=XTTYuAtTfAlg0WH9XZNPNM7S+HLBop3wyxrt6AZb8BiQ/Gcs79kUj59MMdnE7zjKQ
-	 6xk0zPvaGdlG8o9ZUMGLAaOiaoDh4dLG6WNkRYPhuhQSyEsvPBz3KMQjuS6m7xd5dG
-	 Ot9O95tbcPRy9IHFMgYR0M5uFEZsIn+69FEAQlQR3rWR6ymXF88kwRbDdIo+Jw4lgY
-	 YKAHH8A25VOQvWrywy5q8chM2R+ortwz1L4AYTL89LZ/Swh1LO/3fuwj1dPvoYQS1e
-	 rxcdFPD4rGTTlycsU6r7F/Z5zD9ej6TCW+7qcXWzVmur1oME5eDf3FDMxcpULj0bY5
-	 LbOIMT1N38+0Q==
-Date: Mon, 23 Nov 2026 02:26:10 +0200
-From: Jarkko Sakkinen <jarkko@kernel.org>
-To: linux-fsdevel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>
-Cc: bpf@vger.kernel.org, containers@lists.linux.dev,
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-kselftest@vger.kernel.org, linux-mm@kvack.org,
-	linux-security-module@vger.kernel.org,
-	Aleksa Sarai <aleksa@amutable.com>,
-	Alexander Mikhalitsyn <alex@amutable.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Christian Brauner <brauner@kernel.org>,
-	David Howells <dhowells@redhat.com>,
-	Eric Biggers <ebiggers@kernel.org>,
-	Giuseppe Scrivano <giuseppe@scrivano.org>,
-	Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>,
-	Jeff Layton <jlayton@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
-	Josef Bacik <josef@toxicpanda.com>, Kees Cook <kees@kernel.org>,
-	KP Singh <kpsingh@kernel.org>,
-	Lennart Poettering <lennart@poettering.net>,
-	Neal Gompa <neal@gompa.dev>, Oleg Nesterov <oleg@redhat.com>,
-	Paul Moore <paul@paul-moore.com>,
-	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
-	Serge Hallyn <sergeh@kernel.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: Re: [RFC PATCH v7 00/26] userland: Userland containers
-Message-ID: <awOIIuoNvNLZ_scF@kernel.org>
-References: <20261122193539.3334213-1-jarkko@kernel.org>
- <awOEa303zNUDrzA3@kernel.org>
- <awOFGIWekH9-vlhM@kernel.org>
- <awOHVCpztLQv4Uwv@kernel.org>
+	s=k20260515; t=1795394389;
+	bh=PoQAgAi4SsG/ALVfUnoUkJyn+DyGMuCfLxAQhCZvy1U=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date;
+	b=jQyg0+hyIOUk5ZUyV35FWjse5XowVORSf874N4s6kc8mr2FsoTNaawGmqqpQCkjS9
+	 ZwDRYmI0saY6rlsrczcP/rB3PIa+akAwyvKzcK6reziBxFWamgV8edcWzxXSOCdAcY
+	 Np1I9BaTgKWLXBX6ABscXy97xhTu9tsuTO9Me0ecZeUgnJdsAjxTXyn1dCCxzZTSii
+	 zA1vphX2daI3J96L1I3YIK+1wqe0d7mHE6Al2pPzx2EiI/qR6tbwLTDXTVj+nkoYfM
+	 C7UMQ/NlJxXLnP6PHPmAga4Em6YJjVb2Q7UYely1UtvU/ZjJlCrzjLca4VHj4ei9ZR
+	 ZTn3txTyJls3Q==
+Content-Type: multipart/mixed; boundary="===============8029890971532200664=="
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -81,47 +49,90 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <awOHVCpztLQv4Uwv@kernel.org>
+Message-Id: <1a25d1706794155410612608bd28a535e5f6796b96cd294439b19f55ac467c82@mail.kernel.org>
+In-Reply-To: <20261122235757.3456048-9-irogers@google.com>
+References: <20261122235757.3456048-9-irogers@google.com>
+Subject: Re: [RFC PATCH v1 08/11] riscv: unwind_user: Support Minimal DWARF CFI and FP user unwinding
+From: bot+bpf-ci@kernel.org
+To: irogers@google.com,linux-kernel@vger.kernel.org,linux-trace-kernel@vger.kernel.org,linux-arch@vger.kernel.org
+Cc: jpoimboe@kernel.org,rostedt@goodmis.org,peterz@infradead.org,mingo@redhat.com,tglx@kernel.org,bp@alien8.de,dave.hansen@linux.intel.com,x86@kernel.org,catalin.marinas@arm.com,will@kernel.org,mark.rutland@arm.com,linux-arm-kernel@lists.infradead.org,pjw@kernel.org,palmer@dabbelt.com,aou@eecs.berkeley.edu,alex@ghiti.fr,linux-riscv@lists.infradead.org,acme@kernel.org,namhyung@kernel.org,linux-perf-users@vger.kernel.org,mhiramat@kernel.org,ast@kernel.org,daniel@iogearbox.net,andrii@kernel.org,bpf@vger.kernel.org,nathan@kernel.org,nsc@kernel.org,linux-kbuild@vger.kernel.org,ojeda@kernel.org,rust-for-linux@vger.kernel.org,ardb@kernel.org,linux-efi@vger.kernel.org,maz@kernel.org,oupton@kernel.org,kvmarm@lists.linux.dev,shuah@kernel.org,linux-kselftest@vger.kernel.org,indu.bhagat@oracle.com,jremus@linux.ibm.com,wnliu@google.com,dylanbhatch@google.com,irogers@google.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mas
+ on@kernel.org,ihor.solodrai@linux.dev
+Date: Mon, 23 Nov 2026 00:39:45 +0000 (UTC)
 
-On Mon, Nov 23, 2026 at 02:22:49AM +0200, Jarkko Sakkinen wrote:
-> On Mon, Nov 23, 2026 at 02:13:16AM +0200, Jarkko Sakkinen wrote:
-> > On Mon, Nov 23, 2026 at 02:10:23AM +0200, Jarkko Sakkinen wrote:
-> > > On Sun, Nov 22, 2026 at 09:35:13PM +0200, Jarkko Sakkinen wrote:
-> > > > SYSCALLS
-> > > > ========
-> > > > 
-> > > > Two new system calls are proposed:
-> > > > 
-> > > > 1. userland_open(): open an opaque staircase-initialized container
-> > > >    object (modeled on Intel SGX enclave initialization with separate
-> > > >    build and live states) with no embryonic state, opting selected
-> > > >    shared namespaces in via an allow-list instead of unshare semantics.
-> > > > 2. userns_set_idmap(): configure all UID, GID, and project ID map
-> > > >    extents for a container user namespace in a single atomic system
-> > > >    call.
-> > > 
-> > > Andy, perhaps a bit too far of the box idea but I'll just throw this out.
-> > > 
-> > > An alternative to userland_open() would a file e.g., virtual device
-> > > file, and necessary wiring for open().
-> > > 
-> > > Then the added syscall surface would reduce only to userns_set_idmap(),
-> > > and it adds more robustness to access control (e.g. who can create
-> > > containers).
-> > > 
-> > > What do you think of this?
-> > 
-> > Also, easy way to detect the feature. This does make sense to me.
-> 
-> This as a side-effect would enable LKM compilation, and reorganization
-> of the beef of the core feature as a driver. Not sure what would be
-> the best location for the driver tho, perhaps just drivers/userland.
-> 
-> I.e., full decoupling from the syscalls.
+--===============8029890971532200664==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-Right, and LKMs are great for live patching. This has enough quantative
-weight.
+> riscv: unwind_user: Support Minimal DWARF CFI and FP user unwinding
 
-Br, Jarkko
+TL;DR:
+- Nits only: a comment names a nonexistent __compat_vdso_rt_sigreturn symbol
+- The !CONFIG_MMU branch in the sigreturn unwinder looks like dead code, since
+  Kconfig requires MMU
+
+> diff --git a/arch/riscv/kernel/compat_signal.c b/arch/riscv/kernel/compat_signal.c
+> --- a/arch/riscv/kernel/compat_signal.c
+> +++ b/arch/riscv/kernel/compat_signal.c
+
+[ ... ]
+
+> +#ifdef CONFIG_UNWIND_USER
+> +/**
+> + * compat_unwind_user_sigreturn() - Unwind an RV32 compat vDSO rt_sigreturn frame
+> + * @state: Current user unwind state.
+> + *
+> + * Return: true if @state was at __compat_vdso_rt_sigreturn and advanced to the
+> + * interrupted 32-bit user context, false otherwise.
+> + */
+
+This isn't a bug, but __compat_vdso_rt_sigreturn does not appear to exist
+anywhere in the tree.
+
+arch/riscv/kernel/compat_vdso/rt_sigreturn.S just includes
+../vdso/rt_sigreturn.S, so the compat vDSO symbol is also
+__vdso_rt_sigreturn, which COMPAT_VDSO_SYMBOL(mm->context.vdso,
+rt_sigreturn) resolves through compat__vdso_rt_sigreturn_offset.
+
+Could the comment say "the compat vDSO __vdso_rt_sigreturn" instead?
+
+> diff --git a/arch/riscv/kernel/signal.c b/arch/riscv/kernel/signal.c
+> --- a/arch/riscv/kernel/signal.c
+> +++ b/arch/riscv/kernel/signal.c
+
+[ ... ]
+
+> +#ifdef CONFIG_UNWIND_USER
+
+[ ... ]
+
+> +	frame = (struct rt_sigframe __user *)state->sp;
+> +#ifdef CONFIG_MMU
+> +	if (!mm->context.vdso)
+> +		return false;
+> +	sigret = (unsigned long)VDSO_SYMBOL(mm->context.vdso, rt_sigreturn);
+> +#else
+> +	sigret = (unsigned long)&frame->sigreturn_code;
+> +#endif
+
+Can the !CONFIG_MMU branch here ever be built?
+
+This function is inside #ifdef CONFIG_UNWIND_USER, and UNWIND_USER is only
+selected by HAVE_UNWIND_USER_FP and HAVE_UNWIND_USER_CFI.  The Kconfig
+change in this patch selects both only when MMU is set:
+
+	select HAVE_UNWIND_USER_CFI if MMU
+	select HAVE_UNWIND_USER_FP if MMU
+
+So CONFIG_UNWIND_USER=y on riscv implies CONFIG_MMU=y, and the
+&frame->sigreturn_code path can never be compiled or tested.  Should the
+#ifdef CONFIG_MMU / #else be dropped, leaving only the vDSO lookup?  A
+nommu variant could come together with the Kconfig change that enables it.
+
+
+---
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
+
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/45087188604
+--===============8029890971532200664==--
