@@ -1,58 +1,55 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.28.50
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795430726;
-	b=zuJ6m8k6j86iVfilNYymhTXIjw/MV+6bP/U/ZydxEpdQjNzHTBFpIlqXPMfdITXGKv5v
-	 r5GIxq11dvp0faPnwAIXkXlQklfV+7RlGi/avopZvxHU4LY0Yvb6FCaD4rb7hYl1zTaBc
-	 LGocoTgUQDa+JSIiNRnLo3YeQf7gWwiXwtZGH8PEcQVSwKrkTuIdlGoqdlfWTnAHzJnPI
-	 5/kFlGIwxz+wAuIUlQwQytfJAP+V17oNDC4FqwVJ5ASYwmEEH5ogJu8mMLwfin5poEav0
-	 TUFhpSox42u52bjEDc5etK5/GUaXPUsF8E0PD/AdeOYobJSai1uaX1XcWwxI+epPo7Q==
+	t=1795432525;
+	b=wJML73ammjXXfeWF7DwTcjK/w1NPA2wj3qoLtF9pqkdK6hOxeIc2g/asqgCgsRL95Zm5
+	 tVskX9XMtC9vtzUWoGMnB3W+RWRcq7wCtlV+My2Es9jWXsyIWNj55C9lArZzBJoaR5n5P
+	 TNbGyhAoOD2a1/DiK6Q6LywDNSvtfk4kQESyIcYi8hnnry3rbUYZjTZfNakL+AwyMFt1J
+	 7wfW4VMVcInFPLKJ5P/ky7IcE7mlw3xLMXEmTptlJvM2z8VDrVWpOW8GowQlrOSWXVGkA
+	 CwteIU4LLuOB2iH0C6Bju/Rtby6Itjiz2tfOPbJ7U+M92jF+s51jZeVzxILKOlFDs+A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795430726;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=/qPYmDvU6/tNYx5q3aQ8plRWWnZskWOlIWsw9PX0tvk=;
-	b=sr6x+6tA+2H1JzuAyP9cLXZLxyLLRbw4GABlDC6aGz6INny+HDtm5sa+qbqjOyRvb9pG
-	 OiQ8patqrd8WY2twGB2ePloK9vxrdnp9AI5RE9LYh9nLr/fJr9m5jOEi4MlCKoZdnO4eE
-	 oX5Hkd1RCcsF30E0J6/HErtxwgcM7FiZu91Hd6h4730ILawj4x6etnda3t7pkcWTHRDq0
-	 6QF8jYRCQYIS4ZQ4ib7IWHO6dSo3SNpdmtV9pNliT1fjuoHoDfqfjBlUl02x6NnGTWZT5
-	 0AFOUX0TYz467/vry09y85ipr3mX/Ali/eD55NkRAl8O1Xm5BRqcfFk155Kf8euaqqQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795432525;
+	h=Received:DKIM-Signature:Received:X-Forwarded-Encrypted:
+	 X-Gm-Message-State:X-Received:MIME-Version:References:In-Reply-To:
+	 From:Date:X-Gmail-Original-Message-ID:X-Gm-Features:Message-ID:
+	 Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
+	bh=m3FH9Inv0u/v073kkt2usO8SlhkKeOQiuSBxAimhluw=;
+	b=efJK1dIxteUJnNqfwAb9WJQA6j32InhSea0rvGaXzJQTElPEGmBkhYYVNzQps/En3fso
+	 qShS33Ti7avHaq2j8UTpntZVyVGZcB7dTFuhrzWEBJz5rjwxTCPTVE+MZ+s1sEmu1dKat
+	 rGIaM6kfgyZaV0EG/PvyGrS+7iox4Upr7LW7kvsUI87EUecVVSYpay1zcIu+EmjnAjoTY
+	 TGE+QUFLJt4dUFEjY3++v9J9Q1722dbIdXchRg5Iak2/Kd7mNQRS/aquo6CyBupptpODC
+	 SeOv+u3txzM3tLmhIF0qWs/uJocdupizO1mpAPBaSI1Yzncw41hvV0ZXz6g9TZ67acg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=xiaopeng.com;
-	spf=pass smtp.mailfrom=xiaopeng.com;
-	dkim=pass header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=TDY5wph7;
-	arc=none smtp.remote-ip=115.124.28.50
-Received: from out28-50.mail.aliyun.com (out28-50.mail.aliyun.com [115.124.28.50])
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lKfQIv4G;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16844606A31A;
-	Mon, 23 Nov 2026 10:45:23 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 16844606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=xiaopeng.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xiaopeng.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21A41606A31E
+	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 11:15:25 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=xiaopeng.com header.i=@xiaopeng.com header.a=rsa-sha256 header.s=default header.b=TDY5wph7
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xiaopeng.com; s=default;
-	t=1795430714; h=From:To:Subject:Date:Message-ID:MIME-Version;
-	bh=/qPYmDvU6/tNYx5q3aQ8plRWWnZskWOlIWsw9PX0tvk=;
-	b=TDY5wph75b0CUpz8TLBqKHs3xYNAUiJqPNbnSkkv7rdH/wIvQvLacDGDgMlM2XcOlf17ecSZs8KUiA8VYVZzGfCCp/wl7+LnVWMqWvzgJuAzll6i7uYsATgeud88dfvNLR9PdsWtjPv56tqLNnUNYFsh2SqbmGNoWOI8dAEFavg=
-X-Alimail-AntiSpam:AC=CONTINUE;BC=0.06318961|-1;CH=green;DM=|CONTINUE|false|;DS=CONTINUE|ham_regular_dialog|0.0252662-0.000486688-0.974247;FP=15535778311839784065|0|0|0|0|-1|-1|-1;HT=maildocker-contentspam033037034184;MF=fangxy@xiaopeng.com;NM=1;PH=DS;RN=4;RT=4;SR=0;TI=SMTPD_---.k8JXEr._1795430713;
-Received: from localhost.localdomain(mailfrom:fangxy@xiaopeng.com fp:SMTPD_---.k8JXEr._1795430713 cluster:ay29)
-          by smtp.aliyun-inc.com;
-          Mon, 23 Nov 2026 18:45:13 +0800
-From: Fang Xieyan <fangxy@xiaopeng.com>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Subject: Re: [PATCH] asm-generic: bitsperlong: Remove the disabled BITS_PER_LONG check
-Date: Mon, 23 Nov 2026 18:45:12 +0800
-Message-ID: <20261123104512.58227-1-fangxy@xiaopeng.com>
-X-Mailer: git-send-email 2.50.1
-In-Reply-To: <423ac235-513e-4850-ba1c-5fe98eb2b294@app.fastmail.com>
-References: <423ac235-513e-4850-ba1c-5fe98eb2b294@app.fastmail.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lKfQIv4G
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E53851F000D4
+	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 11:15:24 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795432524;
+	bh=m3FH9Inv0u/v073kkt2usO8SlhkKeOQiuSBxAimhluw=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc;
+	b=lKfQIv4GogcIKtrj0EtxkNLuZ9GNbq2PszXlji7xvZ4I9C7gr++DHlV4IigfjcK3N
+	 jTtnKgGCM1GGpr9+md7zKjyNN1QBnZnbfPS5Mal0rNyyH/+b6ZvAl4HUQ8pOphNYsx
+	 8KebWB9WQQpSEdeRw3Pa4RR6J/k4mDOtQw70nw2ZucE9d6xhr2U5OnhawE6iZmQnXy
+	 2xJOSvka7n2u6i3OWquD9LSifjCBJyDDDdKpMHLHpKXUnwZAcBxhXS6moGYewdx8yw
+	 au4S35FRFQSUZHqo+0znW6Q2u56wztiB7FNx3KZOGwPkyNqcaFSw0PB7GRPwIGGjnZ
+	 qR+XnOAbxb9rA==
+Received: by mail-wr1-f44.google.com with SMTP id ffacd0b85a97d-497614c95f0so1729689f8f.1
+        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 03:15:24 -0800 (PST)
+X-Forwarded-Encrypted: i=1; AL+hErEF+Gzf+Izqy6XuGufaY6k/0825hG5XKljnK4U4ndZDfWQhkl2kxr1WlXbFeWYgD8rXsg1gidP1NAkx@vger.kernel.org
+X-Gm-Message-State: APuU4Z/yKrilpYXuwSTuX4GSeT2pOFwBuyjgGdUBUUW2kMcCC6bshmNO
+	ROtWh+PJ2GabNIG85Lvrzsm50jCRpbgXh74wHqe5cQShsF3XG+KbKf52NtNZLGCYdj2TUny05X1
+	UwCJ75GOOHQgJlN9hYgyMaiyLYO0VDKI=
+X-Received: by 2002:a05:6000:4381:b0:4a6:5a2a:f5a3 with SMTP id
+ ffacd0b85a97d-4abaa9773abmr21927640f8f.3.1795432522530; Mon, 23 Nov 2026
+ 03:15:22 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -62,30 +59,139 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20261120012712.1957564-1-guoren@kernel.org> <awPgjwuswbjeDftg@thelio>
+In-Reply-To: <awPgjwuswbjeDftg@thelio>
+From: Guo Ren <guoren@kernel.org>
+Date: Mon, 23 Nov 2026 19:15:07 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTQ+cOYfQX=JsK6T6Aij79FU9RGuyxAAouyL958z8ABqng@mail.gmail.com>
+X-Gm-Features: Aa3M54qkVWzvIW1E3JY7I_38vKo1jeuZ7f-WFYjpRl8FFdSV5EvMxwly24Z7rYs
+Message-ID: <CAJF2gTQ+cOYfQX=JsK6T6Aij79FU9RGuyxAAouyL958z8ABqng@mail.gmail.com>
+Subject: Re: [PATCH V6] riscv: errata: Add ERRATA WRITE_ONCE fixup
+To: Drew Fustini <fustini@kernel.org>
+Cc: paul.walmsley@sifive.com, palmer@dabbelt.com, arnd@arndb.de, 
+	linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, Alexandre Ghiti <alexghiti@rivosinc.com>, 
+	Leonardo Bras <leobras@redhat.com>, Inochi Amaoto <inochiama@gmail.com>, Han Gao <gaohan@iscas.ac.cn>, 
+	Yao Zi <me@ziyao.cc>, Chen Wang <unicorn_wang@outlook.com>, 
+	Xiaoguang Xing <xiaoguang.xing@sophgo.com>, Paul Walmsley <pjw@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, Nov 23, 2026, at 09:08, Arnd Bergmann wrote:
-> I think the correct fix would be to stop the x86 vdso from including
-> this header. The general rule is that any VDSO code should only
-> include headers from include/vdso/, but not include/linux or
-> include/asm.
+On Mon, Nov 23, 2026 at 2:43=E2=80=AFPM Drew Fustini <fustini@kernel.org> w=
+rote:
+>
+> On Thu, Nov 19, 2026 at 08:27:12PM -0500, guoren@kernel.org wrote:
+> > From: "GUO Ren (XuanTie)" <guoren@kernel.org>
+> >
+> > The early version of XuanTie C910 core has a store merge buffer
+> > delay problem. The store merge buffer could improve the store queue
+> > performance by merging multi-store requests, but when there are not
+> > continued store requests, the prior single store request would be
+> > waiting in the store queue for a long time. That would cause
+> > significant problems for communication between multi-cores. This
+> > problem was found on sg2042 platform with the qspinlock lock torture
+> > test.
+> >
+> > So appending a fence w.o could immediately flush the store merge
+> > buffer and let other cores see the write result.
+> >
+> > This will apply the WRITE_ONCE errata to handle the non-standard
+> > behavior via appending a fence w.o instruction for WRITE_ONCE().
+> >
+> > This problem is only observed on the sg2042 hardware platform by
+> > running the lock_torture test program for half an hour. The problem
+> > was not found in the user space application, because interrupt can
+> > break the livelock.
+> >
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+> > Reviewed-by: Leonardo Bras <leobras@redhat.com>
+> > Reviewed-by: Inochi Amaoto <inochiama@gmail.com>
+> > Tested-by: Han Gao <gaohan@iscas.ac.cn>
+> > Tested-by: Yao Zi <me@ziyao.cc>
+> > Cc: Chen Wang <unicorn_wang@outlook.com>
+> > Cc: Xiaoguang Xing <xiaoguang.xing@sophgo.com>
+> > Cc: Paul Walmsley <pjw@kernel.org>
+> > Signed-off-by: GUO Ren (XuanTie) <guoren@kernel.org>
+> [..]
+> > diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead=
+/errata.c
+> > index 6f1c683f0ec0..64683882d50b 100644
+> > --- a/arch/riscv/errata/thead/errata.c
+> > +++ b/arch/riscv/errata/thead/errata.c
+> > @@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int s=
+tage,
+> >       return true;
+> >  }
+> >
+> > +static bool errata_probe_write_once(unsigned int stage,
+> > +                                 unsigned long arch_id, unsigned long =
+impid)
+> > +{
+> > +     if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
+> > +             return false;
+> > +
+> > +     /* target-c9xx cores report arch_id and impid as 0 */
+> > +     if (arch_id !=3D 0 || impid !=3D 0)
+> > +             return false;
+>
+> Doesn't this match more SoCs than just the SG2042 and TH1520 like the
+> commit message mentions?
+The issue has only been observed on SG2042, though TH1520 is
+theoretically affected as well. To the best of my knowledge, it has
+not been observed on any other chips.
 
-Thanks, that makes sense.
+>
+> [..]
+>
+> > +#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE=
+)
+> > +
+> > +#define write_once_fence()                           \
+> > +do {                                                 \
+> > +     asm volatile(ALTERNATIVE(                       \
+> > +             "nop",                                  \
+> > +             "fence w, o",                           \
+>
+> I tried this on v7.4-rc3 in qemu with -cpu thead-c906 which matches this
+> errata, and I discovered boot fails when CONFIG_DEBUG_VIRTUAL=3Dy.
+>
+>   kernel BUG at mm/vmalloc.c:879!
+>   epc : vmalloc_to_page+0x212/0x260
+>    ra : patch_insn_write+0x1a2/0x414
+>   [...]
+>   [<ffffffff8026ba1a>] vmalloc_to_page+0x212/0x260
+>   [<ffffffff8000fa76>] patch_insn_write+0x1a2/0x414
+>   [<ffffffff8000fcf6>] patch_text_nosync+0xe/0x22
+>   [<ffffffff8001b886>] thead_errata_patch_func+0xac/0x144
+>   [<ffffffff80009548>] _apply_alternatives+0x76/0x96
+>   [<ffffffff80e038a4>] apply_boot_alternatives+0x48/0x54
+>   [<ffffffff80e04d4a>] setup_arch+0x92/0xe8
+>
+> The vdso getrandom code uses WRITE_ONCE(), so it now has entries in
+> .alternative. patch_map() ends up calling vmalloc_to_page() on an
+> address in the vdso and triggers VIRTUAL_BUG_ON().
+Oh, thx Drew for catching it. I would disable it in VDSO code.
 
-The compat vDSO ABI difference is valid, but it should not require
-the VDSO to include this kernel-internal header. I'll drop this
-removal.
+diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonc=
+e.h
+index 081793d4d772..5305b8bf82bd 100644
+--- a/arch/riscv/include/asm/rwonce.h
++++ b/arch/riscv/include/asm/rwonce.h
+@@ -8,7 +8,7 @@
+ #include <asm/vendorid_list.h>
+ #include <asm/errata_list_vendors.h>
 
-I re-enabled the check in a test build to see what actually breaks.
-On x86-64 the vdso32 build passes, because fake_32bit_build.h
-undefines CONFIG_64BIT to fake a 32-bit configuration. The failures
-are the realmode build (32-bit code with the real 64-bit config),
-and the arm64/parisc compat vDSO builds, which include this header
-via <vdso/gettime.h> -> <linux/types.h> without faking the config.
+-#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
++#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) &&
+!defined(NO_ALTERNATIVE) && !defined(BUILD_VDSO)
 
-I'll investigate the include chains and look into removing the
-dependencies on include/linux and include/asm before revisiting the
-check.
+ #define write_once_fence()                             \
+ do {
 
-Thanks,
-Fang Xieyan
+--
+Best Regards
+
+
+
+ Guo Ren
