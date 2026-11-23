@@ -1,84 +1,101 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.182
-ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795455141;
-	b=NNb+QlrLG5jQBSHOcWh/awxH7u7JNyS5Clif9IQRMNVcXT1o8Sg7kf8b1TIRCnKWdXLJ
-	 H9iy771qwU4Md7Xd4Py/a2KGhuNqP7Oc7J4NMfjZS67g9+IGXnYU4KOPs3bIS0WQAx4rK
-	 AtTkpBZ6IQ4UH6VJGPryqrZ83gp4y6YFOwSDNPgzJ1EWRMdIh3akuUWca14l8pl/PO0dV
-	 NdX2UjIzn+jV/nDXmbCddfJcCeM7akhBSknS1sbZUe14XpSLebDqt5KsSGja0tvEIc60n
-	 6NemwmVOSNXiwmk4FWc3AmjgN8HB8rJrRG8RerlBqzOaQIMyF+yrb6bIHT/OkhuLh1A==
-ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795455141;
+Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.178
+ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
+	t=1795457311;
+	b=XqVKoe3v1oC5vGcKtlotKLi55ktm9RjBrlQkssOFV+JfNViN5nPhROCS4WHltlKlDmUb
+	 xnQoLS83Q5JcBgbmq4pl3Kji2HJ2WUx2CMB7WNrupgS5xWIud/fFLuPgVVeyOrSDcThUS
+	 atwrCStMEZARZ8w/ISeypbNxwhHe4NiTD+mgzSI0gB2Ee7wEcD2QBd48L1p4edY8VivTM
+	 s9k8Ryy03FXpauIGzK3OJi+3noLxvzfrggq+ppO5X92v2WmtZedUgwTvVEEtueLeswbTt
+	 kPS9amPJFvr9n/w96SAxhaSZCTfYReswnGRR3vd9H4wCLrVBggEJUm6cUScfHTTIMUg==
+ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795457311;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Mime-Version:Content-Transfer-Encoding:Content-Type:Date:Message-Id:
-	 From:To:Cc:Subject:X-Mailer:References:In-Reply-To;
-	bh=P+l/VRR07HqPbgm9tEPK7SVr6Tlf5vY5XKwCiYVXpnE=;
-	b=vcUJ6iD9zrP4Zt5xcnLB1WkUydly4mfPTF3SxTsIxCpDqZSFNrWSefZKOKXypXnimZTB
-	 EVfq27S99PnDYwYbqjQ7LaN3Vivd6U4awvbxJx+1PsuBv3kJyh1Bx9C/5R5psqEA6QH7c
-	 fS63SpE0pVG8Z6VlaOSfbrzaJVApeSO/LJBkv7EqCk5Lvh6P5DMEF7wFcA56WKGFZge7U
-	 PH7GGCfdqdaUuBrCy2K1rxMwC13Hm2y+bxVRC402AS4mzDxV1TFTfDHk71DmVOKz8+W5t
-	 cNIE1f4YrOmiRFMHEv9l8Eo3CRl42u8ECWkzjNkJiL5t6csaF/pwghENABSzTaytm8A==
-ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=GUqMwfdW;
-	arc=none smtp.remote-ip=209.85.214.182
-Received: from mail-pl1-f182.google.com (mail-pl1-f182.google.com [209.85.214.182])
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
+	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
+	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
+	bh=8coD+XWZF+6IAMbbF9oMOg2qovtZBuAGzKp+jSJ0jtY=;
+	b=a7pGto6xJ73nwjs22C2vBE+8H+dgRHHnq1nVhon3/vNdhFBtPnnwJH8kplM5eTmDwhha
+	 BMzsj7p93b7n95MzlyvKMg09Bspj8GuwMFFC30ZgOR2Av5N/ky/45owfZtsdXJbPHPSCz
+	 aqigc6jescuvs6Cuha7Jlla1aIL+ESfIVIg+8FoXDJMaKoWQkHIjABye0ufcKaP6ximp2
+	 0QOAVDMDKv5xR9OxdA3m71iZtFimYRzTSZwSDR8pxkrDwTY+so/1VFDqSZWBf+QhvLYv6
+	 SYGwe9nwzCundlH8UucjgNgGzuoyccceiVy+9vNt4v9s5oqCSsVYed8o6SSvhPM2+Cw==
+ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=un+KrnTE;
+	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.178
+Received: from mail-yw1-f178.google.com (mail-yw1-f178.google.com [209.85.128.178])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 431D1606A327
-	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 17:32:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 431D1606A327
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D27CD606A31A
+	for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 18:08:30 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D27CD606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=GUqMwfdW
-Received: by mail-pl1-f182.google.com with SMTP id d9443c01a7336-2f03920c477so30915615ad.2
-        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 09:32:21 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=un+KrnTE
+Received: by mail-yw1-f178.google.com with SMTP id 00721157ae682-8b0dba37a7fso28770817b3.0
+        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2026 10:08:30 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1795457310; cv=none;
+        d=google.com; s=arc-20260327;
+        b=FYxUEw0/7qcln4mZ5FZUUM51/vcWJEONBVXPboLwYjimb9qT2uvsSMPg/gEC1TnwO2
+         ZAO+gbfr0RLKYam5FbaiIbU8ZXjs0oeG03IW8pkzWTphAAp469zjRf9cgIT6yUJH3tAy
+         qnsU5yaa/8tNqHM+yuvoyZn4g7PLelVIXWTK5KpxDMUp7sPX4kO2qKO7RL0N6t/cUlUv
+         muooo2uLZvQWgiDG2bTMLb3B8ecrPumaul/Cf1ZwXgl8iuqgvejo5MfTD++PH3gGuq1j
+         mBxDx/dDQyzmliS3zEeRmNbPFiLecJxcDg4ofTMey68L5/sUyc9SRgC2nXs4I5g5iMKN
+         GLmg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=8coD+XWZF+6IAMbbF9oMOg2qovtZBuAGzKp+jSJ0jtY=;
+        fh=J0mMjwVTi1i56fSYdJOsx0Wd5af74qmNDEhG0oRiftc=;
+        b=FFtFeTFg5wy2N7CDsbLp8GWyDDnJgA8aa8i1tXoEetD8/5siHeh+K0drxYHSWm4+Ad
+         8O+UuCzD6xf6+/ugIu16aHLTCNrIbCwo+Facwut2bwZGSz4R5QQs9JlWeh0j9W/8uXz8
+         KJCv5YZJikgd70MaSkpV2usT01oALzzZ4ZhVzO+obDAS1vqsjenPi8P8LivDRFzLoEs+
+         zRm2h/TdaGbd4vue+Ty/TL4gQl1N605Vtys4NxJyuwBs2OGe9omP8tmtzP8OVV06oMyQ
+         M0XYephvJBcBBmE26jKuOIrog54mCtIGQSbK9BzxWWNeC5PWm3yA+nW0AWmtm2g0j7/h
+         DoSQ==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1795455140; x=1796059940; darn=vger.kernel.org;
-        h=in-reply-to:references:subject:cc:to:from:message-id:date
-         :content-type:content-transfer-encoding:mime-version:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=P+l/VRR07HqPbgm9tEPK7SVr6Tlf5vY5XKwCiYVXpnE=;
-        b=GUqMwfdWySOE88STspofkPaLQaaZjEwFfhZBDcvXCKXUdwt0IqoJuHyz6c4xJs/dnO
-         RLel3qR6lTtHRWvCqUUH6V5nO10hZZlnSxyrXXoEH6W8FwXVOVGLxiAv30EQ6HvrMt1x
-         4gFCm0+JmjZI5aW6RAsyZvO6EbM46xOijpgUC6/Gi8xQTSRJxGbSJwxabd7/tnVmiQXO
-         v4nAVDKIubL2xTU2aRRz7NEg9/ux/TdNw2zEhqyeTsdVJAu9Sgw1uALVn6Q6ZcCySPur
-         zNiBzRfxUKrP/aEvbxj+n/QxJwBzo3JvMo7sIRnvm9/J8aQiFzLnERdkb664faMxpA5G
-         xcwQ==
+        d=gmail.com; s=20260707; t=1795457310; x=1796062110; darn=vger.kernel.org;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=8coD+XWZF+6IAMbbF9oMOg2qovtZBuAGzKp+jSJ0jtY=;
+        b=un+KrnTE20u4uKJ0y9QdxzvTq2vJ/RVHg5bge5mrgE5548sFECDdSkyp0EL9VmSZlE
+         ojWp0lHAYTFrWPbdWm+ukpizQSfFUNJE2pLjjPiSR2EwdTiUsBdv7r1OXfpv5fDc+h9h
+         t0wb5aS+5Yfsd6uGZ5jJNPB1iYDBq1ZE6CRQDQlFSyDWC/FJlmp7NaiiLj/ws0nzX8+H
+         foqngf+GfhcT5MNWiCeZeR1y8CQPqT4jdFTVQTSCHd8eao23yVGwHidUWyjXFk/2Fsqs
+         Y8kH8TsE2c+4Pz3MFmFD1+DWT5xTAqe+lGK8KNtcd1P2w+OwsMZ/maOBMR+e5b/rr6SP
+         ZK9g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1795455140; x=1796059940;
-        h=in-reply-to:references:subject:cc:to:from:message-id:date
-         :content-type:content-transfer-encoding:mime-version:x-gm-gg
+        d=1e100.net; s=20260707; t=1795457310; x=1796062110;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=P+l/VRR07HqPbgm9tEPK7SVr6Tlf5vY5XKwCiYVXpnE=;
-        b=fetemqpwIDEbp3F0dhNS4XjJ8gWTGbiy8hSkGpxpFosfFgYV3rrfucHdCjEP3WMrNh
-         FSdOs/DMbJqvDR0r0kjbWNnXaWl7TQgIUKn1WtpN7U1151rAG9f7CHdkneVz4uASeLmB
-         QnhKbVF/aPUsFr8VatTZ46nvgKJHp5id9kJsQ1fgZzn/xbqfotnAevEBFiVA/kW+DVTe
-         +KwvrbLqoZtdjIGuAj3mOpVytvQYRQmce15XUcZW15BypAlnSInQNlZESnteizrxRbAQ
-         UGUvxiIZlGSYHrcvcNLHgVwW4HVZWDEIvBdkyYwVTa7C9LYdZP32GdYeV82uNqkAsIg0
-         Svsw==
-X-Forwarded-Encrypted: i=1; AL+hErFs/+OJifRRa4PpcczXBET/aI7SzR98WOcBoTbUuE6SfuueXZv8zvCOYpOQkxuCCD76CXt2NQZGAJ7H@vger.kernel.org
-X-Gm-Message-State: APuU4Z9XibHPEYKVH2dux4/LPF4jH3OBQKUKVVXc3Vnwjv75K5hOy0Ll
-	6nKh6xn06aJA2uSD+iaZIu6UM6GZlUXYUw29SnBUFMyYcSZVj7iQQwz9iQ8z+bZ6Bw==
-X-Gm-Gg: AZFdTZc+4S8l5+B6QQ1K/8qhcqLM4605B1cKpadra6HaBUWYZ06lXyQWFzfhgYg+LXu
-	Ww6B8eWY564ty4+u0vy6JAcjK+rNgVfuKWLMQzIV2egU1pGUUN7WqIstUjPWUvVKiURvb4U1arL
-	9P5lC3swF5fI7M+FgiWe6Ri9PcYoVpaA4bmoyrMolmUkCX0Y33xNkznFHnk38ZX+5VsS+kqLpQA
-	2/WkCNif+54k2uyMh24eBVFHNA2h9ThRdnL6/RUfyLHPCGh6BbHP39JTgUevjaxE5hExvCqhQsq
-	vEmkX2++uBXHzK3x72H5aIV/rJdu7/Viu7bETkN6TNirhoYnjUsGIROY9Jw6UBgcYplYHrqUMEE
-	NqpT8nYvhk4Zw0hQn7hEDTDRZkOBSStHGKAh/0toT46iP/RGXSj3ThE5+s9Bi8NhkhE+OmCLxx+
-	K2U5Jinjzibqtj05bmoCORT0bXCXTE1ds9gRSAhH2/5soal+qpTGhhUR+vaPfVvxjZVua6M6eJ/
-	LrAN2Ir2u7gxIgrD1ei57Kq/CDEBtzM/iXO0g8FZQRYguLPTxGkqfkBO/d8AXVipEpCUDSULg+W
-	vtwaDsv3beDKuzfXLrBdWJCfiGm9JQNk/ejJFHimN2QdnyYLj/swpfVSzK0zhiIm
-X-Received: by 2002:a17:902:e807:b0:2ee:1fab:158f with SMTP id d9443c01a7336-2f03f167d4emr115089865ad.43.1795455139780;
-        Mon, 23 Nov 2026 09:32:19 -0800 (PST)
-Received: from localhost (33.79.127.34.bc.googleusercontent.com. [34.127.79.33])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2f051a566f7sm45650825ad.41.2026.11.23.09.32.18
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 23 Nov 2026 09:32:18 -0800 (PST)
+        bh=8coD+XWZF+6IAMbbF9oMOg2qovtZBuAGzKp+jSJ0jtY=;
+        b=lFpROj96TmXN9tbrxRE4eVPmm9uo4Eg1miIILquDBvHfiQJpV3/qG2j4SIRGMSvbph
+         i3dVTD0Rr02mIwIO5KB18p2+OQQJSSdJu6xrT0COR+sy3pa9gUYsdEgh/F//6kvNR7sE
+         5QiOwvhMzRPa4fG7Q5kZst0kyDVzDzI7Z8nHcE0RqtgTk1E3uPXBUXn4o+gdOHZCo/9Q
+         C5JOBwjHj5hchKTQYBPhKfSkxdysJRRaJZxiGuo39jfzcGRr0v2XuDFFqREKzPIMeYvg
+         DT2SS5DZ40DL4LZbaTq9md32rJ2mu7OHXKizWrdxSwt+320OI/SGmF/JyVOq3OGPi+nl
+         oe8g==
+X-Forwarded-Encrypted: i=1; AL+hErEsu7dbJNNAQELXt7M0CHij3p/fptY5iac3lYfSz/5bFmBzL3iIwhPVv1/bpXK4rsd3UdXv82FgwvUk@vger.kernel.org
+X-Gm-Message-State: APuU4Z/ZlA9Mx5jVwDZaN5I15wherxKGQW7AVsgzxKxk49VvKTFlzBbf
+	NH0T3Mm0HXhpKvHpGrGifvGlFdSqsP9Hir40od0pasfXmezyuGp/fy7vZRQ6oKk0qaHtRc+1ct3
+	2AqqEESkRR+qKoNxiBxkGWFH76kurYQc=
+X-Gm-Gg: AZFdTZfBWKakv48zcadjnJy04NPqYsQZ/fdd/xWUdjeSgKKC3jpZg4pefMBUSncJvDZ
+	XnQgx2S54hfa9MAfPkUHKi11fUUfKulFi43rsw/0EjBO4hO7tcdrFgsBLlNDHGas6tGZ6x55dv1
+	6QMXrZSLcbyeiSlSWGAuh0ztcaNGIavLIxZSoflbsKWL8GkhsMbdlST8PZQp4jw6kIWPGVzE0AF
+	JoF4qYXG+HRPUHKgjZ2EClwwqkqWSdbid9/HxACbd4x1Ji1sz8xqAH4+MUFOeYxfIjXkmCnxzoD
+	HgeQqZYT25WlEbt56LbpSRGDQxvMnjfz0NGy+7jhDND+A68n+CrvJAV6M2JDebFB6aMrmQF9Ry/
+	CkWQyUwAG6IFw5SE5s092QuKUNFPsYGIMc+jWSqN/vMxg4cWVTFIIgI7SaeabyEOZL8T39RmgdW
+	k0SlmLvj0H1QPpIDFNxTTWBUz8RBufvWgjfxWb
+X-Received: by 2002:a05:690c:b82:b0:8b3:2e4f:6c06 with SMTP id
+ 00721157ae682-8b5204e6874mr37616707b3.47.1795457309817; Mon, 23 Nov 2026
+ 10:08:29 -0800 (PST)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,89 +104,102 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
+MIME-Version: 1.0
+References: <20261121-vmlinux-lds-v1-0-49818f3f5cc0@gmail.com> <20261122120212.0dda7532@pumpkin>
+In-Reply-To: <20261122120212.0dda7532@pumpkin>
+From: jim.cromie@gmail.com
+Date: Mon, 23 Nov 2026 11:08:03 -0700
+X-Gm-Features: Aa3M54pFgWYfRjmoVibaUGYDePfbu6x3lqh-lBTVnXaC_Y8BSI8GNkbK8nNeqyU
+Message-ID: <CAJfuBxzcGz0Z36NNAWKoJi5KObKm3Y=Vb2gCQ6TFsoaQPjJsjA@mail.gmail.com>
+Subject: Re: [PATCH 0/6] dyndbg,vmlinux.lds.h: fix i386 section alignment in
+ BOUNDED_SECTION macros
+To: David Laight <david.laight.linux@gmail.com>
+Cc: Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Jason Baron <jbaron@akamai.com>, Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+	Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+	Aaron Tomlin <atomlin@atomlin.com>, Andrew Morton <akpm@linux-foundation.org>, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-modules@vger.kernel.org, Louis Chauvet <louis.chauvet@bootlin.com>
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Content-Type: text/plain; charset=UTF-8
-Date: Mon, 23 Nov 2026 09:32:17 -0800
-Message-Id: <DN2RQ7LGX224.3W3PSQ2PBHTJZ@google.com>
-From: "David Matlack" <dmatlack@google.com>
-To: "Pratyush Yadav" <pratyush@kernel.org>, "Tarun Sahu"
- <tarunsahu@google.com>
-Cc: "Pasha Tatashin" <pasha.tatashin@soleen.com>, "Mike Rapoport"
- <rppt@kernel.org>, <robin.murphy@arm.com>, <maz@kernel.org>,
- <will@kernel.org>, "David Matlack" <dmatlack@google.com>, "Alexander Graf"
- <graf@amazon.com>, <seanjc@google.com>, <jgg@nvidia.com>,
- <loganodell@google.com>, <arnd@arndb.de>, <dwmw2@infradead.org>,
- <baolu.lu@linux.intel.com>, "Bjorn Helgaas" <bhelgaas@google.com>,
- <oupton@kernel.org>, <alex@shazbot.org>, <gle.com@google.com>,
- <pbonzini@redhat.com>, "Andrew Morton" <akpm@linux-foundation.org>,
- <kevin.tian@intel.com>, <joro@8bytes.org>, <kvmarm@lists.linux.dev>,
- <linux-pci@vger.kernel.org>, <kexec@lists.infradead.org>,
- <kvm@vger.kernel.org>, <iommu@lists.linux.dev>,
- <linux-arm-kernel@lists.infradead.org>, <skhawaja@google.com>,
- <sagis@google.com>, <linux-arch@vger.kernel.org>, <linux-mm@kvack.org>,
- <linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI
- compatibility
-X-Mailer: aerc 0.21.0
-References: <20261110050202.529473-1-tarunsahu@google.com>
- <20261110050202.529473-6-tarunsahu@google.com>
- <2vxzse0rzjdn.fsf@kernel.org>
-In-Reply-To: <2vxzse0rzjdn.fsf@kernel.org>
 
-On Mon Nov 23, 2026 at 6:56 AM PST, Pratyush Yadav wrote:
-[...]
+On Sun, Nov 22, 2026 at 5:02=E2=80=AFAM David Laight
+<david.laight.linux@gmail.com> wrote:
+>
+> On Sat, 21 Nov 2026 15:49:18 -0700
+> Jim Cromie via B4 Relay <devnull+jim.cromie.gmail.com@kernel.org> wrote:
+>
+> > This series fixes a latent i386 section-alignment bug, by adding
+> > explicit alignments into the BOUNDED_SECTION_* linker script macros.
+> > The misalignment appears once __dyndbg_classes is split in 2, and the
+> > 1st section has just 1 entry; the 2nd section implicitly gets ALIGN(4).
+>
+> Would everything work if all these sections got an ALIGN(8)?
+> It would simplify everything and only cost a few bytes of memory
+> that no one is really going to notice.
+>
 
-> When we have all this available, I don't see the point in
-> differentiating between optional and required features at the ABI level.
-> At the ABI level, all that matters is what the incoming kernel
-> understands. If the incoming kernel does not understand a specific
-> field, the outgoing kernel should just not use it. There's no point.
-> Best case, it gets ignored.
+I tried that 1st, iirc the ORC_UNWIND table in particular
+did not like it - the size and placement checks are quite strict,
+and I didnt want to fiddle with changing the rules.
 
-I pretty strongly disagree.
 
-An optional feature is one that the next kernel does not need to
-understand to correctly restore the object. A required feature is one
-that the next kernel must understand to correctly restore the object.
-Optional features can be enabled without any compatibility concerns.
-Required features must be enabled carefully (IMO via uAPI) to avoid
-breaking Live Update.
 
-I agree it's a good idea for the outgoing kernel to check that the next
-kernel supports all of the required features it is using, so the Live
-Update can be stopped before the kexec. But that doesn't remove the
-need for the distinction. The next kernel still has to decide what to
-do when it sees a feature bit it doesn't understand, e.g. because no
-spec was provided, the spec was wrong, or we kexec'd into a different
-kernel than planned. Without the distinction it can only:
-
- A. Treat all features as optional, which risks misinterpreting state
-    and corrupting memory if the previous kernel did not properly
-    validate the next kernel's capabilities.
-
- B. Treat all features as required, which means no new feature can be
-    enabled until every kernel it might Live Update to (including
-    rollback targets) understands it, even when those kernels could
-    safely ignore it.
-
-Neither of those is a good outcome.
-
-> The semantics of required or optional then become "can I describe this
-> object with the capabilities I can use?". If the answer is yes,
-> serialization succeeds, if the answer is no, serialization fails. So
-> with this, KHO_MAP_F_MULTI_INDEX or KHO_MAP_F_DYN_DEPTH are indeed
-> optional. All memfds can be described without these, they just will be
-> less efficient.
-
-I think this is a different meaning of "optional". Whether the outgoing
-kernel can choose not to use a feature is a decision for the serializer.
-Whether the next kernel can safely ignore a feature's data is a property
-of the ABI. KHO_MAP_F_MULTI_INDEX is optional in the first sense, but
-required in the second: a kernel that doesn't understand it will
-misinterpret the map. The header needs to convey the second.
-
-So I see the spec and required bits as complementary: the spec lets the
-outgoing kernel avoid features the next kernel doesn't support and fail
-before kexec, and required bits let the next kernel fail safely if that
-check was skipped or wrong.
+> (Apart from BTF which seems to be page aligned.)
+>
+> David
+>
+> >
+> > 1. Refactor BOUNDED_SECTION_* (and HEADERED_SECTION_*) macros from
+> >    vmlinux.lds.h into include/asm-generic/bounded_sections.lds.h for
+> >    reuse.
+> >
+> > 2. Drop the unused HEADERED_SECTION* macros from bounded_sections.lds.h=
+.
+> >
+> > 3. Add explicit ALIGN(8) defaults to BOUNDED_SECTION_* (with _ALIGNED
+> >    variants for non-8-byte tables like ORC_UNWIND_TABLE,
+> >    EXCEPTION_TABLE, TRACEDATA, INIT_SETUP, and NOTES), fixing an i386
+> >    NULL deref in dynamic_debug_init() caused by 28-byte
+> >    __dyndbg_classes misaligning the following __dyndbg section.
+> >
+> > 4. Remove now-redundant outer `. =3D ALIGN(8);` directives preceding
+> >    BOUNDED_SECTION* uses in vmlinux.lds.h.
+> >
+> > 5. Add include/asm-generic/dyndbg.lds.h with DYNDBG_SECTIONS() for
+> >    vmlinux.lds.h and MOD_DYNDBG_SECTIONS() (`0 : ALIGN(8)` + `KEEP`) fo=
+r
+> >    scripts/module.lds.S, fixing lost __dyndbg* sections in DRM modules
+> >    under CONFIG_DRM_USE_DYNAMIC_DEBUG=3Dy.
+> >
+> > 6. fix checkpatch to skip macro-rules checks on any *.lds.h, in 3
+> >    places where only vmlinux.lds.h is currently skipped.
+> >
+> > NB: most of this patchset was split out of larger series fixing
+> > dyndbg-classmaps.
+> >
+> > Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+> > ---
+> > Jim Cromie (6):
+> >       vmlinux.lds.h: refactor BOUNDED_SECTION_* macros into bounded_sec=
+tions.lds.h
+> >       vmlinux.lds.h: drop unused HEADERED_SECTION* macros
+> >       vmlinux.lds.h: Fix ALIGN(8) omission causing NULL ptr on i386
+> >       vmlinux.lds.h: remove redundant ALIGN(8) directives
+> >       dyndbg.lds.S: fix lost dyndbg sections in modules
+> >       checkpatch.pl: generalize linker script macro exceptions
+> >
+> >  MAINTAINERS                                |  1 +
+> >  include/asm-generic/bounded_sections.lds.h | 32 ++++++++++++++
+> >  include/asm-generic/dyndbg.lds.h           | 18 ++++++++
+> >  include/asm-generic/vmlinux.lds.h          | 68 ++++++----------------=
+--------
+> >  scripts/checkpatch.pl                      |  6 +--
+> >  scripts/module.lds.S                       |  2 +
+> >  6 files changed, 69 insertions(+), 58 deletions(-)
+> > ---
+> > base-commit: aebb7274476403040d582c61478df8f4a7bf9cd3
+> > change-id: 20261121-vmlinux-lds-b59410146885
+> >
+> > Best regards,
+>
