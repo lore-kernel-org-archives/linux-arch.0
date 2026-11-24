@@ -1,89 +1,81 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795539957;
-	b=PutiI5ctFsxI4aXG/EshvDDO7PGzmXF8K42NDR95Bqq1hJAXDQHMFIYHsot3v7BgZ+/G
-	 4X9kR0TGPWJVPERBuPCdTCuYrRw1aDbfIpx8eBMs2wPcvg2G4g4El7UHtt3yeDw9zUAx4
-	 2EN4TiO0kkDguu8snSh5EPN+HmHwo1trfpFsHvG6WmI9wG+7UcmArIOhWa1jaI93CS+hd
-	 DeghQX7nWq/HWVe+DzObA2BDYuW2v0rZA4e4MyLieOiShHdgpTJeCjwqtfY9RoCGAURX8
-	 aOhKbFMDI1jH2E+5bk7h9mfbBdZHMUvHkoIO/t4TNDC4giJ4QaWIFr7vEoTzjBggKGg==
+	t=1795545347;
+	b=pOZoYMM/PMlLvLO5AhnJ6HoGWjPog2WQh5VdCGjWdbj/TW/vVnbl0o56lLXj5elz6wPF
+	 CtRljG2Yl+nZEXqLKjc2qPW+f5JK/xa7jjzgMa8z2qLODx4xa2C8bHtAhZxwovgjsD+yo
+	 z1H851qPho0wjjG9g4Rolnan6dqVOVVB/vKNxtGaPZR0rifu0ss65eHpO+zpv4Hi2ALeF
+	 8RmT/081BM2oU0V8fjWiLKTMvJPYU3exWA8Ts1F4BQ+yAMPNlH3d4Ck0R4mCv3mMCOWRE
+	 mR5F87pB6PT1bcK7Tn4s8J+QCQx2D4Q3c7RLHyptXVZ5CaCBIErAFzU3p/WQxQLcHnw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795539957;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795545347;
 	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
 	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=cEp/cXDtvYTiH8Vp1GK2CqYt15Bi6PXi0it+ySjQOVc=;
-	b=dY4QLchuU6MA147eesKlpdmq1cTsssIUWsZxFAyNh82pi2M6ChFwhv31C5z+URg2hRNX
-	 87zuekccpuYbCsnup2cpuWHhjQACF2OQxLTTRIySiOg0b81NjNAFJr1nPzvhntNKmkW8o
-	 1NM80Ek7oAwxi99ccrRpV3gQt4iu8P2P1MKCb8o6dg920MtidLrsGH6EufmYRN8g0O7JW
-	 /sP7PmzDZDvnLXiRZkbyTlYZenr37h2BG/0PhmlSXcMTn/yzAspGsl2033xRySCB1p+OA
-	 P+5ygoZPd/sBx2OUQmgJIYll7tSWTTt7aMcFmnpQ36FsoXWDw958VQDg186LIIlStcQ==
+	bh=NH+LCPbT58VTTOKIoQohmGo8BCrcjnPK+zFjIzwgB7Y=;
+	b=zCuf3WKPKArafRG0pyuce/nSAzbT3/wwDyBIqC9YWIjG3fC8kH4KHi7P4lNwRgEJHqWK
+	 rUVZr5HxvDgXDs+X49b59GBxyqWJfbFZa0IFudDgo03hmyQxEp9GLjODo/pAl7WXQ1e3N
+	 2a26DVcgPh4dOcnrOJ7js7LadQV7rYrU1eGTCuJhJ36DCJe81b8D9kf8blesxu8jgyfzr
+	 IuxpX/tG4FJRPdfjtkOFdsAcGCGCBkwobbRBRlS0yIY6+DMwb1dA1FnA2iN30gFcQ+Pzw
+	 bz/zaJJmYpE5jCE+Kd8c86VnE1XSlDLK5EhzNucMurI0METtMlKfodHaR5vLXiU7LMA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bni2B9pu;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YGNhEOdl;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEC76606A31E;
-	Tue, 24 Nov 2026 17:05:57 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 3C8B8606A321;
+	Tue, 24 Nov 2026 18:35:46 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bni2B9pu
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1346D1F000C0;
-	Tue, 24 Nov 2026 17:05:41 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YGNhEOdl
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id CA1681F000D8;
+	Tue, 24 Nov 2026 18:35:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795539957;
-	bh=cEp/cXDtvYTiH8Vp1GK2CqYt15Bi6PXi0it+ySjQOVc=;
+	s=k20260515; t=1795545346;
+	bh=NH+LCPbT58VTTOKIoQohmGo8BCrcjnPK+zFjIzwgB7Y=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=bni2B9puF7kfV9Am5t1Ov8WQVRWkWZkohYhFYaAOCp/DQ8YyK4hiNB/6DDEmutNnx
-	 9DItMmeG9wGbsSnTa/2g6Bc+qZD0MoOo2QOCjGO0RuxOqF3Tm1xaa1EZJ9bnO6HeVo
-	 aY1UKSh6mwdd27HE+ANXhvMJYuMadmQYUspZ9MtLopcJo2kqu6TZRKLJOQ+VmUeRA8
-	 BHSro9BNahirHyqaXlAUVp75XTw4Ei0heRmarVboAGmlnTryJvfEdsallK7L2ZowDl
-	 Fuw7NBHUoexrLNsU88p9DA3WymGQjoLqXzSxY/kk/t5a2Ys6NENMpuN8WNAadIMoey
-	 tbOkOgbd3/Bhg==
-Date: Tue, 24 Nov 2026 19:05:38 +0200
-From: Mike Rapoport <rppt@kernel.org>
-To: Yeoreum Yun <yeoreum.yun@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	David Hildenbrand <david@kernel.org>,
-	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>,
-	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
-	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
-	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RESEND v2 12/21] mm/pgtable: redefine PGTABLE_LEVEL enum
- with ascend order from PGD
-Message-ID: <awXD4i47F-VAG1tD@kernel.org>
-References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
- <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
+	b=YGNhEOdlnPN871G/X9PPWV2KDkNfg6lDAYL74NQ4uMZDrqBjOHxooLjxN6J9DJyuN
+	 epQrEamKS5eGTLTDPRfDiX5spXFiq6j1WSiqUG/PtKfJ1tZSmLYqwKylZQhk9WPX7B
+	 bEM8oPgYlXgUet8cYtuVzgh8rRxJEj8ZgkcD4hk3pA4UHghl4N8J0BPQIsCsPCZAFd
+	 +kJTyztWJCLJ50m3BrED2g/opMxeaUu7STWXnyQ8A3/RFw4OBjGhmM9kNWyBlQHyvc
+	 cKvYRL1apD8f0X5RwzYPerXPlVzxh1JZGzc30tc5hQHHP60AIzOQqgM3p4OYptBszq
+	 3eYlMbouXqYYQ==
+Date: Tue, 24 Nov 2026 20:35:42 +0200
+From: Jarkko Sakkinen <jarkko@kernel.org>
+To: linux-fsdevel@vger.kernel.org
+Cc: bpf@vger.kernel.org, containers@lists.linux.dev,
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-kselftest@vger.kernel.org, linux-mm@kvack.org,
+	linux-security-module@vger.kernel.org,
+	Aleksa Sarai <aleksa@amutable.com>,
+	Alexander Mikhalitsyn <alex@amutable.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Andy Lutomirski <luto@amacapital.net>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	David Howells <dhowells@redhat.com>,
+	Eric Biggers <ebiggers@kernel.org>,
+	Giuseppe Scrivano <giuseppe@scrivano.org>,
+	Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
+	Josef Bacik <josef@toxicpanda.com>, Kees Cook <kees@kernel.org>,
+	KP Singh <kpsingh@kernel.org>,
+	Lennart Poettering <lennart@poettering.net>,
+	Neal Gompa <neal@gompa.dev>, Oleg Nesterov <oleg@redhat.com>,
+	Paul Moore <paul@paul-moore.com>,
+	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
+	Serge Hallyn <sergeh@kernel.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+Subject: Re: [RFC PATCH v7 00/26] userland: Userland containers
+Message-ID: <awXY_gKSqi-L5V30@kernel.org>
+References: <20261122193539.3334213-1-jarkko@kernel.org>
+ <awTmJIErjasO4lqq@kernel.org>
+ <awToL2PFNKVgIfqs@kernel.org>
+ <awUGkYoyDXp4P5LJ@kernel.org>
+ <awULfmZR-pESj2EC@kernel.org>
+ <awVInf04kGC0uZZo@kernel.org>
+ <awVRz8XC54nfevtW@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -95,63 +87,61 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
+In-Reply-To: <awVRz8XC54nfevtW@kernel.org>
 
-On Mon, Nov 02, 2026 at 11:21:25AM +0000, Yeoreum Yun wrote:
-> The PGTABLE_LEVEL enum values appear to be ordered in the opposite direction
-> from their intended usage.
+On Tue, Nov 24, 2026 at 10:58:55AM +0200, Jarkko Sakkinen wrote:
+> > https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git/log/?h=vault
 > 
-> Intuitively, higher page table levels should have smaller enum values,
-> but PTE is currently assigned 0.
+> The key function to look up from here is spawn_userland_container():
+> 
+> 	https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd-test.git/tree/br2-external/patches/systemd/0010-nspawn-Start-containers-in-an-experimental-userland.patch?h=main
+> 
+> It demonstrates an initialization flow that ends up cleanly with
+> clone(). userland_share_host_ns() demonstrates the ioctl I added
+> previous week i.e., USERLAND_SHARE_NSFD, which is used to punch those
+> host namespaces that the guest actually needs. This is the allow-list
+> part, which is usually the favorable principle over deny-list.
 
-That's not what x86 thinks :)
-They even expose it in /proc/vmstat with smaller numbers meaning lower levels
+This proves that bootstrap ends with clone3(CLONE_INTO_USERLAND), which
+the most important property to prove at first.
 
-$ grep direct_map /proc/vmstat 
-direct_map_level2_splits 152
-direct_map_level3_splits 4
-direct_map_level2_collapses 0
-direct_map_level3_collapses 0
+The second part is "hotpluggability" property (hmm... is that even a
+word). I have early local patches for this but they ares still unpushed.
+I need to test this again with real hardware as I did in ad-hoc manner
+previously. I don't think QEMU is acceptable for this alone.
 
-Just an observation, I don't mind either order.
- 
-> For consistency and cleanup, reverse the enum value ordering.
-> 
-> Since there is no current user relies on these numbers to be ascending from
-> PTE->PGD, so it can be changed to be ascending from PGD->PTE, in the
-> direction of the page table walk.
-> 
-> Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
-> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
-> ---
->  include/linux/pgtable.h | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
-> 
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index 780fe849ff8b7..a032f95943357 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -2288,11 +2288,11 @@ static inline bool arch_has_pfn_modify_check(void)
->  typedef unsigned int pgtbl_mod_mask;
->  
->  enum pgtable_level {
-> -	PGTABLE_LEVEL_PTE = 0,
-> -	PGTABLE_LEVEL_PMD,
-> -	PGTABLE_LEVEL_PUD,
-> +	PGTABLE_LEVEL_PGD = 0,
->  	PGTABLE_LEVEL_P4D,
-> -	PGTABLE_LEVEL_PGD,
-> +	PGTABLE_LEVEL_PUD,
-> +	PGTABLE_LEVEL_PMD,
-> +	PGTABLE_LEVEL_PTE,
->  };
->  
->  static inline const char *pgtable_level_to_str(enum pgtable_level level)
-> 
-> -- 
-> 2.43.0
-> 
+However, it is not really rocket science with these tools, and it would
+require effort to get these completely wrong, especially if they are
+stressed even slightly with bare-metal hardware:
 
--- 
-Sincerely yours,
-Mike.
+	nspawn: Hotplug device nodes into userland containers via udev
+
+	Defer absent /dev bind sources when starting a container in a userland,
+	keep the userland mount namespace fd open in the supervisor, and attach
+	an sd_device_monitor to the supervisor event loop. When matching device
+	nodes or optional API devices appear, update the container scope's
+	DeviceAllow= property, populate the dev node and /dev/{char,block}
+	symlink via its root fd, and attach the device mount with
+	MOVE_MOUNT_T_MNTNS.
+
+	machined: Allow bind mounts on user-namespaced containers
+
+	When experimental support is enabled, bind_mount_in_namespace() attaches
+	mounts via MOVE_MOUNT_T_MNTNS without entering the target's namespaces
+	and refuses to fall back to namespace_fork() for foreign user
+	namespaces.
+
+	mount-util: Attach live namespace mounts with MOVE_MOUNT_T_MNTNS
+
+	When experimental support is enabled, create missing target mountpoints
+	through the target's root fd and attach bind mounts and dissected images
+	directly into the target mount namespace fd instead of forking a
+	setns() helper process. Fall back to namespace_fork() when the kernel
+	does not support MOVE_MOUNT_T_MNTNS.
+
+They are variation of the same pattern, and pretty obvious even from the
+descriptions. When they are known to work, I'll push them.
+
+Br, Jarkko
+
+
