@@ -1,84 +1,75 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.170
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795546936;
-	b=2mj2ceMObsIM58rcWUAdJy8p6Lu5I+Majp2QnCHr0IACByG2m+f8RoG0LSu2wVm+/YtZ
-	 L3zQ4e2/0CEggkleoRLEYDZa3r3W5RXJGiPYS0EQYH3GpPaaG1rwlsjbInYHd78/su/6h
-	 DqcytRHsDlLYmEJSGadQ/rdOxU+Ai1ai2tgPe419WPCW8c8s5YCRowCRtyT/h1UpzcQn2
-	 vPzpsopwncT590nmguFSKwvLmiWy3Jtejk0tz9JzrbeJqGIbqXetnjzJnt81eVj8gLhjx
-	 lBHKzFyoWcx5sSIKZ7XpP/DVQmErmzkC7qmU6ADLnD9mU3Ue2bm0zE2hLByIdjC/g9A==
+	t=1795557792;
+	b=Ar3aD63ituFM0fWvhyctE+FWs2xUWdWs7wueXX+cFlbWTTtrp5WczX7kl7bkZa94p9s5
+	 ED8iVgzo2J5FQWQaBx753btlVB9yd0kMK5IDw82VXt+F0KahQl0yYGrVERT8XlTPBCuCh
+	 W0F/2OEQr/iIlBx3At55pvWSHqMRms652YVqnJbsoH+Zzbf01sfeN7PhK31RXIiNWF5ku
+	 FP01/ThFia9ZSvxMm5jvgjJ0uUhvdPHFmLhFmDne0rAu3jFeHGYpGyNM73FN3ENuDoSST
+	 3lDfeqqp9aytcQoyrL394k9qa18coHWumxS6hDfzklJ4hlCNdgy69b6R4yOqWmwyjEA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795546936;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Mime-Version:Content-Transfer-Encoding:Content-Type:Date:Message-Id:
-	 Cc:Subject:From:To:X-Mailer:References:In-Reply-To;
-	bh=vmPlBJsxyoTZOO9g2mmGNuUfH7b/frSSah/ZWuzVmhc=;
-	b=PqX1TtOnXLUGxnFOkyfZQpjR2D7YB11+c0SGzHEMMWsEwQAKfzPsMuVwm6FRXxms6e8h
-	 TiWJVIlihzNm7JCg2Iqy7O+ftz1zxOJLswJzsXBpPImhzZRciE6TCPt4DWUIggXCW0K1Z
-	 cNacz37ZXi8OkcNTc1fvMXoG7weitFcco8AfuGU5hF0WdW7KIAq2fPIyp/bVozGau6/qU
-	 ZPjYpN2fZzmbY8DU9WN9XIIGTda9+0QbXPRTd/d9CebtyChQAhtWtDJhDjHv0OhkO0cSe
-	 /SP3bctXfFnZwQi9FgWvMFLitLOIR9GLx8L+BFOnLDUhdBaxlOo2XRO/t5OB5XQqIag==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795557792;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=I2AawXArirG4KpU+UUm14KyoGf+mvvaD2kOOOKXiUqk=;
+	b=gEXu1BNvOZDGIVGYo75T1EgTAVa9305x8uSrpNvp1uyOe3HBIXHtZn/Vlcypt9zU/qjE
+	 NMBYMQFx7z9kPlubWyKQrxwugHRagXwEoEM1Vf61rvjp3mtXnzKrsHzRfVSyUuk4diCg+
+	 5jNXWSQOeZEML3h+K1b9M7AczYWw93LG6pF13hBrDrGU3cOCx18EnRIQNxulo3T+qN4mx
+	 V2Ze4Gzh8ZiwUiU1GEDuwzxWnv4Q4rHHs56tfMT4qM1+MrJTRXInb+EkkcNocjuwhgY7F
+	 ExMoWbS0yJ78t288hNf8Naiu+CElWK2N//+N6MczjuxpZao0FFFDIs31UDfDLKHV0rg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=google.com;
-	spf=pass smtp.mailfrom=google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=W49HLn5R;
-	arc=none smtp.remote-ip=209.85.210.170
-Received: from mail-pf1-f170.google.com (mail-pf1-f170.google.com [209.85.210.170])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NbKsLJkS;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BCC25606A323
-	for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2026 19:02:15 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BCC25606A323
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id B4CD5606A31E;
+	Tue, 24 Nov 2026 22:03:12 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=W49HLn5R
-Received: by mail-pf1-f170.google.com with SMTP id d2e1a72fcca58-8a4c72951b8so3146647b3a.3
-        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2026 11:02:15 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1795546935; x=1796151735; darn=vger.kernel.org;
-        h=in-reply-to:references:to:from:subject:cc:message-id:date
-         :content-type:content-transfer-encoding:mime-version:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=vmPlBJsxyoTZOO9g2mmGNuUfH7b/frSSah/ZWuzVmhc=;
-        b=W49HLn5RkMaC5OffA1iNYwWj3QcXjho4bBBEYyHJ80sMc/UPULZx0is/eDJpC2N3ib
-         U5411fK9H7EvaHNUiAzyNcMRaRfWUePxiO5nF6dXRnWQcakCLoOcwBez1qwCR6R1oIfe
-         q4c7EtVSFXNeliYrDeUDxIDrBA9ZIJuyG39lD2tcmw1MBgaf0y6E9eqLCYzDMbFPT8aQ
-         T2II96TRsePidFGcPlSyAkLQbRIPL4z8RKR0PPlfzSoiEzHTM2cY+rkptgAAFD2Cwvml
-         DpAfsAN2AKGhtv05DtjXMcA4gmT2Ub8TyWWHMBLSJzr10iAYvLD8v6nEW2UiNe6xEGzX
-         AF6Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1795546935; x=1796151735;
-        h=in-reply-to:references:to:from:subject:cc:message-id:date
-         :content-type:content-transfer-encoding:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=vmPlBJsxyoTZOO9g2mmGNuUfH7b/frSSah/ZWuzVmhc=;
-        b=iJMD4mZbxtSPYlafd2JzOaRpUTf2QcOhfI6GUgDfianE9++MKkQHp+RF11J3HiHIdA
-         oxg26AEsKnnjMb8ezsrPFEkGHkmT6b+UrqQ+L8Q80ciHB3o5Fgv6kXmFTD6oQm3cSmrE
-         AaIivrWl5rrL03CHLbjee9mLbTz+WEOn9bXoomrG/eLYLyw7+a2sM1qpABbogJfPoakb
-         9xJvfKlv8wzuEej6qgaQb4qhPYPT+Tmx1QqANLVRyzxeWqWsqP4YdYIXXnfZGPaInY3C
-         EgxNMPy5HavjZp5/l2EyXfGr0afh+ZCARgImB6VrrWrUSZFjgtkOd4Dbc6I2AeWDPIke
-         bYBw==
-X-Forwarded-Encrypted: i=1; AL+hErEOAQdJmMDAKxfrWWUHULkUsRQmK14MOGtBpVlrzG/P9rXZm2dAPfmPeMxtlZj7q9eWWsT11WsiHqxI@vger.kernel.org
-X-Gm-Message-State: APuU4Z/wvPdLVgU+jMdusX4ZrqbZoYgYMUZcYH+wvC7WRWopKUbFnhRe
-	ysS92KxMpcXxJ5Bmj+InBqy2RlhlqVRBbhKev6o4gWHVDtY1/0+FnslI9vrgui0hNQ==
-X-Gm-Gg: AZFdTZcUc2Wd9B7YSRfvbHVAKcblgefzSJg9hMAzhwug80z/VQYJjWG74guhoUD8GpZ
-	S8MQE3kZdDVDjXMu7BHYQ7sEkzvbwXBH+NFginFht9W5sVt/Gw6hq2CDpYZTHjQhEfvDb2vN9xB
-	rkRnIgRFWyHGF3Z36VYCKzfXzMm2jy+Xac38ELEXm1J/h5ggh73DXpqu+4tKubm+1hWBwwi4+Mb
-	k26rDhR4iQH6thefH/rjWWNxJUoCPo4bh2Q5MhZ9sJoh8C6U+3wjHeNNPavPcrE4S7lzpgdwb46
-	++iDv3lrih7a4KnZDDaN807XV8S3IBagF/7rqTfelYl8a1zsZBK4f637HigHD9sPPN60ClFVgWX
-	zpUytRijK056VCIjqk6yudkl1K/tnnozi9z2WstfxAQrrLtd6Zp6NcBVCeTeaSqm5sDj8aWFMj9
-	6jRjWoR+KWRKfKtnBc6vbCbby5GQhmpkqYLJu5cUgKN60Idy4o2hBrHo2sjzq+whS+10u9XZ32z
-	3Ar+zZDfiuMM5Luzn52ttaM0ljZZUdNpuBMbpiWxawo15Awe2HtDMe0EIwsW9Odb6oHsvp9cnXh
-	YWODZUSs2GXX7/XA7rIz5HscLtxRzTbPfvo+qWl4mZ1vAbFmMrBI6Qoauy67KLOg9w==
-X-Received: by 2002:a05:6a20:a11f:b0:3e9:f2d:d556 with SMTP id adf61e73a8af0-4014ca44d17mr16159174637.55.1795546934090;
-        Tue, 24 Nov 2026 11:02:14 -0800 (PST)
-Received: from localhost (33.79.127.34.bc.googleusercontent.com. [34.127.79.33])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cde9bb05981sm2247135a12.26.2026.11.24.11.02.12
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 24 Nov 2026 11:02:13 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=NbKsLJkS
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 8014E1F000D1;
+	Tue, 24 Nov 2026 22:03:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795557792;
+	bh=I2AawXArirG4KpU+UUm14KyoGf+mvvaD2kOOOKXiUqk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=NbKsLJkSWiUjr+/kVbIn98nMLxV6i/5Qs+f0i6FIBEkPFrMNK+9ezbwjqipPrP5zK
+	 7eAw3dXiBNy4ZCOFyhojpJwh1jpUYecGHms5Zo1p6+7FVM2/GwCMgdTgh3RmMD+vIO
+	 pyh99waasjRHrRa9GOR7D/GkolPRaKQT9VZkuENydlDNeA7VOYCsN2RcVit+SQcytc
+	 2si4PwnoA2X/2DIweANilI/FOBDlbaQ6QNvuyIlKfG+POWgMjn3A/frdS5yqDffPTD
+	 /SxikRsNwAWKM+I6R7Lcrd/pbP//S0PKae3f17ipQjyB6SZ2DoSw0ZmQmsLOovJec+
+	 LPYdsWIa+BTmw==
+Date: Wed, 25 Nov 2026 00:03:08 +0200
+From: Jarkko Sakkinen <jarkko@kernel.org>
+To: linux-fsdevel@vger.kernel.org
+Cc: bpf@vger.kernel.org, containers@lists.linux.dev,
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-kselftest@vger.kernel.org, linux-mm@kvack.org,
+	linux-security-module@vger.kernel.org,
+	Aleksa Sarai <aleksa@amutable.com>,
+	Alexander Mikhalitsyn <alex@amutable.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Andy Lutomirski <luto@amacapital.net>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	David Howells <dhowells@redhat.com>,
+	Eric Biggers <ebiggers@kernel.org>,
+	Giuseppe Scrivano <giuseppe@scrivano.org>,
+	Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
+	Josef Bacik <josef@toxicpanda.com>, Kees Cook <kees@kernel.org>,
+	KP Singh <kpsingh@kernel.org>,
+	Lennart Poettering <lennart@poettering.net>,
+	Neal Gompa <neal@gompa.dev>, Oleg Nesterov <oleg@redhat.com>,
+	Paul Moore <paul@paul-moore.com>,
+	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
+	Serge Hallyn <sergeh@kernel.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+Subject: Re: [RFC PATCH v7 00/26] userland: Userland containers
+Message-ID: <awYJnFNt9kkBqj59@kernel.org>
+References: <20261122193539.3334213-1-jarkko@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,78 +78,164 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
-Mime-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Content-Type: text/plain; charset=UTF-8
-Date: Tue, 24 Nov 2026 11:02:12 -0800
-Message-Id: <DN3O9LHR4XNH.1EYLA6D1F0J2P@google.com>
-Cc: "Tarun Sahu" <tarunsahu@google.com>, "Pasha Tatashin"
- <pasha.tatashin@soleen.com>, "Mike Rapoport" <rppt@kernel.org>,
- <robin.murphy@arm.com>, <maz@kernel.org>, <will@kernel.org>, "Alexander
- Graf" <graf@amazon.com>, <seanjc@google.com>, <jgg@nvidia.com>,
- <loganodell@google.com>, <arnd@arndb.de>, <dwmw2@infradead.org>,
- <baolu.lu@linux.intel.com>, "Bjorn Helgaas" <bhelgaas@google.com>,
- <oupton@kernel.org>, <alex@shazbot.org>, <gle.com@google.com>,
- <pbonzini@redhat.com>, "Andrew Morton" <akpm@linux-foundation.org>,
- <kevin.tian@intel.com>, <joro@8bytes.org>, <kvmarm@lists.linux.dev>,
- <linux-pci@vger.kernel.org>, <kexec@lists.infradead.org>,
- <kvm@vger.kernel.org>, <iommu@lists.linux.dev>,
- <linux-arm-kernel@lists.infradead.org>, <skhawaja@google.com>,
- <sagis@google.com>, <linux-arch@vger.kernel.org>, <linux-mm@kvack.org>,
- <linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI
- compatibility
-From: "David Matlack" <dmatlack@google.com>
-To: "Pratyush Yadav" <pratyush@kernel.org>, "David Matlack"
- <dmatlack@google.com>
-X-Mailer: aerc 0.21.0
-References: <20261110050202.529473-1-tarunsahu@google.com>
- <20261110050202.529473-6-tarunsahu@google.com>
- <2vxzse0rzjdn.fsf@kernel.org> <DN2RQ7LGX224.3W3PSQ2PBHTJZ@google.com>
- <2vxz33sqz1xj.fsf@kernel.org>
-In-Reply-To: <2vxz33sqz1xj.fsf@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261122193539.3334213-1-jarkko@kernel.org>
 
-On Tue Nov 24, 2026 at 7:25 AM PST, Pratyush Yadav wrote:
-> I don't think it buys us any functionality. It just hides the problem in
-> some lucky cases.
+On Sun, Nov 22, 2026 at 09:35:13PM +0200, Jarkko Sakkinen wrote:
+> OVERVIEW
+> ========
+> 
+> A userland is an anonymous-inode control object with separate build and
+> live phases that binds together:
+> 
+> 1. A full set of detached namespaces owned by a fresh user namespace,
+>    with optional build-phase opt-in sharing (USERLAND_SHARE_NSFD).
+> 2. A dedicated PID namespace for spawning processes into, signaling
+>    members, and polling or waiting on PID 1 exit.
+> 3. An initially empty mount namespace (CLONE_EMPTY_MNTNS) populated
+>    directly in its target user namespace before going live, without
+>    inheriting host mounts or cloning staged trees, while still allowing
+>    new mounts to be attached at runtime.
+> 
+> Work on this feature started in 2025 after reviewing David Howells'
+> container object patch set [1], whose underlying mechanics made sense to
+> me as a continuation of earlier container object efforts [2]. The
+> lifecycle follows a staircase initialization model similar to the Intel
+> SGX driver, without an embryonic task state or a parallel namespace
+> syscall API, pairing a compact policy-agnostic implementation with an
+> allow-list security model (with LSM hooks) and runtime mount hotplug.
+> 
+> While the patch set is manually written, the original motivation came
+> from isolating LLM agents. Running untrusted agent workloads made it
+> clear that OCI runtimes need to minimize their live configuration
+> surface.
+> 
+> Assembling mounts, credentials, and namespaces inside helper processes
+> with a half-configured container is what I see as the main challenge,
+> and the existential debate around namespaces and container objects is an
+> unfocused discussion topic.
+> 
+> [1] https://lore.kernel.org/all/155059610368.17079.2220554006494174417.stgit@warthog.procyon.org.uk/
+> [2] https://lwn.net/Articles/1102593/
+> 
+> IMPLEMENTATION
+> ==============
+> 
+> Standalone fd-based namespace configuration (patches 01-07) decouples
+> user and mount namespace setup from live helper tasks. userns_set_idmap()
+> atomically configures USERNS_SETGROUPS_ALLOWED policy and UID, GID, and
+> project ID mappings on a CLONE_NEWUSER nsfs fd, checking current_cred()
+> so an unprivileged creator can delegate the fd via SCM_RIGHTS to a
+> privileged mapping daemon. move_mount(..., MOVE_MOUNT_T_MNTNS) operates
+> on any non-anonymous mount namespace fd: on an empty mount namespace it
+> installs "/" onto the nullfs root once, attaches relative submounts both
+> before entry and into live mount namespaces, and supports
+> MOVE_MOUNT_CLONE for recursive bind mounts without OPEN_TREE_CLONE.
+> 
+> userland_open() allocates a userland instance backed by a pollable
+> anonymous-inode fd, creating a fresh owning user namespace and a full
+> set of detached namespaces: empty mount (CLONE_EMPTY_MNTNS), PID, UTS,
+> IPC, network, cgroup, and time. ioctl(ufd, USERLAND_GET_NSFD, nstype)
+> returns nsfs file descriptors for member namespaces, and
+> ioctl(ufd, USERLAND_SHARE_NSFD, ns_fd) replaces a member cgroup, IPC,
+> UTS, network, or time namespace while the userland is in USERLAND_INIT.
+> 
+> Superblocks are configured directly in the target user namespace via
+> fsopen(), FSCONFIG_SET_USERLAND, and fsmount() for filesystems opting
+> into FS_USERLAND_MOUNT (tmpfs, ramfs, devpts, proc, mqueue) or
+> FS_USERNS_DELEGATABLE, allowing unprivileged callers to assemble mounts
+> without holding CAP_SYS_ADMIN in their own user namespace or entering
+> the target user namespace first.
+> 
+> Once "/" is installed, processes are spawned into the userland via
+> clone3() with CLONE_INTO_USERLAND and struct clone_args.userland,
+> without modifying the calling process's own live state first. Pairing
+> CLONE_INTO_USERLAND with CLONE_VFORK and opening the target binary via
+> openat2(..., RESOLVE_IN_ROOT) on the retained "/" mount fd allows
+> spawning with execveat() directly into the target root.
+> 
+> The first entrant becomes PID 1; once it exits and
+> zap_pid_ns_processes() reaps all members, poll() reports EPOLLHUP and
+> waitid(P_USERLAND, ufd, infop, options, NULL) returns init's exit
+> status without consuming it. pidfd_send_signal(ufd, sig, NULL, 0) walks
+> pid_ns->idr under tasklist_lock to signal member thread groups, and
+> dedicated LSM hooks mediate userland allocation, teardown, namespace
+> sharing, process entry, and signal delivery.
+> 
+> SYSCALLS
+> ========
+> 
+> Two new system calls are proposed:
+> 
+> 1. userland_open(): open an opaque staircase-initialized container
+>    object (modeled on Intel SGX enclave initialization with separate
+>    build and live states) with no embryonic state, opting selected
+>    shared namespaces in via an allow-list instead of unshare semantics.
+> 2. userns_set_idmap(): configure all UID, GID, and project ID map
+>    extents for a container user namespace in a single atomic system
+>    call.
+> 
+> Extensions to existing system calls:
+> 
+> 1. move_mount() (MOVE_MOUNT_T_MNTNS, MOVE_MOUNT_CLONE): install "/" and
+>    relative submounts into a mount namespace fd before entry or at
+>    runtime, and recursively bind-clone mount trees without
+>    OPEN_TREE_CLONE.
+> 2. clone3() (CLONE_INTO_USERLAND, struct clone_args.userland): spawn
+>    PID 1 and subsequent processes directly into a userland without
+>    modifying the calling process's own live state first.
+> 3. fsopen() / fsconfig() / fsmount() (FSCONFIG_SET_USERLAND): bind a
+>    filesystem context to a userland's namespaces and create mounts
+>    without entering its user namespace.
+> 4. waitid() (P_USERLAND): wait on a userland fd for PID 1 exit and read
+>    its exit status without consuming it.
+> 5. pidfd_send_signal(): broadcast signals to member thread groups via a
+>    userland fd.
+> 6. ioctl() (USERLAND_GET_NSFD, USERLAND_SHARE_NSFD): open member nsfs
+>    file descriptors and opt selected namespaces into existing nsfs fds
+>    during USERLAND_INIT.
+> 
+> HOTPLUG
+> =======
+> 
+> 1. Host calls userland_open().
+> 2. Host sets uid/gid maps with userns_set_idmap().
+> 3. Host populates "/" with MOVE_MOUNT_T_MNTNS, optionally combined with
+>    MOVE_MOUNT_CLONE for bind mounts.
+> 4. Host spawns PID 1 with clone3(CLONE_INTO_USERLAND) (optionally
+>    passing an AF_UNIX socketpair fd for communication).
+> 5. PID 1 watches /proc/self/ns/mnt via fanotify(FAN_REPORT_MNT |
+>    FAN_MARK_MNTNS, FAN_MNT_ATTACH) or polls /proc/self/mountinfo.
+> 6. On hotplug, host mounts the filesystem via fsopen() /
+>    fsconfig(FSCONFIG_SET_USERLAND) / fsmount() (plus optional
+>    MOUNT_ATTR_IDMAP).
+> 7. Host creates the mountpoint with openat2(RESOLVE_IN_ROOT) + mkdirat()
+>    and attaches the mount with MOVE_MOUNT_T_MNTNS.
+> 8. PID 1 receives FAN_MNT_ATTACH and queries the new mount via
+>    statmount().
 
-Following up on our offline discussion: I think it's worth keeping
-support for optional features, both before and after the spec changes
-land.
+The initial ad-hoc testing of hotplug using a bare metal x86-64 machine
+and systemd-nspawn has been successful. The kselftest seems provide
+pretty good guarantees for the basic stability; using the syscalls has
+caused no issues so far.
 
-Before the spec lands, optional features are the only way to enable new
-features at all. For example, the PCI follow-up series [1] preserves
-BARs and bridge windows using an optional flag. It's purely additive: a
-kernel that doesn't understand it keeps behaving the way it does today.
-With optional features it can be enabled as soon as it lands, and Live
-Update keeps working in both directions, including rollback. If every
-feature is required, there is no way to enable it until the outgoing
-kernel can learn what its target supports.
+I took some time to go through my experimental SystemD patch files and
+sliced them so that they ought to be easy to bisect and refactor. They
+should be also quite easy to read, understand and evaluate. Finally, I
+removed the shitty patch files from my test harness repository.
 
-After the spec lands, optional features are still useful, and at worst
-harmless:
+Resulting outcomes of all of this are:
 
- - Kernels that predate the spec mechanism can't provide a spec. As long
-   as one of them is a possible target (e.g. for rollback), optional
-   features are still the only features the outgoing kernel can use.
+1. Rebased RFC v7 patches with refined LSM support and fixes to the
+   known issues as of today:
+   https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git/log/?h=userland
+2. SystemD patches:
+   https://github.com/jarkkojs/systemd/commits/userland/
 
- - The outgoing kernel doesn't need to consult the spec for optional
-   features at all (less complexity), since by definition the target can
-   ignore them. It can always produce the same payload, and only
-   required features need to be gated on what the target supports.
+No new issues were found during testing, other than fixing the issues
+reported to this thread. This is all feels fairly nice, clean and
+stable.
 
- - Nothing prevents an outgoing kernel that has a spec from choosing not
-   to set optional bits its target doesn't understand, if we ever want
-   that.
-
-The cost of keeping them is negligible in the current design: the same
-number of bits in the header, and one range check on the incoming side.
-
-The one rule we need is that optional really means safe to ignore, e.g.
-optional data must not reference preserved memory or carry restrictions
-that the next kernel has to act on. Anything like that must be a
-required feature.
-
-[1] https://lore.kernel.org/linux-pci/20261019213054.3157159-5-dmatlack@goo=
-gle.com/
-
+Br, Jarkko 
