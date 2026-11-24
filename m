@@ -1,81 +1,93 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=217.140.110.172
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795545347;
-	b=pOZoYMM/PMlLvLO5AhnJ6HoGWjPog2WQh5VdCGjWdbj/TW/vVnbl0o56lLXj5elz6wPF
-	 CtRljG2Yl+nZEXqLKjc2qPW+f5JK/xa7jjzgMa8z2qLODx4xa2C8bHtAhZxwovgjsD+yo
-	 z1H851qPho0wjjG9g4Rolnan6dqVOVVB/vKNxtGaPZR0rifu0ss65eHpO+zpv4Hi2ALeF
-	 8RmT/081BM2oU0V8fjWiLKTMvJPYU3exWA8Ts1F4BQ+yAMPNlH3d4Ck0R4mCv3mMCOWRE
-	 mR5F87pB6PT1bcK7Tn4s8J+QCQx2D4Q3c7RLHyptXVZ5CaCBIErAFzU3p/WQxQLcHnw==
+	t=1795546331;
+	b=T5S/pdp4m2eakCBaMd5Rb+qkjx/qtVYIWvF0Supw6RZlgCsXwTuOerA70T6FXiLilVcN
+	 jB/s7yG84d5m7G6bW6bZB1+P11Do5uWOTW4Yt3SXy3pZVVbkCwWXFsUQhJDOEz0yvk6cl
+	 gTEoVO4Bj3/at2458JeUVGiOySI91IddyEI3Gk6KQw3LSmPIerJeM6KbumyjCzvajZmGD
+	 BOTJhlgz95H44ClNkY6TgDIanvJdORAeF9muNUE6d9XHNLiB4V83O/1udFWNZmFzWdSTn
+	 lfuYFyvhHRUe5M+TSYQNE0pp5knqdFKcOwwAEr5vFIkCzMoNYwHU+jdI3HdhyraHeXw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795545347;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=NH+LCPbT58VTTOKIoQohmGo8BCrcjnPK+zFjIzwgB7Y=;
-	b=zCuf3WKPKArafRG0pyuce/nSAzbT3/wwDyBIqC9YWIjG3fC8kH4KHi7P4lNwRgEJHqWK
-	 rUVZr5HxvDgXDs+X49b59GBxyqWJfbFZa0IFudDgo03hmyQxEp9GLjODo/pAl7WXQ1e3N
-	 2a26DVcgPh4dOcnrOJ7js7LadQV7rYrU1eGTCuJhJ36DCJe81b8D9kf8blesxu8jgyfzr
-	 IuxpX/tG4FJRPdfjtkOFdsAcGCGCBkwobbRBRlS0yIY6+DMwb1dA1FnA2iN30gFcQ+Pzw
-	 bz/zaJJmYpE5jCE+Kd8c86VnE1XSlDLK5EhzNucMurI0METtMlKfodHaR5vLXiU7LMA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795546331;
+	h=DMARC-Filter:Received:Received:DKIM-Signature:Date:From:To:Cc:
+	 Subject:Message-ID:References:MIME-Version:Content-Type:
+	 Content-Disposition:In-Reply-To;
+	bh=0sNoW/KWYC5fenn6W3ZO2QgTuASrJJ6ujM7Ci83DK9o=;
+	b=Ed3D09zOQNrWj3TDzKik5Zre/WpGlfd3VJs2GluUkZg0s9Aw0+AEAg8ncpGS5Cnv2Z1A
+	 OCCCDMAKf53sHHjjxcTg/c6gI+QdtWEUY1+5b+VOSE/wDN7a03j9WHj8Yy+kN9UyeFOf1
+	 LEBee3LmDPqnM+KUgabSL13aTBRVtvfl2QSYlk/NhbW+C9bpZfDg9YbhgWpJInpy64VWL
+	 uC3qcKDpAcAtGdCtw1HT4r+Qs1kd17DdrKgiWl5niipKDd2WuruBcRMWWWt6sc7SkUwID
+	 WP0Kp/X4jY/PAzeoTAgNnKqptfakf7S1pneM8JNT6eNmGbo0+bYsm8EB/88AKHSkQ7w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YGNhEOdl;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id 3C8B8606A321;
-	Tue, 24 Nov 2026 18:35:46 +0000 (UTC)
+	dmarc=pass header.from=arm.com;
+	spf=pass smtp.mailfrom=arm.com;
+	dkim=pass header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=HxpQmHpN;
+	arc=none smtp.remote-ip=217.140.110.172
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 81EA1606A321;
+	Tue, 24 Nov 2026 18:52:11 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 81EA1606A321
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=YGNhEOdl
-Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id CA1681F000D8;
-	Tue, 24 Nov 2026 18:35:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795545346;
-	bh=NH+LCPbT58VTTOKIoQohmGo8BCrcjnPK+zFjIzwgB7Y=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=YGNhEOdlnPN871G/X9PPWV2KDkNfg6lDAYL74NQ4uMZDrqBjOHxooLjxN6J9DJyuN
-	 epQrEamKS5eGTLTDPRfDiX5spXFiq6j1WSiqUG/PtKfJ1tZSmLYqwKylZQhk9WPX7B
-	 bEM8oPgYlXgUet8cYtuVzgh8rRxJEj8ZgkcD4hk3pA4UHghl4N8J0BPQIsCsPCZAFd
-	 +kJTyztWJCLJ50m3BrED2g/opMxeaUu7STWXnyQ8A3/RFw4OBjGhmM9kNWyBlQHyvc
-	 cKvYRL1apD8f0X5RwzYPerXPlVzxh1JZGzc30tc5hQHHP60AIzOQqgM3p4OYptBszq
-	 3eYlMbouXqYYQ==
-Date: Tue, 24 Nov 2026 20:35:42 +0200
-From: Jarkko Sakkinen <jarkko@kernel.org>
-To: linux-fsdevel@vger.kernel.org
-Cc: bpf@vger.kernel.org, containers@lists.linux.dev,
-	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-kselftest@vger.kernel.org, linux-mm@kvack.org,
-	linux-security-module@vger.kernel.org,
-	Aleksa Sarai <aleksa@amutable.com>,
-	Alexander Mikhalitsyn <alex@amutable.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Andy Lutomirski <luto@amacapital.net>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Christian Brauner <brauner@kernel.org>,
-	David Howells <dhowells@redhat.com>,
-	Eric Biggers <ebiggers@kernel.org>,
-	Giuseppe Scrivano <giuseppe@scrivano.org>,
-	Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>,
-	Jeff Layton <jlayton@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
-	Josef Bacik <josef@toxicpanda.com>, Kees Cook <kees@kernel.org>,
-	KP Singh <kpsingh@kernel.org>,
-	Lennart Poettering <lennart@poettering.net>,
-	Neal Gompa <neal@gompa.dev>, Oleg Nesterov <oleg@redhat.com>,
-	Paul Moore <paul@paul-moore.com>,
-	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
-	Serge Hallyn <sergeh@kernel.org>,
-	Shuah Khan <skhan@linuxfoundation.org>,
-	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
-Subject: Re: [RFC PATCH v7 00/26] userland: Userland containers
-Message-ID: <awXY_gKSqi-L5V30@kernel.org>
-References: <20261122193539.3334213-1-jarkko@kernel.org>
- <awTmJIErjasO4lqq@kernel.org>
- <awToL2PFNKVgIfqs@kernel.org>
- <awUGkYoyDXp4P5LJ@kernel.org>
- <awULfmZR-pESj2EC@kernel.org>
- <awVInf04kGC0uZZo@kernel.org>
- <awVRz8XC54nfevtW@kernel.org>
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.a=rsa-sha256 header.s=foss header.b=HxpQmHpN
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 1019F497;
+	Tue, 24 Nov 2026 10:52:08 -0800 (PST)
+Received: from e129823.arm.com (e129823.arm.com [10.2.213.3])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 7EAC33F86C;
+	Tue, 24 Nov 2026 10:52:03 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1795546330; bh=cEx0NNr4v9OqxertlfeaIBCZsjK0gqeBlEmSznQ0QE4=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=HxpQmHpNrqXVqUfjE0HPfLK3ewOjjeolAx23daMcxTI88aKM+hL6rA2Fg+4rqd8+R
+	 qMFVk/rzRBXFpbU1Dfr/ftkZEjuXw3RMnNovsFD1RM3+rwaFKpdU0NBWTD4cVkNWWE
+	 Ki55UEoYDf7IlCgUAL9LE2jIQWyjvIsSNBfWze2I=
+Date: Tue, 24 Nov 2026 18:52:00 +0000
+From: Yeoreum Yun <yeoreum.yun@arm.com>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Yeoreum Yun <yeoreum.yun@arm.com>, Russell King <linux@armlinux.org.uk>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+	Shakeel Butt <shakeel.butt@linux.dev>,
+	Barry Song <baohua@kernel.org>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	David Hildenbrand <david@kernel.org>,
+	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+	Tianrui Zhao <zhaotianrui@loongson.cn>,
+	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+	linux-openrisc@vger.kernel.org
+Subject: Re: [PATCH RESEND v2 12/21] mm/pgtable: redefine PGTABLE_LEVEL enum
+ with ascend order from PGD
+Message-ID: <awXc0MSZl9t9VW8e@e129823.arm.com>
+References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
+ <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
+ <awXD4i47F-VAG1tD@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -87,61 +99,75 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <awVRz8XC54nfevtW@kernel.org>
+In-Reply-To: <awXD4i47F-VAG1tD@kernel.org>
 
-On Tue, Nov 24, 2026 at 10:58:55AM +0200, Jarkko Sakkinen wrote:
-> > https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git/log/?h=vault
+On Tue, Nov 24, 2026 at 07:05:38PM +0200, Mike Rapoport wrote:
+> On Mon, Nov 02, 2026 at 11:21:25AM +0000, Yeoreum Yun wrote:
+> > The PGTABLE_LEVEL enum values appear to be ordered in the opposite direction
+> > from their intended usage.
+> > 
+> > Intuitively, higher page table levels should have smaller enum values,
+> > but PTE is currently assigned 0.
 > 
-> The key function to look up from here is spawn_userland_container():
+> That's not what x86 thinks :)
+> They even expose it in /proc/vmstat with smaller numbers meaning lower levels
 > 
-> 	https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd-test.git/tree/br2-external/patches/systemd/0010-nspawn-Start-containers-in-an-experimental-userland.patch?h=main
+> $ grep direct_map /proc/vmstat 
+> direct_map_level2_splits 152
+> direct_map_level3_splits 4
+> direct_map_level2_collapses 0
+> direct_map_level3_collapses 0
 > 
-> It demonstrates an initialization flow that ends up cleanly with
-> clone(). userland_share_host_ns() demonstrates the ioctl I added
-> previous week i.e., USERLAND_SHARE_NSFD, which is used to punch those
-> host namespaces that the guest actually needs. This is the allow-list
-> part, which is usually the favorable principle over deny-list.
+> Just an observation, I don't mind either order.
 
-This proves that bootstrap ends with clone3(CLONE_INTO_USERLAND), which
-the most important property to prove at first.
+Right. I made this change because a depth-based scheme seems more intuitive.
 
-The second part is "hotpluggability" property (hmm... is that even a
-word). I have early local patches for this but they ares still unpushed.
-I need to test this again with real hardware as I did in ad-hoc manner
-previously. I don't think QEMU is acceptable for this alone.
+As you pointed out, though, the x86 specification uses smaller
+numbers (0) for lower levels (pte), so I think we can leave the
+x86-specific direct_map_* entries as they are.
 
-However, it is not really rocket science with these tools, and it would
-require effort to get these completely wrong, especially if they are
-stressed even slightly with bare-metal hardware:
+>  
+> > For consistency and cleanup, reverse the enum value ordering.
+> > 
+> > Since there is no current user relies on these numbers to be ascending from
+> > PTE->PGD, so it can be changed to be ascending from PGD->PTE, in the
+> > direction of the page table walk.
+> > 
+> > Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
+> > Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+> > ---
+> >  include/linux/pgtable.h | 8 ++++----
+> >  1 file changed, 4 insertions(+), 4 deletions(-)
+> > 
+> > diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> > index 780fe849ff8b7..a032f95943357 100644
+> > --- a/include/linux/pgtable.h
+> > +++ b/include/linux/pgtable.h
+> > @@ -2288,11 +2288,11 @@ static inline bool arch_has_pfn_modify_check(void)
+> >  typedef unsigned int pgtbl_mod_mask;
+> >  
+> >  enum pgtable_level {
+> > -	PGTABLE_LEVEL_PTE = 0,
+> > -	PGTABLE_LEVEL_PMD,
+> > -	PGTABLE_LEVEL_PUD,
+> > +	PGTABLE_LEVEL_PGD = 0,
+> >  	PGTABLE_LEVEL_P4D,
+> > -	PGTABLE_LEVEL_PGD,
+> > +	PGTABLE_LEVEL_PUD,
+> > +	PGTABLE_LEVEL_PMD,
+> > +	PGTABLE_LEVEL_PTE,
+> >  };
+> >  
+> >  static inline const char *pgtable_level_to_str(enum pgtable_level level)
+> > 
+> > -- 
+> > 2.43.0
+> > 
+> 
+> -- 
+> Sincerely yours,
+> Mike.
 
-	nspawn: Hotplug device nodes into userland containers via udev
-
-	Defer absent /dev bind sources when starting a container in a userland,
-	keep the userland mount namespace fd open in the supervisor, and attach
-	an sd_device_monitor to the supervisor event loop. When matching device
-	nodes or optional API devices appear, update the container scope's
-	DeviceAllow= property, populate the dev node and /dev/{char,block}
-	symlink via its root fd, and attach the device mount with
-	MOVE_MOUNT_T_MNTNS.
-
-	machined: Allow bind mounts on user-namespaced containers
-
-	When experimental support is enabled, bind_mount_in_namespace() attaches
-	mounts via MOVE_MOUNT_T_MNTNS without entering the target's namespaces
-	and refuses to fall back to namespace_fork() for foreign user
-	namespaces.
-
-	mount-util: Attach live namespace mounts with MOVE_MOUNT_T_MNTNS
-
-	When experimental support is enabled, create missing target mountpoints
-	through the target's root fd and attach bind mounts and dissected images
-	directly into the target mount namespace fd instead of forking a
-	setns() helper process. Fall back to namespace_fork() when the kernel
-	does not support MOVE_MOUNT_T_MNTNS.
-
-They are variation of the same pattern, and pretty obvious even from the
-descriptions. When they are known to work, I'll push them.
-
-Br, Jarkko
-
-
+-- 
+Sincerely,
+Yeoreum Yun
