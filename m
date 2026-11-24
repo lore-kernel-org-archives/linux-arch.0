@@ -1,71 +1,89 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795533952;
-	b=XxZ2MEM1E1ViOHdlGYWzB0qV8Tef3T1oo/ZIDXn3LRik4lD+HuElmiqCmiJSXF1a447Y
-	 gCk1FYSg8oAm9Zqf2COuJ+cFRAA7PuIMMgwMOySvzadqwhuRg66R+EcXH73juAlC7bUS9
-	 m/qkqni1d9XyO5PVd28zr8V5ej/iX4N9zr2nsHa09HzHt+PZlhrSQ7laqkInclI5GZ0jE
-	 VmGUFJDCSWYGTrMKkPyTT3g/Y5WCeQTbLS0JvoLhYb9PdGHdprxJY1fkv5JTrYfc2iYg+
-	 K3+sUfd07RZc3vbrZbrmFZf59Pof9B3pTBPIkahX/mXy/NV3/wwsFq62JzUKLfi8CDg==
+	t=1795539957;
+	b=PutiI5ctFsxI4aXG/EshvDDO7PGzmXF8K42NDR95Bqq1hJAXDQHMFIYHsot3v7BgZ+/G
+	 4X9kR0TGPWJVPERBuPCdTCuYrRw1aDbfIpx8eBMs2wPcvg2G4g4El7UHtt3yeDw9zUAx4
+	 2EN4TiO0kkDguu8snSh5EPN+HmHwo1trfpFsHvG6WmI9wG+7UcmArIOhWa1jaI93CS+hd
+	 DeghQX7nWq/HWVe+DzObA2BDYuW2v0rZA4e4MyLieOiShHdgpTJeCjwqtfY9RoCGAURX8
+	 aOhKbFMDI1jH2E+5bk7h9mfbBdZHMUvHkoIO/t4TNDC4giJ4QaWIFr7vEoTzjBggKGg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795533952;
-	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
-	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
-	bh=1UXh4PQJOR3VknqTlOD7G3LYkfB1ZlA2WQOnvCIXzSk=;
-	b=kLq1/+WG4TYcO/uA8IAkGtuy+mV7QZF8nxiKSioWgR+s/CN1rhvTLizJWLtUENrVeb7U
-	 R/4ryCp1D+jUh1SiDuK/uzKhiwBdgnW8iMPZpn3Z0fnhdgT+GEI1U2Fo6ecWeL6E7fAUd
-	 9Mk+97y0WzT9uSFTAb2SbI4gYs+SkiW5+mLsjGDx77jFi4cJjMiuWE6NUxrRw0hQA0VZ/
-	 b7jlWap/BBhip40tN7HhOLD5OoCgDBfo7sXuZ5XWy9pff8bIOFZXc+T1KagCr5CbDy/qa
-	 yQ9QJu9J8ytckSEepFfEECgR+NwocNrnp7gt+u/uG0mtN0gaZz7DXHOAWuPBvjFnBCQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795539957;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=cEp/cXDtvYTiH8Vp1GK2CqYt15Bi6PXi0it+ySjQOVc=;
+	b=dY4QLchuU6MA147eesKlpdmq1cTsssIUWsZxFAyNh82pi2M6ChFwhv31C5z+URg2hRNX
+	 87zuekccpuYbCsnup2cpuWHhjQACF2OQxLTTRIySiOg0b81NjNAFJr1nPzvhntNKmkW8o
+	 1NM80Ek7oAwxi99ccrRpV3gQt4iu8P2P1MKCb8o6dg920MtidLrsGH6EufmYRN8g0O7JW
+	 /sP7PmzDZDvnLXiRZkbyTlYZenr37h2BG/0PhmlSXcMTn/yzAspGsl2033xRySCB1p+OA
+	 P+5ygoZPd/sBx2OUQmgJIYll7tSWTTt7aMcFmnpQ36FsoXWDw958VQDg186LIIlStcQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=BZKayue7;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bni2B9pu;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C6C7D606A32D;
-	Tue, 24 Nov 2026 15:25:52 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEC76606A31E;
+	Tue, 24 Nov 2026 17:05:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=BZKayue7
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 12CC31F000C6;
-	Tue, 24 Nov 2026 15:25:45 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=bni2B9pu
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1346D1F000C0;
+	Tue, 24 Nov 2026 17:05:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795533952;
-	bh=1UXh4PQJOR3VknqTlOD7G3LYkfB1ZlA2WQOnvCIXzSk=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date;
-	b=BZKayue7T+OsylZjV79b6R0ytIW756sZrlscpck2YyZhapT9Gi9uxQD2TAqTTjgK1
-	 Ny12Sm0RAzgn+HtgnA1nCyeqansp2lHh7ivIj/Ix1qFbH4HuVOa8qCEjIyvtoi9D6R
-	 +jHmiVlbd0ZMEtoLUPptwix0CB+DWa1XVAy1+YYY895ci0d7bJUu/p9MbsNhjGaGh1
-	 rfdPKCuFn+l+eN4jST+wJuMHZLweG6N0w74drNJ6WDvCm0j+qp/odn0AgQomKQb69w
-	 XBI0ZPyD+v+OEE7bdKKZ7xDxe6TzGo/x9t8gCGRgnlp50DOQffqNVxBveg3UN2VOyB
-	 +YF0ajNdmMBkw==
-From: Pratyush Yadav <pratyush@kernel.org>
-To: "David Matlack" <dmatlack@google.com>
-Cc: "Pratyush Yadav" <pratyush@kernel.org>,  "Tarun Sahu"
- <tarunsahu@google.com>,  "Pasha Tatashin" <pasha.tatashin@soleen.com>,
-  "Mike Rapoport" <rppt@kernel.org>,  <robin.murphy@arm.com>,
-  <maz@kernel.org>,  <will@kernel.org>,  "Alexander Graf"
- <graf@amazon.com>,  <seanjc@google.com>,  <jgg@nvidia.com>,
-  <loganodell@google.com>,  <arnd@arndb.de>,  <dwmw2@infradead.org>,
-  <baolu.lu@linux.intel.com>,  "Bjorn Helgaas" <bhelgaas@google.com>,
-  <oupton@kernel.org>,  <alex@shazbot.org>,  <gle.com@google.com>,
-  <pbonzini@redhat.com>,  "Andrew Morton" <akpm@linux-foundation.org>,
-  <kevin.tian@intel.com>,  <joro@8bytes.org>,  <kvmarm@lists.linux.dev>,
-  <linux-pci@vger.kernel.org>,  <kexec@lists.infradead.org>,
-  <kvm@vger.kernel.org>,  <iommu@lists.linux.dev>,
-  <linux-arm-kernel@lists.infradead.org>,  <skhawaja@google.com>,
-  <sagis@google.com>,  <linux-arch@vger.kernel.org>,  <linux-mm@kvack.org>,
-  <linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH v4 05/19] kho: Add feature header for fine-grained ABI
- compatibility
-In-Reply-To: <DN2RQ7LGX224.3W3PSQ2PBHTJZ@google.com> (David Matlack's message
-	of "Mon, 23 Nov 2026 09:32:17 -0800")
-References: <20261110050202.529473-1-tarunsahu@google.com>
-	<20261110050202.529473-6-tarunsahu@google.com>
-	<2vxzse0rzjdn.fsf@kernel.org> <DN2RQ7LGX224.3W3PSQ2PBHTJZ@google.com>
-Date: Tue, 24 Nov 2026 15:25:44 +0000
-Message-ID: <2vxz33sqz1xj.fsf@kernel.org>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	s=k20260515; t=1795539957;
+	bh=cEp/cXDtvYTiH8Vp1GK2CqYt15Bi6PXi0it+ySjQOVc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=bni2B9puF7kfV9Am5t1Ov8WQVRWkWZkohYhFYaAOCp/DQ8YyK4hiNB/6DDEmutNnx
+	 9DItMmeG9wGbsSnTa/2g6Bc+qZD0MoOo2QOCjGO0RuxOqF3Tm1xaa1EZJ9bnO6HeVo
+	 aY1UKSh6mwdd27HE+ANXhvMJYuMadmQYUspZ9MtLopcJo2kqu6TZRKLJOQ+VmUeRA8
+	 BHSro9BNahirHyqaXlAUVp75XTw4Ei0heRmarVboAGmlnTryJvfEdsallK7L2ZowDl
+	 Fuw7NBHUoexrLNsU88p9DA3WymGQjoLqXzSxY/kk/t5a2Ys6NENMpuN8WNAadIMoey
+	 tbOkOgbd3/Bhg==
+Date: Tue, 24 Nov 2026 19:05:38 +0200
+From: Mike Rapoport <rppt@kernel.org>
+To: Yeoreum Yun <yeoreum.yun@arm.com>
+Cc: Russell King <linux@armlinux.org.uk>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
+	Shakeel Butt <shakeel.butt@linux.dev>,
+	Barry Song <baohua@kernel.org>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	David Hildenbrand <david@kernel.org>,
+	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+	Tianrui Zhao <zhaotianrui@loongson.cn>,
+	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
+	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	"Liam R. Howlett" <liam@infradead.org>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Stafford Horne <shorne@gmail.com>,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
+	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
+	linux-openrisc@vger.kernel.org
+Subject: Re: [PATCH RESEND v2 12/21] mm/pgtable: redefine PGTABLE_LEVEL enum
+ with ascend order from PGD
+Message-ID: <awXD4i47F-VAG1tD@kernel.org>
+References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
+ <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -75,113 +93,65 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
 
-On Mon, Nov 23 2026, David Matlack wrote:
+On Mon, Nov 02, 2026 at 11:21:25AM +0000, Yeoreum Yun wrote:
+> The PGTABLE_LEVEL enum values appear to be ordered in the opposite direction
+> from their intended usage.
+> 
+> Intuitively, higher page table levels should have smaller enum values,
+> but PTE is currently assigned 0.
 
-> On Mon Nov 23, 2026 at 6:56 AM PST, Pratyush Yadav wrote:
-> [...]
->
->> When we have all this available, I don't see the point in
->> differentiating between optional and required features at the ABI level.
->> At the ABI level, all that matters is what the incoming kernel
->> understands. If the incoming kernel does not understand a specific
->> field, the outgoing kernel should just not use it. There's no point.
->> Best case, it gets ignored.
->
-> I pretty strongly disagree.
->
-> An optional feature is one that the next kernel does not need to
-> understand to correctly restore the object. A required feature is one
-> that the next kernel must understand to correctly restore the object.
-> Optional features can be enabled without any compatibility concerns.
-> Required features must be enabled carefully (IMO via uAPI) to avoid
-> breaking Live Update.
->
-> I agree it's a good idea for the outgoing kernel to check that the next
-> kernel supports all of the required features it is using, so the Live
-> Update can be stopped before the kexec. But that doesn't remove the
-> need for the distinction. The next kernel still has to decide what to
-> do when it sees a feature bit it doesn't understand, e.g. because no
-> spec was provided, the spec was wrong, or we kexec'd into a different
-> kernel than planned. Without the distinction it can only:
->
->  A. Treat all features as optional, which risks misinterpreting state
->     and corrupting memory if the previous kernel did not properly
->     validate the next kernel's capabilities.
+That's not what x86 thinks :)
+They even expose it in /proc/vmstat with smaller numbers meaning lower levels
 
-Right, that's a bad idea.
+$ grep direct_map /proc/vmstat 
+direct_map_level2_splits 152
+direct_map_level3_splits 4
+direct_map_level2_collapses 0
+direct_map_level3_collapses 0
 
->
->  B. Treat all features as required, which means no new feature can be
->     enabled until every kernel it might Live Update to (including
->     rollback targets) understands it, even when those kernels could
->     safely ignore it.
-
-I think this is what we should do.
-
-Why do all kernels need to understand a new feature?
-
-If a kernel can safely parse an object without ever looking at an
-optional feature, why set it in the first place? The outgoing kernel
-already knows its target can't understand it.
-
-So say you add a new optional feature in kernel X+1. For a rollback, the
-kernel X+1 knows it is going to X which doesn't understand the feature.
-It should just not use it in the payload, which means it never activates
-the bit for that feature. All the feature bits X sees are the ones it
-understand, and everything goes smoothly.
-
-And to be clear, I'm saying that the feature bits in the ABI header
-should be set dynamically based on what is used in the payload. The
-feature bits in the spec are static. They say what the target kernel
-understands. The feature bits in the payload are dynamic. They say what
-features are actually used.
-
->
-> Neither of those is a good outcome.
->
->> The semantics of required or optional then become "can I describe this
->> object with the capabilities I can use?". If the answer is yes,
->> serialization succeeds, if the answer is no, serialization fails. So
->> with this, KHO_MAP_F_MULTI_INDEX or KHO_MAP_F_DYN_DEPTH are indeed
->> optional. All memfds can be described without these, they just will be
->> less efficient.
->
-> I think this is a different meaning of "optional". Whether the outgoing
-> kernel can choose not to use a feature is a decision for the serializer.
-> Whether the next kernel can safely ignore a feature's data is a property
-> of the ABI. KHO_MAP_F_MULTI_INDEX is optional in the first sense, but
-> required in the second: a kernel that doesn't understand it will
-> misinterpret the map. The header needs to convey the second.
-
-Right, which is why a payload handed to an old kernel should never set
-KHO_MAP_F_MULTI_INDEX. Even if you have a property that is truly
-optional and ignoring it will still make things work fine, why would you
-want to set it in the first place? You know it will be ignored, so just
-don't use it.
-
->
-> So I see the spec and required bits as complementary: the spec lets the
-> outgoing kernel avoid features the next kernel doesn't support and fail
-> before kexec, and required bits let the next kernel fail safely if that
-> check was skipped or wrong.
-
-I see a marginal benefit in setting the optional bits by adding a tiny
-bit more safety. But even then, it only hides the real problem. The
-previous kernel should not be skipping its checks in the first place. If
-you're lucky, it might only end up using an optional feature and you
-might be able to ignore it. But if the checks don't happen or are
-broken, you'd be just as likely to be unlucky and the previous kernel
-might use a required feature if it skips the spec checks.
-
-I don't think it buys us any functionality. It just hides the problem in
-some lucky cases.
-
-In fact, we could even add a "strict" mode in the future, where the
-outgoing kernel refuses KHO if the spec to the incoming kernel is not
-provided.
+Just an observation, I don't mind either order.
+ 
+> For consistency and cleanup, reverse the enum value ordering.
+> 
+> Since there is no current user relies on these numbers to be ascending from
+> PTE->PGD, so it can be changed to be ascending from PGD->PTE, in the
+> direction of the page table walk.
+> 
+> Reviewed-by: David Hildenbrand (Arm) <david@kernel.org>
+> Signed-off-by: Yeoreum Yun <yeoreum.yun@arm.com>
+> ---
+>  include/linux/pgtable.h | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> index 780fe849ff8b7..a032f95943357 100644
+> --- a/include/linux/pgtable.h
+> +++ b/include/linux/pgtable.h
+> @@ -2288,11 +2288,11 @@ static inline bool arch_has_pfn_modify_check(void)
+>  typedef unsigned int pgtbl_mod_mask;
+>  
+>  enum pgtable_level {
+> -	PGTABLE_LEVEL_PTE = 0,
+> -	PGTABLE_LEVEL_PMD,
+> -	PGTABLE_LEVEL_PUD,
+> +	PGTABLE_LEVEL_PGD = 0,
+>  	PGTABLE_LEVEL_P4D,
+> -	PGTABLE_LEVEL_PGD,
+> +	PGTABLE_LEVEL_PUD,
+> +	PGTABLE_LEVEL_PMD,
+> +	PGTABLE_LEVEL_PTE,
+>  };
+>  
+>  static inline const char *pgtable_level_to_str(enum pgtable_level level)
+> 
+> -- 
+> 2.43.0
+> 
 
 -- 
-Regards,
-Pratyush Yadav
+Sincerely yours,
+Mike.
