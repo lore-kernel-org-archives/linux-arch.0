@@ -1,99 +1,76 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.57.71
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795620955;
-	b=GN4wf8MBj+BbYfZ88LYCi+plYUo5Ojw4TskbfYjSTonVuvuUAXiTRQERTgfzZ03VAdmx
-	 arfGPv+MKd5EosGXieVgc5NKUsjZ0GJZeY/5QhnXmkH0grZYrHe1crtDLb95oF5y6aEiE
-	 eSTaEeA0jZ232V6SOMj5Fuy3QI7Fh1nlhdfe0ppZQ0dK/iGn6GDHFn5JbeqvPEZJWqulZ
-	 7QE4v78m68ehrG8FzWkGcrMLV0RA5Cqog3NoJRAlgq98XqHHMTv/tUAK6Q0lrQBi0v2Q2
-	 zm4wgZykCWQrr4f+ALl9JEeN8KsQ2GWVo2zzyDowqb6nnGEGeOifTxdFppwdSlQASQw==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795620955;
-	h=DMARC-Filter:DKIM-Signature:Received:Received:Date:From:To:Cc:
-	 Subject:Message-ID:References:Content-Type:Content-Disposition:
-	 In-Reply-To:X-ClientProxiedBy:MIME-Version:X-MS-PublicTrafficType:
-	 X-MS-TrafficTypeDiagnostic:X-MS-Office365-Filtering-Correlation-Id:
-	 X-MS-Exchange-SenderADCheck:X-MS-Exchange-AntiSpam-Relay:
-	 X-Microsoft-Antispam:X-Microsoft-Antispam-Message-Info:
-	 X-Forefront-Antispam-Report:
-	 X-MS-Exchange-AntiSpam-MessageData-ChunkCount:
-	 X-MS-Exchange-AntiSpam-MessageData-0:X-OriginatorOrg:
-	 X-MS-Exchange-CrossTenant-Network-Message-Id:
-	 X-MS-Exchange-CrossTenant-AuthSource:X-MS-Exchange-CrossTenant-AuthAs:
-	 X-MS-Exchange-CrossTenant-OriginalArrivalTime:
-	 X-MS-Exchange-CrossTenant-FromEntityHeader:
-	 X-MS-Exchange-CrossTenant-Id:X-MS-Exchange-CrossTenant-MailboxType:
-	 X-MS-Exchange-CrossTenant-UserPrincipalName:
-	 X-MS-Exchange-Transport-CrossTenantHeadersStamped;
-	bh=g9I8ZbKMVmz7nfQ2vEn5QKra+hWh1ZHVTsj2FYOLRHs=;
-	b=IxWZzQOKdN9f49jsattP5QhQ7YuzxZgg0Gug4BGOZPiB3t6WM/LZjEM81+0Hu4V72OeI
-	 U32e77CcOr4GI6u1MikXn3uvSPEjGu6EHGvrRzGp07udwQuL9vpLHFRnBqrSposF9mXoQ
-	 MudV0sKkixfe65UfGep18df9hQZbRRiRa8IVNhUxAktdjDzMYPI0UwrBinDd2RN9AmzyM
-	 3DvYXE4SwHZHweF1yMaZY1YU1vrMtauiCsjP84nq8+pD8kdwbqH5wzTxvrjvlCmyclblX
-	 A1oH+/ETTCE3Si207g4Fo9hoJ6+r1Hl7I/QtmOujQvpSnPekTO/Jj9usL693IFcaZjQ==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=nvidia.com;
-	spf=fail smtp.mailfrom=nvidia.com;
-	dkim=pass header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=Cc9T4SyN;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=52.101.57.71
-Received: from BN8PR05CU002.outbound.protection.outlook.com (mail-eastus2azon11011071.outbound.protection.outlook.com [52.101.57.71])
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1795623860;
+	b=KVxZ50CvBSDEdeFgqO1NZUbcGMhHqlagx4/YqhqM0XVSTP40QNmWiq5f6Qq4X14hWv9Z
+	 FZBVmr/JYKLIMrWh9INc6AViqFOBW+Ab5hVVohdSYqk4zuHQGiMpNW8nDR52USc5ekUpk
+	 cfREcPFdSuaMD3uFRbGNi/rF2kbi/J45EfwgY/nTc9s5ET6bozFFurLGw5NmCzmSF0yPI
+	 ZBqfUAe7pL8eZEr9Py7l3UL8GDC8s5Q5eGyZWAZFNzZbVCUEmFBp45zW9FAR6B+UNY+TJ
+	 vfhfdHVqazeippqgbSepTH8letnLEekAX0j2/Xit1bEzmchiKgy1Gq9BjwoTvAf2vrA==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795623860;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=93PlHQzdBd5hDciyifgipa2sETM6WYe2vvJEu0EdaIE=;
+	b=bJZOpm1IZ0A82i3YDiShiViJwET2+8aO2LMc6QN72srhNwAxWdeOozGJZe4YZDeyzy4m
+	 XJ+/yNfqLiPyYCmosAqPm+q5ZtiPyxzwFJ5N5MBfjaOmxhtUJpI2tR6sE95WZgS7hocvT
+	 T6t3pgtFvu8HNhsJC/MlRA09ICtfCPTH2RH8MR/wPDfylFaFrnUpW4wOvI+fBOY1UQ2cv
+	 ZrvIPGwVIV1jx1MZ+TkfbGqXDA+dr6mguBultnUMnxZ5iYe/2XeJt6YuSCwjtPB4ST+je
+	 CS3VFeTOgN/Tb19YkLTiDlkcpXxxjF/u4KstiGqWPVjVrUQZXBS8uE9ZxHKDuFywx9g==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UqK2qb3F;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (secp384r1) server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1CE2460A5BE3;
-	Wed, 25 Nov 2026 15:35:54 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1CE2460A5BE3
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
+	by smtp.subspace.kernel.org (Postfix) with UTF8SMTPS id A6CEF606A31E;
+	Wed, 25 Nov 2026 16:24:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=Nvidia.com header.i=@Nvidia.com header.a=rsa-sha256 header.s=selector2 header.b=Cc9T4SyN
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=y+Ocy/DGgiBMB+fezxkpERt1RXDqJiGbYoD6QDhcrG7qSH8FOZTdq9xI6sy/7bpVDGSDISAQEJttCKyXC0Ey54BNWPN1N5OeWU8Iyr15clTDUZW1OGYKhTnk8HwQrvxygVhjMzVd97oIr62FX+XMPagYUlKIDxeJ7k6pxbL5I2bC+2/qPDXwaw0FKb1hdvDqLXboVlj7iSLEZ2XFUn1kcpjaOSpe5xqT/wz6jMgi57XwR+U0d6r7kwd67vX1oUa6/oW4yB9dk/GqTjtddSG4Ol635xMrUgxLRcKp1WHtylXG2igLPnMisWxuEb8j4GaTwUOstOoUQVeyvoTGlJIr4g==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=g9I8ZbKMVmz7nfQ2vEn5QKra+hWh1ZHVTsj2FYOLRHs=;
- b=VcEdi4noBjroB4cM50/wQd5qjfz5naSKGIlruuJTfyIt4mfWDjhVn7LLU3sL6W3cJ5R1l2S5COjdjTWeLed7RdnY6p68j3hKCO1kP56vPDb5HLPcFCsqgbaDCKJvdMgKjKkHbuLNWb4muMGBZ7JK6Am9zrX5qLzA1spsQFf8Rptjj2oH60GEpWglSwMD+A0Nj+mv5yoRHUXWvlKtADDvrzzf3Zc4qC0Y0P5tz8Yltx1bIr6e8gKZv8nB8fCcfD813wgDgmeqomI9/bsKFQ0uuKorScvmmYy/CtezVXMnnzBv7an5yN/OmKChMpIE+Dq0B3Zjd8nalJP+uXEj0u9AEw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=g9I8ZbKMVmz7nfQ2vEn5QKra+hWh1ZHVTsj2FYOLRHs=;
- b=Cc9T4SyNB6d67zuJ7HQNV2xiephnYuALRwOb+40xAx2edQpJSHrU2esFO7cb6v4lmrdxuh7U4K5pLFgp4kKCpD+qSS2yOxVgk89edporYBHcNkeCbz5V4eJz6vr0BHtSCf9miXuOIeLNg4tZuFcdidZVjylfC1cCvDcC0AfTl0z9qeX4XX6swHyXOGogKm2k9e5SL5PTRrETRkQgPFv2CNoZAuEeu+pRPqwlmdlg4R1RoYPZHSpjS3booV3o+SAV09y2yX/fx1Ewk8kfypVTjK7gB26JrREK8wb+3zWTpfL8GXLsU2NZ5Vdu7BHcwCGAUcNagqWHp7CJpprawnSvOw==
-Authentication-Results: mx.microsoft.com 1; dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from SN6PR12MB2814.namprd12.prod.outlook.com (2603:10b6:805:72::33)
- by DS7PR12MB5863.namprd12.prod.outlook.com (2603:10b6:8:7a::18) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.639.14; Wed, 25 Nov
- 2026 15:35:49 +0000
-Received: from SN6PR12MB2814.namprd12.prod.outlook.com
- ([fe80::9a18:413c:9702:8f59]) by SN6PR12MB2814.namprd12.prod.outlook.com
- ([fe80::9a18:413c:9702:8f59%6]) with mapi id 15.21.0639.012; Wed, 25 Nov 2026
- 15:35:49 +0000
-Date: Wed, 25 Nov 2026 10:35:47 -0500
-From: Yury Norov <ynorov@nvidia.com>
-To: Tzu-Ching Yang <shingekinocore@gmail.com>
-Cc: Greg Ungerer <gerg@linux-m68k.org>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	linux-m68k@lists.linux-m68k.org,
-	Angelo Dureghello <adureghello@baylibre.com>,
-	Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>,
-	Yury Norov <yury.norov@gmail.com>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] m68k: coldfire: Use the builtin fls() and __fls() on
- ISA_A+ and ISA_C
-Message-ID: <awcAU5CFq714lWcu@yury>
-References: <20261123131101.639643-1-shingekinocore@gmail.com>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261123131101.639643-1-shingekinocore@gmail.com>
-X-ClientProxiedBy: BLAPR05CA0039.namprd05.prod.outlook.com
- (2603:10b6:208:335::20) To SN6PR12MB2814.namprd12.prod.outlook.com
- (2603:10b6:805:72::33)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=UqK2qb3F
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 7624A1F000C4;
+	Wed, 25 Nov 2026 16:24:19 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795623860;
+	bh=93PlHQzdBd5hDciyifgipa2sETM6WYe2vvJEu0EdaIE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=UqK2qb3FQVwmTqV8oUUCeEtkJg9SD6RlxBIdsewlju3Y6yf64LEDRua/CP8PuokUM
+	 o1vJ05+rehtnQ3lsUqLX4G48iP71LMVhvqDAURRrlVkTETRCB1t1zf1GLgSh8PC6ov
+	 hrTGvDOKmlnQrx8Cvm6tsUTJp5p4ASihgzfEEEV9BP/JDjAgo9v0Ev7deWEw5eoLci
+	 fb4P7fSbUfxBYC/3IBYMbAUeM92yF05ODOER00oMYavQQn/fmId7+9baSwIFZ01rf+
+	 WElptmHmI3QPFYytegFUZC4SluG5bFEfaeSzufIKLwi0d+u4kuLU63S4GkWl1Ozxst
+	 DzmuADMR9Ln/A==
+Date: Wed, 25 Nov 2026 18:24:16 +0200
+From: Jarkko Sakkinen <jarkko@kernel.org>
+To: linux-fsdevel@vger.kernel.org
+Cc: bpf@vger.kernel.org, containers@lists.linux.dev,
+	linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-kselftest@vger.kernel.org, linux-mm@kvack.org,
+	linux-security-module@vger.kernel.org,
+	Aleksa Sarai <aleksa@amutable.com>,
+	Alexander Mikhalitsyn <alex@amutable.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Andy Lutomirski <luto@amacapital.net>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	David Howells <dhowells@redhat.com>,
+	Eric Biggers <ebiggers@kernel.org>,
+	Giuseppe Scrivano <giuseppe@scrivano.org>,
+	Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
+	Josef Bacik <josef@toxicpanda.com>, Kees Cook <kees@kernel.org>,
+	KP Singh <kpsingh@kernel.org>,
+	Lennart Poettering <lennart@poettering.net>,
+	Neal Gompa <neal@gompa.dev>, Oleg Nesterov <oleg@redhat.com>,
+	Paul Moore <paul@paul-moore.com>,
+	Pavel Tikhomirov <ptikhomirov@virtuozzo.com>,
+	Serge Hallyn <sergeh@kernel.org>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+Subject: Re: [RFC PATCH v7 00/26] userland: Userland containers
+Message-ID: <awcLsCALUwJ1Qlcc@kernel.org>
+References: <20261122193539.3334213-1-jarkko@kernel.org>
+ <awYJnFNt9kkBqj59@kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -103,156 +80,168 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: SN6PR12MB2814:EE_|DS7PR12MB5863:EE_
-X-MS-Office365-Filtering-Correlation-Id: 1967180c-8e9a-4775-5067-08df4b09c7bc
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|23010399003|366016|376014|7416014|1800799024|10070799003|10067099003|261022075727099003|56012099006|11063799006|261026130827099003|261026121527099003|261028144727099003|261021121427099003|261021135927099003|261026140227099003|261022113327099003|261021130227099003|261022115727099003|261022105027099003|261102123227099003|261021133027099003|261021123027099003|261026135527099003|261009223027099003|18002099003|6133799003|22082099003|3023799007;
-X-Microsoft-Antispam-Message-Info:
-	TMlsfkYRaJDzlof+Sd3OcPRYkvo0oWmsdHKx26/S8MWcLRkVlXhNnpa0AagC9iDlz00iV3Y2BHyGE75KEU3Ilxs3/+LSK3JalbnsaPCTQkpKrz58Q4wdctbA2huEOvURu+KdYLDhF0apenDztuDd6V3vqTLqIKYGYxuYkiwrsIXz+VWwtiLqTYdHeZgjL+9huvxvy/wrTpKUtuicKp5vzOL6rIOWM2b5BrrHPtRylXBg9ZYnrN0tCwycI3rrJFKksEoOgGGZxRnDODTsw+xiAn/bVXogDs/Z/u/zZbqE+fn6CiOlmlUci45j95FsK0t+PZ3IdPnvn8CrFjt0Dz9CMGu/V0rgjMubWJR4j2/e5F/m2ffWymuV89AVfpx9yEY3pU5XOasH3nQhVNtxp2aGOb8icEjgEBwu58eIV0m8LdmZzuOd03TLZqx7+UwxSaFRK2kXY1HK0G9CKqLQKCpu79XsPYf0K+Xi3GMAFREOSlcYji8Z9xcwI9bO0Ublfg/yIst52k57pgs9M9apfCPjAM/waiOBlOckA9Vb9+OASofxYbFZ9GGwGqTsuYxKAnO2kZXDJvaMMdkk+UJOytbntSzIOyYbsuI9Y0m2+MFYkQGV2P2o9w7B/LU83GIL3Ae2QdSBLpOamU9B95zstls7nXOtCcxinVz7GL0UxLzE/4s=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SN6PR12MB2814.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(23010399003)(366016)(376014)(7416014)(1800799024)(10070799003)(10067099003)(261022075727099003)(56012099006)(11063799006)(261026130827099003)(261026121527099003)(261028144727099003)(261021121427099003)(261021135927099003)(261026140227099003)(261022113327099003)(261021130227099003)(261022115727099003)(261022105027099003)(261102123227099003)(261021133027099003)(261021123027099003)(261026135527099003)(261009223027099003)(18002099003)(6133799003)(22082099003)(3023799007);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?4jZazmqgarbNaOIoZrC3FH22hFmSLjwBRay8cOccJvG8k8ZOJVb9xPCDuOXM?=
- =?us-ascii?Q?oumTIXvPuKtmtg938C/akCplJGdKiPLnxkTtSINCw+cWl8G8H1/UDOSW2wqv?=
- =?us-ascii?Q?0qMF4DGEKdhxDXmYqqX82Ip9+QFw7F7FRfyHFrB148xFo302eCzekx7T25/n?=
- =?us-ascii?Q?ByjIzgCJCGJYJhspN7x7a4x7tAcSgfyxZtEnPsGzz3xfbPkRDvc8BSu+mD9o?=
- =?us-ascii?Q?RVIMVjg95UNl05FKNZv/dqXESoOuTra/ZDEJJL9ByO328Kpeaw2/6HMm4shv?=
- =?us-ascii?Q?8sRSSDnuuXRSUHfJZ/fXxvn934UQGW+RdwYb/hZy4xZF4XpuoIJLwbCHD4vq?=
- =?us-ascii?Q?9wy05yCsmkvdW42g1yUYJQIg1ss7lfrNsoJI8RmFFH12WGt8UMS5VuMks+Gi?=
- =?us-ascii?Q?5ALVooLwS2rLcAGx3B/IGFUTkEtwOwT1QUFcpT/tWsLI7yRpyIygk/O1rpfH?=
- =?us-ascii?Q?a2o/EdRRRzLFTC4IVf4aHQahj2OmEl9+OJN7sT9baZrLdJDZVAJTQnQR+R/i?=
- =?us-ascii?Q?2mGJQJwyWB7o7wxIb27tbK4G/ZcwVSKNpq/YOITEPHMz6YrSN+Ob63ogajAD?=
- =?us-ascii?Q?5Bz19NFyJpRcev0g6IbOcNXAk5WjhbN8VshwvPsbD9jNl4CuS53JVvw6+MQF?=
- =?us-ascii?Q?djxGsuJEXQPvTVAkAzmLgk2QxrMiOV3BjvibCfBHUY57Z+MbJKcB95BKgZT3?=
- =?us-ascii?Q?L/H3EAcgxqjeWRc5iEtLR+aZ44tFVGQ9S0VinwdHGKtDPjlG35d5/n5sCtMM?=
- =?us-ascii?Q?uNeddX4dlchZaQ9lYk/x0agxfpvd9fmjJhfCoGUSgopG1w1Ht+eG4Znu4mVB?=
- =?us-ascii?Q?pIy+DQ7Ct9GMYsMduAO7EDK9+R4I6+zkn8UMC+aJRTf1vin6shSv++keu8qG?=
- =?us-ascii?Q?m0otMNbFxP6TpYxu2N0+lFm7VCDhbxfi8HQTfzF10ZXFdey2Wl84PtruMnG0?=
- =?us-ascii?Q?ZEGjqm5rszhQgeYHSyjNP5dLyABRSh8twsmrovff+iNvvKoJcX8jL2IhMooC?=
- =?us-ascii?Q?RevlgFnAqxKjw7D1ND7kPV/BxabD/45e4BZ2wiMTz9+qMLDrS772QxklmKWu?=
- =?us-ascii?Q?WuMACfhYLOkfYgptGOknFQO+XF7FB8g5O563WKBcu4oHVYwdPbigSWehiAod?=
- =?us-ascii?Q?0sNBWK72MpQLubQrtXA6CPMEhhNZv4VbCH7Typ9q5LVKKALggAYRnhy2V/F4?=
- =?us-ascii?Q?meuXIlU0E4051ID3JmhfapS7B6A0naI9dpM9C06CTlyHBq3KnnlUQVWPdDmX?=
- =?us-ascii?Q?W+lmT4Hiv9pIjKfAMpILpjCwRQ22UJZTOUdJ/enltkzGbdJSFotbyiQGxMtT?=
- =?us-ascii?Q?MqhNHcXu55GHoyB7WIZTMjLUNH/S71kM7qp0+xT6TEIjuw3/86Tz7HsOpZo+?=
- =?us-ascii?Q?kVuoNTW0yx4SM7f6tUiNde+3f004Bf/RiCJig+nGVXx/i1n9hAGPKpoJ9o/U?=
- =?us-ascii?Q?gzR0H3FSQhiWiS621zg8PmmmJAm5FAHFdN7mDYEM0t/v098xqtdOs8W8HEsC?=
- =?us-ascii?Q?pwW1oFRcHCBErJSRNkc5TC3OeUgl+R/bc8WmvXI5aVNGwhfMkcOZlAwPL0yA?=
- =?us-ascii?Q?M2B/QjRMdTDy+Y6vFJxSJR1QP+iisnfttCwx3ukwqHOCzJM+iity99PhawOB?=
- =?us-ascii?Q?FLd1g2oPJkNGKMGgtbdCE7EaXYcHd7mVhKfKOjBNARyYTS4he/oy5UMZAtD2?=
- =?us-ascii?Q?LLx3FngOUKpspOmYrDxvTEgYxmW2aM7WUFmlHk/jec+LpY0z7pof/B68gZfd?=
- =?us-ascii?Q?PjKzk1GUqPdvr6JqAM0gWWq1ZHJZi/Z3fT2e6hc9VdGQNR9+Lu/i?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 1967180c-8e9a-4775-5067-08df4b09c7bc
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR12MB2814.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 25 Nov 2026 15:35:48.9840
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: z0zb3SGEiuLVKDOZvBFFGBuL2EQsGInP7wD0idYms29dTYHyu9m8zycnR8m4L7lJ27OzOSIp8O0yigR6cUQ++Q==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS7PR12MB5863
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <awYJnFNt9kkBqj59@kernel.org>
 
-On Mon, Nov 23, 2026 at 09:11:01PM +0800, Tzu-Ching Yang wrote:
-> Let fls() and __fls() use the ff1 instruction on ColdFire ISA_A+ and
-> ISA_C cores instead of the generic binary search in C, as __ffs() and
-> ffs() already do. GCC emits ff1 for __builtin_clz() on exactly the cores
-> for which it defines __mcfisaaplus__ or __mcfisac__, the macros that
-> already select the ff1 versions of __ffs() and ffs(), so no new
-> condition is needed. Commit a6260ef84103 ("m68knommu: add ffs and __ffs
-> plattform which support ISA A+ or ISA C") added the ff1 versions of
-> __ffs() and ffs() in 2008 and kept the generic fls(); the generic
-> __fls() followed in 2009.
+On Wed, Nov 25, 2026 at 12:03:12AM +0200, Jarkko Sakkinen wrote:
+> On Sun, Nov 22, 2026 at 09:35:13PM +0200, Jarkko Sakkinen wrote:
+> > OVERVIEW
+> > ========
+> > 
+> > A userland is an anonymous-inode control object with separate build and
+> > live phases that binds together:
+> > 
+> > 1. A full set of detached namespaces owned by a fresh user namespace,
+> >    with optional build-phase opt-in sharing (USERLAND_SHARE_NSFD).
+> > 2. A dedicated PID namespace for spawning processes into, signaling
+> >    members, and polling or waiting on PID 1 exit.
+> > 3. An initially empty mount namespace (CLONE_EMPTY_MNTNS) populated
+> >    directly in its target user namespace before going live, without
+> >    inheriting host mounts or cloning staged trees, while still allowing
+> >    new mounts to be attached at runtime.
+> > 
+> > Work on this feature started in 2025 after reviewing David Howells'
+> > container object patch set [1], whose underlying mechanics made sense to
+> > me as a continuation of earlier container object efforts [2]. The
+> > lifecycle follows a staircase initialization model similar to the Intel
+> > SGX driver, without an embryonic task state or a parallel namespace
+> > syscall API, pairing a compact policy-agnostic implementation with an
+> > allow-list security model (with LSM hooks) and runtime mount hotplug.
+> > 
+> > While the patch set is manually written, the original motivation came
+> > from isolating LLM agents. Running untrusted agent workloads made it
+> > clear that OCI runtimes need to minimize their live configuration
+> > surface.
+> > 
+> > Assembling mounts, credentials, and namespaces inside helper processes
+> > with a half-configured container is what I see as the main challenge,
+> > and the existential debate around namespaces and container objects is an
+> > unfocused discussion topic.
+> > 
+> > [1] https://lore.kernel.org/all/155059610368.17079.2220554006494174417.stgit@warthog.procyon.org.uk/
+> > [2] https://lwn.net/Articles/1102593/
+> > 
+> > IMPLEMENTATION
+> > ==============
+> > 
+> > Standalone fd-based namespace configuration (patches 01-07) decouples
+> > user and mount namespace setup from live helper tasks. userns_set_idmap()
+> > atomically configures USERNS_SETGROUPS_ALLOWED policy and UID, GID, and
+> > project ID mappings on a CLONE_NEWUSER nsfs fd, checking current_cred()
+> > so an unprivileged creator can delegate the fd via SCM_RIGHTS to a
+> > privileged mapping daemon. move_mount(..., MOVE_MOUNT_T_MNTNS) operates
+> > on any non-anonymous mount namespace fd: on an empty mount namespace it
+> > installs "/" onto the nullfs root once, attaches relative submounts both
+> > before entry and into live mount namespaces, and supports
+> > MOVE_MOUNT_CLONE for recursive bind mounts without OPEN_TREE_CLONE.
+> > 
+> > userland_open() allocates a userland instance backed by a pollable
+> > anonymous-inode fd, creating a fresh owning user namespace and a full
+> > set of detached namespaces: empty mount (CLONE_EMPTY_MNTNS), PID, UTS,
+> > IPC, network, cgroup, and time. ioctl(ufd, USERLAND_GET_NSFD, nstype)
+> > returns nsfs file descriptors for member namespaces, and
+> > ioctl(ufd, USERLAND_SHARE_NSFD, ns_fd) replaces a member cgroup, IPC,
+> > UTS, network, or time namespace while the userland is in USERLAND_INIT.
+> > 
+> > Superblocks are configured directly in the target user namespace via
+> > fsopen(), FSCONFIG_SET_USERLAND, and fsmount() for filesystems opting
+> > into FS_USERLAND_MOUNT (tmpfs, ramfs, devpts, proc, mqueue) or
+> > FS_USERNS_DELEGATABLE, allowing unprivileged callers to assemble mounts
+> > without holding CAP_SYS_ADMIN in their own user namespace or entering
+> > the target user namespace first.
+> > 
+> > Once "/" is installed, processes are spawned into the userland via
+> > clone3() with CLONE_INTO_USERLAND and struct clone_args.userland,
+> > without modifying the calling process's own live state first. Pairing
+> > CLONE_INTO_USERLAND with CLONE_VFORK and opening the target binary via
+> > openat2(..., RESOLVE_IN_ROOT) on the retained "/" mount fd allows
+> > spawning with execveat() directly into the target root.
+> > 
+> > The first entrant becomes PID 1; once it exits and
+> > zap_pid_ns_processes() reaps all members, poll() reports EPOLLHUP and
+> > waitid(P_USERLAND, ufd, infop, options, NULL) returns init's exit
+> > status without consuming it. pidfd_send_signal(ufd, sig, NULL, 0) walks
+> > pid_ns->idr under tasklist_lock to signal member thread groups, and
+> > dedicated LSM hooks mediate userland allocation, teardown, namespace
+> > sharing, process entry, and signal delivery.
+> > 
+> > SYSCALLS
+> > ========
+> > 
+> > Two new system calls are proposed:
+> > 
+> > 1. userland_open(): open an opaque staircase-initialized container
+> >    object (modeled on Intel SGX enclave initialization with separate
+> >    build and live states) with no embryonic state, opting selected
+> >    shared namespaces in via an allow-list instead of unshare semantics.
+> > 2. userns_set_idmap(): configure all UID, GID, and project ID map
+> >    extents for a container user namespace in a single atomic system
+> >    call.
+> > 
+> > Extensions to existing system calls:
+> > 
+> > 1. move_mount() (MOVE_MOUNT_T_MNTNS, MOVE_MOUNT_CLONE): install "/" and
+> >    relative submounts into a mount namespace fd before entry or at
+> >    runtime, and recursively bind-clone mount trees without
+> >    OPEN_TREE_CLONE.
+> > 2. clone3() (CLONE_INTO_USERLAND, struct clone_args.userland): spawn
+> >    PID 1 and subsequent processes directly into a userland without
+> >    modifying the calling process's own live state first.
+> > 3. fsopen() / fsconfig() / fsmount() (FSCONFIG_SET_USERLAND): bind a
+> >    filesystem context to a userland's namespaces and create mounts
+> >    without entering its user namespace.
+> > 4. waitid() (P_USERLAND): wait on a userland fd for PID 1 exit and read
+> >    its exit status without consuming it.
+> > 5. pidfd_send_signal(): broadcast signals to member thread groups via a
+> >    userland fd.
+> > 6. ioctl() (USERLAND_GET_NSFD, USERLAND_SHARE_NSFD): open member nsfs
+> >    file descriptors and opt selected namespaces into existing nsfs fds
+> >    during USERLAND_INIT.
+> > 
+> > HOTPLUG
+> > =======
+> > 
+> > 1. Host calls userland_open().
+> > 2. Host sets uid/gid maps with userns_set_idmap().
+> > 3. Host populates "/" with MOVE_MOUNT_T_MNTNS, optionally combined with
+> >    MOVE_MOUNT_CLONE for bind mounts.
+> > 4. Host spawns PID 1 with clone3(CLONE_INTO_USERLAND) (optionally
+> >    passing an AF_UNIX socketpair fd for communication).
+> > 5. PID 1 watches /proc/self/ns/mnt via fanotify(FAN_REPORT_MNT |
+> >    FAN_MARK_MNTNS, FAN_MNT_ATTACH) or polls /proc/self/mountinfo.
+> > 6. On hotplug, host mounts the filesystem via fsopen() /
+> >    fsconfig(FSCONFIG_SET_USERLAND) / fsmount() (plus optional
+> >    MOUNT_ATTR_IDMAP).
+> > 7. Host creates the mountpoint with openat2(RESOLVE_IN_ROOT) + mkdirat()
+> >    and attaches the mount with MOVE_MOUNT_T_MNTNS.
+> > 8. PID 1 receives FAN_MNT_ATTACH and queries the new mount via
+> >    statmount().
 > 
-> Use the asm-generic builtin versions of fls() and __fls() when
-> __mcfisaaplus__ or __mcfisac__ is defined, and keep the generic C
-> versions for ISA_A, ISA_B and 68000. The bitrev/ff1 asm of __ffs() and
-> ffs() stays, as this asm is shorter than the code GCC generates for
-> the builtin versions of __ffs() and ffs().
+> The initial ad-hoc testing of hotplug using a bare metal x86-64 machine
+> and systemd-nspawn has been successful. The kselftest seems provide
+> pretty good guarantees for the basic stability; using the syscalls has
+> caused no issues so far.
 > 
-> With GCC 12 to 16, fls() shrinks from 28 instructions to 8 or 9 and
-> __fls() from 24 to 6. With GCC 8 to 16, the functions of each ISA_A+ or
-> ISA_C defconfig kernel shrink in total by at least 8676 and at most
-> 13266 bytes (scripts/bloat-o-meter -t), depending on the defconfig and
-> the compiler. In lib/find_bit.c, only _find_last_bit() changes, from 55
-> to 35 instructions for m5208evb with GCC 16.
+> I took some time to go through my experimental SystemD patch files and
+> sliced them so that they ought to be easy to bisect and refactor. They
+> should be also quite easy to read, understand and evaluate. Finally, I
+> removed the shitty patch files from my test harness repository.
 > 
-> fls(0) still returns 0, and __fls() still returns unsigned int.
-> __fls(0), which is undefined, now returns ~0 instead of 0. For other
-> CPUs, the preprocessed source changes only in its line numbers.
+> Resulting outcomes of all of this are:
 > 
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Link: https://lore.kernel.org/all/dbb44e92-0bc5-449d-9e43-1f93362aa6c3@app.fastmail.com/
-> Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
+> 1. Rebased RFC v7 patches with refined LSM support and fixes to the
+>    known issues as of today:
+>    https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git/log/?h=userland
+> 2. SystemD patches:
+>    https://github.com/jarkkojs/systemd/commits/userland/
+> 
+> No new issues were found during testing, other than fixing the issues
+> reported to this thread. This is all feels fairly nice, clean and
+> stable.
 
-Acked-by: Yury Norov <ynorov@nvidia.com>
+Possibly userns_set_idmap() should be cut into a patch set of its own,
+as it stands as a feature on its own, and is likely agreeable part for
+any possible solution. I'm open to that.
 
-> ---
-> I have no ColdFire hardware. On QEMU mcf5208evb (ISA_A+), the ffs and
-> bitops KUnit tests pass before and after with GCC 8.3 to 16.2. In
-> find_bit_benchmark on that machine, with the bitmaps drawn from a fixed
-> seed so that the kernels before and after use the same bitmaps, and the
-> executed instructions counted by a TCG plugin, find_last_bit goes from
-> 52.3 to 38.3 instructions per iteration on the random bitmap with GCC
-> 16, and bitmap_find_next_zero_area_off, which calls find_last_bit(),
-> from 3302 to 2864; the tests of the other helpers do not change. The
-> ISA_C kernels were only built, as QEMU has no ISA_C machine.
-> 
-> Under QEMU user mode, with the kernel's flags for -mcpu=5208, 532x and
-> 54455 and each GCC at -O2 and -Os, old and new fls(), __fls() and
-> fls64() agree on all 2^32 inputs (fls64() in either 32-bit half)
-> except the undefined __fls(0).
-> 
-> The seven ISA_A+ and ISA_C defconfigs (m5208evb, m5235evb, m5275evb,
-> m5282evb, m5329evb, m54418evb and stmark2) were built with GCC 8.3 to
-> 16.2 before and after, with the same .config before and after. A W=1
-> build of these seven and of twenty other ColdFire and m68k defconfigs,
-> each with at least GCC 8.3, 12.5 and 16.2, has no new warning.
-> 
-> The new out-of-line fls() for m5208evb with GCC 16.2:
-> 
-> 	movel %sp@(4),%d0
-> 	tstl %d0
-> 	beqs 1f
-> 	movel %d0,%d1
-> 	ff1 %d1
-> 	moveq #32,%d0
-> 	subl %d1,%d0
-> 1:	rts
-> 
-> Against v7.4-rc1; also applies to the m68knommu and m68k for-next
-> branches and to next-20261113.
-> 
->  arch/m68k/include/asm/bitops.h | 5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
-> index e9639e48c6c3c..81923a9fa4494 100644
-> --- a/arch/m68k/include/asm/bitops.h
-> +++ b/arch/m68k/include/asm/bitops.h
-> @@ -506,13 +506,14 @@ static inline __attribute_const__ int ffs(int x)
->  	return __ffs(x) + 1;
->  }
->  
-> +#include <asm-generic/bitops/builtin-fls.h>
-> +#include <asm-generic/bitops/builtin-__fls.h>
->  #else
->  #include <asm-generic/bitops/ffs.h>
->  #include <asm-generic/bitops/__ffs.h>
-> -#endif
-> -
->  #include <asm-generic/bitops/fls.h>
->  #include <asm-generic/bitops/__fls.h>
-> +#endif
->  
->  #else
->  
-> 
-> base-commit: 6628e7d4c6b25c8d18f1345e3a20d21829aae7e4
-> -- 
-> 2.34.1
+Br, Jarkko
