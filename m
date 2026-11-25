@@ -1,101 +1,34 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.50
-ARC-Seal: i=2; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=pass;
-	t=1795599663;
-	b=DgrasGSLR2sl0TxBgT4Cd2GyGJQtU/jkG/Zhb1u6eRJTfhqtBuumgFzTl5ZuV0r86CTi
-	 w56eSpOgMFzc6855PU/CBqMoO4XE7y2kcN8Ktl/nAyI//gZMsy3xDAnJox3H45/xwGBT6
-	 AQLfNTCzrPwNsqIEpOXFwfjqwgwSh/ksGPM+BP3135g4s6JkVtYTNtWjVbA52SdYmBSfR
-	 p+Lt6WgS+zyUQIRbjKYKSQWH8SgcU04gGylPaaqBud92lcE9puhWOJQ5ss0TXfNy4ngci
-	 e+iHcfkyEmIdx7PtqLYuZgyE8EVFuA+UvJ4IHPjIifBfHAQJr3hyUuvG5tE1oYUmNjA==
-ARC-Message-Signature: i=2; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795599663;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:
-	 MIME-Version:References:In-Reply-To:From:Date:X-Gm-Features:
-	 Message-ID:Subject:To:Cc:Content-Type:Content-Transfer-Encoding;
-	bh=a+QvvX1J/45GVD+nOsmA65+xntAc6mMZyDzh90koLlc=;
-	b=KGHzkLL6vf2CjPj07UczcQbKSFlHQbOWfnjQZPh6nNer3M1n1SOLAj+sc/dj/slnswnQ
-	 wUV3x6qrr0EwJl9oCo5yPMCQT/C64T8qYSvZKAp43W3oF4xtEMKu1W9lZ5lIKYBNCxAPW
-	 jyY3bvyZb6TKAYA0H07RiiEtRc5QqryO6mZslzmImX7+M1paQL5Jx7ORGIV66fXyjRD1V
-	 /19vUcZxyoFBkulzWhlBSMRce7LghUljeV7Xhn/tWzPJtO6ULqBKcv9xBSv1MZFRgGcV4
-	 zASZr857yuYJlV0vv/pVuVcFyiYtJQDjBNg9BXvLa71EgaVlKUF6QMVsxHa+kj9pm8g==
-ARC-Authentication-Results: i=2; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=GJ1QD+oF;
-	arc=pass header.oldest-pass=0 smtp.remote-ip=209.85.128.50
-Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
+	t=1795610468;
+	b=JKrMv3W9ys6MXcLOJV8AUHhctaB9V3H+WBEB1BYZdGW2nBcmL70rkYgD2I9t9M0bFnHI
+	 0e2SvaOxjz7+BAXh0+JhPYoHHvfmP04k/Pj24iRl2fAhHyubolrblSnsjNB30HPWgT3ha
+	 hwXXeRugptS90SMdoi0DWt4MOcmtFsLVuHcWwMhPuHoWhBikdbJ7N8t4WDqQbp/7DYHNu
+	 NYOxqpzCw2ctM1w6qM9G5AMkUt1NSX3zZ6jdJWjZQeqPszHopA5JiXrVl5nDGqf731/k4
+	 OIWfejYyzrhbo2oC02i96bca5u4EXpTeCV8G0MScMGur3mkhhe11v1DBpfHr1Du4E3Q==
+ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795610468;
+	h=Received:Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:
+	 References:Content-Language:From:In-Reply-To:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=KfUOxpLQJkovw7z2Qf0Qn6lhPyS9idJ1/zdVB8+NA18=;
+	b=jQgsfD2nEh/MbSUs0iaGIvh/OjEtab6nGPuc+QEhsDreJj2Bd8qVIWIFH78HwpDZudN2
+	 c5X1OzC4xGQJ/W1g85bK6mdGuAT0omtdJmHIO1MxjMURo77/w3diYCiRU9uxh0x+RlFGs
+	 +W2LdcE/BE2Upj8OsZyiuHtj08SwstI/PlovrfHwwojm/do0OGrjwTJZSFU+hUjy2+RLT
+	 WnDQ0IduTvYQEBJK8WX2JYTCTZwPJIYCzNRMkh+SNpgjuiJFtMt3eP2U/Ji8phKpOeYuX
+	 4xtckl5osJNwJn68kg1Zuay4nMq9CHilZQUzsvOuBRG7Ly32iMY9KNbcfQT3FeWYdOw==
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 63E82606A331
-	for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2026 09:41:03 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 63E82606A331
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=GJ1QD+oF
-Received: by mail-wm1-f50.google.com with SMTP id 5b1f17b1804b1-4bb6ba3b244so56525025e9.3
-        for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2026 01:41:02 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1795599661; cv=none;
-        d=google.com; s=arc-20260327;
-        b=AcPSF5KSFsVJ+5LOE5j11AUlJlHIoFwvP9W4blyvBtlshobqUX70Cmk+/QAoi5YJyi
-         4HqJMbvLPpAnXxNQu1veElHpGygkjCcfAS9BhBBiwNfyusnWLq3iaelazFIOTN/KrV5q
-         qAzz4W3CpdSbXm/p+jy38emiiLCO9ZKb5yNcYMLx5KAH/hu0o/GtUb2RHy5tGC+dg5E4
-         GLd80gJ0pK3zgnKHdfFWf8Tj/XZlDSREIrlsNSRZnAQZM0oC1/APoK9ElR449JD33E45
-         0ihSv30oFMRCXTIXrnN1k2eGXICGBYquF/67vFT++gEtgetA0J31u2Un5h4SQzAXIVqS
-         NaTw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=a+QvvX1J/45GVD+nOsmA65+xntAc6mMZyDzh90koLlc=;
-        fh=UiYKoyAQKx5MxDSQohdxkn6zCLz2wLzFTKDIe7LKKNc=;
-        b=S8fc8nUHNW5FJPHsB0MfIwqokwam7Os+OTmkmb0LNn7FDryYh66F6bnXN0Otmoqn0X
-         cN8bWK+CzDHUTVEMRXcb1HOotNns0eMLXGBU4uE8iNUFidfdBYHuD5s+fZQRV4YORnLX
-         Ce01egBwQ1/0Kg7IbTWU8biMDqeREhZBLwQSITt6r1wOnrgQDcU6AfLn3S+bj9b1jVbT
-         4NyNAUyGktovMWTsbUOnBNuiDq29S4Y5F/przVTFuYdtWjSIa3mGjF6xxBv94jsYZhYx
-         t0AUqA+JU5xufGm8pRcxoqiCwk7OHq6rHIk3lnLAmyrqIdFAJRUeE7zjxZgboUofXyMg
-         WnWQ==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1795599661; x=1796204461; darn=vger.kernel.org;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=a+QvvX1J/45GVD+nOsmA65+xntAc6mMZyDzh90koLlc=;
-        b=GJ1QD+oFh8SkRWfo+pbs/f9JnMVUt+HdqnKSkFRyIzWSczlekD3SaAbGo7PxJtz2Zw
-         0zBG98WZKe3bglm2YxEz6NCauA607kV+qhgjcQJFsswK3Hy6A+7gaOYUp5AwwpROsdZC
-         KD9cXtu69YEr16otz5uxYwX01E5QMuZNmC1iey3momSm4cGJI5lPn9Z65P+Vca314Z4Z
-         5K4anX9tuiYqEYe7sUd/BIhipvDK3rzqevSKjheTko8ZIQf7ETsbBL+LCV8kWJY6wiwc
-         /K2YWBuAQ6DawVVZhDpqkfiKXre5+EcUP2W+HsWf9YSp6qHrSF/cBvAJWQgF4MhY0RSw
-         bf0w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1795599661; x=1796204461;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=a+QvvX1J/45GVD+nOsmA65+xntAc6mMZyDzh90koLlc=;
-        b=gaN08eC1oGJ4+A/nkijVvq6yA+7Y9GlX7+yaaLQMKrrs1tRKx17KawV7BOXvL2APVP
-         xXQxw5Gqvrou/hXAg8Ek9JbUa2QYTo2WVx/CzSZiA2Xvpb9sfknL/MHSh1+aPkr10IKS
-         tWeVRFHTDC53TXXTLP1IiRV31KOkQaX/Dn1Hm5aa1Bi64w7wmQ5n3MQ9hNbh8jkMMzfv
-         0lx9s00pIP+s7FXE+xeYvXqTeNoMLo4RVkLuKNnFdwDhD1v6vrDZOvAHDraLBZqvjlBQ
-         Ffy8FuSr6f+g5wth9gaZ4Nw1Wp8hR/9s51aue7a1uZmQFILLMtXhtTON8eSyGJsJooks
-         i7bg==
-X-Forwarded-Encrypted: i=1; AL+hErFK/U1FvWNoeyhNH/ZZH97U2F7O8/PunzDindWmjWWCPnWY/IFkI5AZMDIw58kqg3qau5u/BP+Kh5rG@vger.kernel.org
-X-Gm-Message-State: APuU4Z/OIH8sZiYXy+7RMNHCJ7Kv7Wr6xCukqCI5PUvRsQW25pSY/kF3
-	YJ34a2vOQm4JKkCicuKg3N2z0Zh90I3WHuRRwxLnwiJt4PD2xLcvDSugrHhUx7xf01ItI2VFmjB
-	qr+cyZMG4XCZu8D/WVPcDSA4R0JJktE0=
-X-Gm-Gg: AZFdTZd8ov+Q6jSszVgEEoE4IjoMlriw5ZHBcIrPIss86puMAI1VmJAkYCP6L6qWDf2
-	qeYp1F6tUX+gjdHQQsBi9IC8QrV3TVa7J1asVF99P0xnDKcVwezvvD7neKms3u4XMVWbmV0uUxY
-	Yb/jq04jfMxu0FrHyT/tbLH4VebwIIv2DEP+e5tGlQj/AssciqhSMWItexwwuU5et35Uolz5nlC
-	3QvoujtfpiYPEIhiFeayN289LDk9wgeHnIYLCOPkexZSpuI8vS6+MZZ7iQEjsgdLy8hNU0d47fT
-	Vt7ZUpLtLMZFOXmJKVdXrvch3q95J/vABj1y0g+kvCV2dBaxd2QVoKBTjz2D+pFAIuoISYbkiU2
-	sciAWrIA9srpWkHmuB6TgW75RSygGlpW6kFukaiO+p1w6ujwvIWuDLZvfGZamx2lmc+74aXzvIF
-	U2W/ktPBH3ljcF5qk=
-X-Received: by 2002:a05:600c:4584:b0:4bb:6c71:b269 with SMTP id
- 5b1f17b1804b1-4bb8881fbd2mr341861005e9.28.1795599660916; Wed, 25 Nov 2026
- 01:41:00 -0800 (PST)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D378C606A31E;
+	Wed, 25 Nov 2026 12:41:08 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5F4FA1F000C0;
+	Wed, 25 Nov 2026 12:41:05 +0000 (UTC)
+Message-ID: <9ffb268e-d7db-4908-b9be-35b1807dfd2c@linux-m68k.org>
+Date: Wed, 25 Nov 2026 22:41:02 +1000
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -105,117 +38,131 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-References: <20261123135148.1146372-1-elver@google.com> <CAN_Opa_TKjDAWz8EQaw6ro=joymwurpcy-k_x=q4E6TLt6ZpUQ@mail.gmail.com>
- <CANpmjNNOVD3KVrau5KD4WzqxoMkZZoJCfdPzvjLmZsGy9zXBug@mail.gmail.com>
-In-Reply-To: <CANpmjNNOVD3KVrau5KD4WzqxoMkZZoJCfdPzvjLmZsGy9zXBug@mail.gmail.com>
-From: KunWu Chan <kunwu.chan@gmail.com>
-Date: Wed, 25 Nov 2026 17:40:49 +0800
-X-Gm-Features: Aa3M54oTDKYDq6kmOJwEfEHGGc7qMp6rlREKg1yxsT880KhszTaPaWfsNoxdMeI
-Message-ID: <CAN_Opa9zKzSptpNOnCzaW_EK0oT=HDDVoJxy5Q0crM+6b9bR_g@mail.gmail.com>
-Subject: Re: [PATCH] kcsan: Detect cross-CPU races on {READ,WRITE}_ONCE_THIS_CPU()
-To: Marco Elver <elver@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Alexander Potapenko <glider@google.com>, 
-	Boqun Feng <boqun.feng@gmail.com>, kasan-dev@googlegroups.com, 
-	linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, 
-	Dmitry Vyukov <dvyukov@google.com>, linux-arch@vger.kernel.org, 
-	Thomas Gleixner <tglx@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] m68k: coldfire: Use the builtin fls() and __fls() on
+ ISA_A+ and ISA_C
+To: Tzu-Ching Yang <shingekinocore@gmail.com>,
+ Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org,
+ Angelo Dureghello <adureghello@baylibre.com>,
+ Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>,
+ Yury Norov <yury.norov@gmail.com>,
+ Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20261123131101.639643-1-shingekinocore@gmail.com>
+Content-Language: en-US
+From: Greg Ungerer <gerg@linux-m68k.org>
+In-Reply-To: <20261123131101.639643-1-shingekinocore@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue, Nov 24, 2026 at 6:24=E2=80=AFPM Marco Elver <elver@google.com> wrot=
-e:
->
-> On Tue, 24 Nov 2026 at 10:54, KunWu Chan <kunwu.chan@gmail.com> wrote:
-> >
-> > On Mon, Nov 23, 2026 at 9:51=E2=80=AFPM Marco Elver <elver@google.com> =
-wrote:
-> > >
-> > > READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() identify accesses to
-> > > per-CPU data that are intended to race only with other contexts on th=
-e
-> > > same CPU. So far they are plain READ_ONCE() and WRITE_ONCE(): no mark=
-ed
-> > > accesses involving them are reported, incl. from other CPUs.
-> > >
-> > > Make the new accessors assert exclusivity but ignore same-CPU accesse=
-s:
-> > > READ_ONCE_THIS_CPU() asserts no concurrent writers,
-> > > WRITE_ONCE_THIS_CPU() asserts no concurrent accesses.
-> > >
-> > > For KCSAN to ignore racing accesses from other contexts on the same C=
-PU,
-> > > introduce KCSAN_ACCESS_THIS_CPU, which makes KCSAN keep interrupts
-> > > disabled while the watchpoint is set up.
-> > >
-> > > With that, any racing accesses (incl. marked ones) from other CPUs
-> > > involving READ_ONCE_THIS_CPU() and WRITE_ONCE_THIS_CPU() will be
-> > > reported as "KCSAN: assert: race ...".
-> > >
-> > > Suggested-by: KunWu Chan <kunwu.chan@gmail.com>
-> > > Cc: Thomas Gleixner <tglx@kernel.org>
-> > > Cc: Paul E. McKenney <paulmck@kernel.org>
-> > > Signed-off-by: Marco Elver <elver@google.com>
-> > > ---
-> > >  include/asm-generic/rwonce.h | 22 +++++++--
-> > >  include/linux/kcsan-checks.h |  1 +
-> > >  kernel/kcsan/core.c          |  6 ++-
-> > >  kernel/kcsan/kcsan_test.c    | 90 ++++++++++++++++++++++++++++++++++=
-++
-> > >  4 files changed, 114 insertions(+), 5 deletions(-)
-> [...]
-> > I tested the patch on next-20261123. A 60-second rcutorture run
-> > with strict KCSAN and interruptible watchers completed successfully.
-> > I saw no reports involving got_idle_tick or tick_nohz_handler.
-> > There was one report involving move_linked_works / queue_work_on.
-> >
-> > The latest KUnit run with kunit.filter_glob=3Dkcsan.test_this_cpu_* gav=
-e:
-> >
-> >   local_noreport: 7/7 passed
-> >   remote_write:   6/7 passed; threads=3D2 failed setup with -EBUSY
-> >                   ("rcu running")
-> >   remote_read:    5/7 passed; threads=3D16 and 32 failed
-> >
-> > The -EBUSY log shows that rcutorture was already running. The
-> > remote_read failure at 32 threads occurred in both runs. I'll
-> > rerun the KUnit cases with rcutorture disabled and check the
-> > console for the failed cases.
->
-> Thanks!
->
-> > One test question: should local_noreport skip when interruptible
-> > watchers are disabled? In that setup the ordinary watchpoint
-> > path already masks local IRQs, so a pass wouldn't exercise the
-> > new THIS_CPU behavior.
->
-> The test will pass in both configurations, so a regression in either
-> would be caught. Disabling is not necessary. More coverage is always
-> better, even if it may not seem useful today.
->
-> Thanks,
-> -- Marco
+Hi Tzu-Ching,
 
-Hi Marco,
 
-Makes sense to keep the test in both configurations.
+On 23/11/26 23:11, Tzu-Ching Yang wrote:
+> Let fls() and __fls() use the ff1 instruction on ColdFire ISA_A+ and
+> ISA_C cores instead of the generic binary search in C, as __ffs() and
+> ffs() already do. GCC emits ff1 for __builtin_clz() on exactly the cores
+> for which it defines __mcfisaaplus__ or __mcfisac__, the macros that
+> already select the ff1 versions of __ffs() and ffs(), so no new
+> condition is needed. Commit a6260ef84103 ("m68knommu: add ffs and __ffs
+> plattform which support ISA A+ or ISA C") added the ff1 versions of
+> __ffs() and ffs() in 2008 and kept the generic fls(); the generic
+> __fls() followed in 2009.
+> 
+> Use the asm-generic builtin versions of fls() and __fls() when
+> __mcfisaaplus__ or __mcfisac__ is defined, and keep the generic C
+> versions for ISA_A, ISA_B and 68000. The bitrev/ff1 asm of __ffs() and
+> ffs() stays, as this asm is shorter than the code GCC generates for
+> the builtin versions of __ffs() and ffs().
+> 
+> With GCC 12 to 16, fls() shrinks from 28 instructions to 8 or 9 and
+> __fls() from 24 to 6. With GCC 8 to 16, the functions of each ISA_A+ or
+> ISA_C defconfig kernel shrink in total by at least 8676 and at most
+> 13266 bytes (scripts/bloat-o-meter -t), depending on the defconfig and
+> the compiler. In lib/find_bit.c, only _find_last_bit() changes, from 55
+> to 35 instructions for m5208evb with GCC 16.
+> 
+> fls(0) still returns 0, and __fls() still returns unsigned int.
+> __fls(0), which is undefined, now returns ~0 instead of 0. For other
+> CPUs, the preprocessed source changes only in its line numbers.
+> 
+> Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> Link: https://lore.kernel.org/all/dbb44e92-0bc5-449d-9e43-1f93362aa6c3@app.fastmail.com/
+> Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
 
-I reran the three new KUnit cases on next-20261123 with rcutorture
-disabled, using the same image with interruptible watchers on and
-off.  Both runs passed all three cases at all seven thread counts
-(21/21 per run, no skips).
+Looks good to me. I tested it on a ColdFire 5271, which is ISA_A+, and it
+checked out good. I don't have my 54418 board handy at the moment (its ISA_C)
+but when I get a chance I will double check that too.
 
-With watchers on, I checked the console reports for both remote
-cases.  The two accesses were on different CPUs in each report.
-The earlier -EBUSY and remote_read failures did not reproduce.
-The separate 60-second rcutorture run also completed without any
-reports involving got_idle_tick or tick_nohz_handler.
+Applied to the for-next branch of the m68knommu git tree.
 
-One question about the IRQ-off path.  A local NMI can still write
-to the watched address while its KCSAN checks are disabled.  If
-that changes the sampled value and no other access hits the
-watchpoint, is an unknown-origin report expected for THIS_CPU?
+Thanks
+Greg
 
-Tested-by: Kunwu Chan <kunwu.chan@gmail.com>
 
-Thanks,
-Kunwu
+
+
+> ---
+> I have no ColdFire hardware. On QEMU mcf5208evb (ISA_A+), the ffs and
+> bitops KUnit tests pass before and after with GCC 8.3 to 16.2. In
+> find_bit_benchmark on that machine, with the bitmaps drawn from a fixed
+> seed so that the kernels before and after use the same bitmaps, and the
+> executed instructions counted by a TCG plugin, find_last_bit goes from
+> 52.3 to 38.3 instructions per iteration on the random bitmap with GCC
+> 16, and bitmap_find_next_zero_area_off, which calls find_last_bit(),
+> from 3302 to 2864; the tests of the other helpers do not change. The
+> ISA_C kernels were only built, as QEMU has no ISA_C machine.
+> 
+> Under QEMU user mode, with the kernel's flags for -mcpu=5208, 532x and
+> 54455 and each GCC at -O2 and -Os, old and new fls(), __fls() and
+> fls64() agree on all 2^32 inputs (fls64() in either 32-bit half)
+> except the undefined __fls(0).
+> 
+> The seven ISA_A+ and ISA_C defconfigs (m5208evb, m5235evb, m5275evb,
+> m5282evb, m5329evb, m54418evb and stmark2) were built with GCC 8.3 to
+> 16.2 before and after, with the same .config before and after. A W=1
+> build of these seven and of twenty other ColdFire and m68k defconfigs,
+> each with at least GCC 8.3, 12.5 and 16.2, has no new warning.
+> 
+> The new out-of-line fls() for m5208evb with GCC 16.2:
+> 
+> 	movel %sp@(4),%d0
+> 	tstl %d0
+> 	beqs 1f
+> 	movel %d0,%d1
+> 	ff1 %d1
+> 	moveq #32,%d0
+> 	subl %d1,%d0
+> 1:	rts
+> 
+> Against v7.4-rc1; also applies to the m68knommu and m68k for-next
+> branches and to next-20261113.
+> 
+>  arch/m68k/include/asm/bitops.h | 5 +++--
+>  1 file changed, 3 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
+> index e9639e48c6c3c..81923a9fa4494 100644
+> --- a/arch/m68k/include/asm/bitops.h
+> +++ b/arch/m68k/include/asm/bitops.h
+> @@ -506,13 +506,14 @@ static inline __attribute_const__ int ffs(int x)
+>  	return __ffs(x) + 1;
+>  }
+>  
+> +#include <asm-generic/bitops/builtin-fls.h>
+> +#include <asm-generic/bitops/builtin-__fls.h>
+>  #else
+>  #include <asm-generic/bitops/ffs.h>
+>  #include <asm-generic/bitops/__ffs.h>
+> -#endif
+> -
+>  #include <asm-generic/bitops/fls.h>
+>  #include <asm-generic/bitops/__fls.h>
+> +#endif
+>  
+>  #else
+>  
+> 
+> base-commit: 6628e7d4c6b25c8d18f1345e3a20d21829aae7e4
+
