@@ -1,74 +1,74 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.198
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.200
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795587417;
-	b=brSRwngCHojFbg5kmHLWKWcz9zKQ2JhBJIRNaFbswWDqEWkVafEawbMOopdCBRKDU9a0
-	 hZRannRT7EcVgQCk/euNZSv0Z0N/AFeS08apiJXJyi+ucdsEgrp534g9vrk7DNRe22N60
-	 4zFwNJZu2FdvLu3TIl/SVHTalH3Q2YGr+ST50S8DPUR7KB55VU0LNLRdp4ud8az4UPtmT
-	 Bvw1LVNmkLH4EOQCgbai5xCnRTOnZ/V2MBpiLLottjogLYJzXNHQXWlXsRCwaUBfeliit
-	 FmcyauezQ3YZyd3pWtuJOOjbcsvoVJjjKnutMdWGXn1eh43tJGuPBTRetB3tZv8Pqeg==
+	t=1795587418;
+	b=oxhstdj4T092HNvyGDfqpEnFI7lzRbWF2D+Qg1cHnbLNQDnbWgsTsHa0Jn9IpqyViYh2
+	 oatIgRhsbD/tGkGTfB1anhCoVMylGw1iTy0CRMSKAIQ2WBrMNbCyEExEamKUjXgUXxkys
+	 1NUUUuQ1gWej72ZDFT2qi85RoFObhqAnF9v9EiE6s0/9D9lz+eMJtIsBLa1vviQL+IOjr
+	 WoQpOqSVCIDmjUmOnbdUokIO/SAKXyoYgqF4ydOMAwpcwSw1SLZhO5+e8bmahsqzDHRaR
+	 lsCM5N0NKBO9UTLZ1T52l1/7PNRw54y76vlhJqE4qACnvVk4D2Gg8V3sE+SNmyveUJg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795587417;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795587418;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Received:Date:In-Reply-To:
 	 Mime-Version:References:X-Mailer:Message-ID:Subject:From:To:Cc:
 	 Content-Type;
-	bh=7idd1vMoQrkJGtb4Pai7PHauPn4l7yH4Zzs++IrNt10=;
-	b=ilyycM/mo6twRhC1gzugGtKwnEseKR6ZWXTGz1Lkp/PVHsRpV3B/pkJ+N9oJr0W1cqmv
-	 uVR/QaPCF7P8JSycyMchvp4isDoZc+DDfxf1t7oZgPs9MljrhSFGNLUUtJRd7TAgAwCsH
-	 wc8IiOXb9JqewwLw94vvjGs4QTU21PETD7qf6WYiDPNqPCQITebpRgOTKroYqS3zN+LNr
-	 zYsLynQQR2KjwYaKR82pQSR+aSfsfRSWzKLVBu7AySATL+O/7p88/F6IeEAu7zxnmbXJL
-	 nJOC4DlgVlY3rA4VBbdq6p7SofHJ7JGbjl2DvVPNDMHwegcDqktPZD9EwhcC9NqQfwA==
+	bh=B0szZcyaY7NP1HowgKnJWSVhbM1uN8jco8rE2rfxzUA=;
+	b=2CMlcjjNdRxiQu3n0Gq/cGQ8ZO20T90BRAT3NqiTGSzxbjhVjELywaPqB8tv/msjYpmK
+	 cVpsflgOTaU9tHNDxgc7jFZUDPJlNrjPgFT+u1hHTrR7uox0WBvDw5J7FaGKV/vLF2Oqu
+	 F+DX2H+PRnaJe/EoktG3ulg4SeIiAg25Qz9iFp6ZWTcNQTNTdX2cIXjHfRF0L11iHfhE5
+	 iHUfXuYQeZ29yj4DLfM5Qgk1qGhxaI/KkptaIxTIcW6M3VTHo9nBqua95jCdF5sztgsJ9
+	 MnEY14AoBZJ15Yx4VFGE/SHHs9wnmJZKBVmsHc9+oad6JmWh6goMO7NjTOZ15oxLERw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=google.com;
 	spf=pass smtp.mailfrom=flex--irogers.bounces.google.com;
-	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=V2lsAUu3;
-	arc=none smtp.remote-ip=209.85.214.198
-Received: from mail-pl1-f198.google.com (mail-pl1-f198.google.com [209.85.214.198])
+	dkim=pass header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=kna0ptG2;
+	arc=none smtp.remote-ip=209.85.210.200
+Received: from mail-pf1-f200.google.com (mail-pf1-f200.google.com [209.85.210.200])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69C8D606BCA6
-	for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2026 06:16:56 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 69C8D606BCA6
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3C32A607AC37
+	for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2026 06:16:58 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3C32A607AC37
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--irogers.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=V2lsAUu3
-Received: by mail-pl1-f198.google.com with SMTP id d9443c01a7336-2f052777c7cso53552395ad.0
-        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2026 22:16:56 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20260707 header.b=kna0ptG2
+Received: by mail-pf1-f200.google.com with SMTP id d2e1a72fcca58-8b7614e9762so3912102b3a.2
+        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2026 22:16:58 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20260707; t=1795587416; x=1796192216; darn=vger.kernel.org;
+        d=google.com; s=20260707; t=1795587417; x=1796192217; darn=vger.kernel.org;
         h=content-type:cc:to:from:subject:message-id:references:mime-version
          :in-reply-to:date:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=7idd1vMoQrkJGtb4Pai7PHauPn4l7yH4Zzs++IrNt10=;
-        b=V2lsAUu3WlGFUGT83AVN4MD991vr6f5cwdVAhpoxVj2nW+U7KmmYcy2pP1CAcruhBl
-         wbVFOWsiIP3FEt5+C4WBk2s9xmTRsFCng8+KoB6Ikj6XmXKr6Bwo5pkptaIyzCGmE3NS
-         T3+R6GNQwXMOmtlnDNU0BJ9q8bzoiQ/qbtpachLVDelV1tD+gp/bbm61hlyLtlih27+9
-         bwR5E+H5ZDMXqWSah0OHINcnHAzp0mHh/fxFI4nEXhE8jW1TzJQtrXUx6K/0SsTG81S5
-         uK8WjhPpf2WsoRWZRqU8SzPi07UXTHP3hSfQxup4jSTzHxiXVW1TS6HL/K8VtlaS0NtJ
-         GnCw==
+        bh=B0szZcyaY7NP1HowgKnJWSVhbM1uN8jco8rE2rfxzUA=;
+        b=kna0ptG2rOD+u8BFm9rkIM0G8vfVVG1IDhNUJYlA2YjOUj4U282XBMzTnLlyyjh9g7
+         wf93+5GO27bEibDKxNqEVpHm71vN2SrwbYXVkVaFTMNSVuhGlVOX77uQVFhRbGV7JysN
+         pJvO5GhFVOwWv3AY/yX1KTD0XsomdfaT97hrTb6Mstpe6XtR1DZK3o20g9LkLlQy19+P
+         jUaMSt7hcJ0DQlmmAjWcEP4c2BVIDNCQdlrPTXIM96nOxcOTDeGpKvi+D1XBo4yVS8R+
+         b+IOnhKSSbjaowvXOFXbuLs4Zk/hhGEvJWCJr+erxxJV9gjCsrNsBAKOeR1cwy1LpOS5
+         xFrw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1795587416; x=1796192216;
+        d=1e100.net; s=20260707; t=1795587417; x=1796192217;
         h=content-type:cc:to:from:subject:message-id:references:mime-version
          :in-reply-to:date:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=7idd1vMoQrkJGtb4Pai7PHauPn4l7yH4Zzs++IrNt10=;
-        b=rpaQ08uG/xHrHjCzjo1/7s3PCI4xHWq+eGGverZ9lcikbrqvbd08+hcD80EMo/u5MN
-         ZObVr1Clyol3ouPu7wYYfUqlo0mtejrItcJZPOaY+msGoBuBS/KtQ7IV5JodXQC9MoV/
-         oeqGzB3kiVIPm2rvpHb5iZvr6RE0ks1APKGertCuwAFDPRF0PBfHgsSvp6i3GzSJ+/Mm
-         /ZVc1e91Aqzi11MxZYJNBDaOzU1wB7fMdhXO2Ce7hC4VA/GodDMV/QanQMpHIauIBNKr
-         EOGURlXpvvI4oTqZBYpZob0fDZSBZtPWDAYqwTHTD4Cb5gO2VRc+Xo2gUA+0cBH9GNZE
-         tIjw==
-X-Forwarded-Encrypted: i=1; AL+hErGkuMIWHsJScxHbVSDRL5PI2A6KDuCIvx8I3sknE7wcXLOSmVYMWgtNC0CJBiNtPldBsYov8HYIgbnR@vger.kernel.org
-X-Gm-Message-State: APuU4Z/EX4hhcsxhB6NyuOL5Z90BzyWLAQZR0PHgBi7Z1XwV5lFfm59r
-	igyCgt8dX3WaivRA9KDdHvf59FGguALhptk0G7p63xXRO+zyCfrZqOMljmn80saZ5U67JYpMwHl
-	+DrAof1N6aw==
-X-Received: from plbjw23.prod.google.com ([2002:a17:903:2797:b0:2f0:6eae:f018])
- (user=irogers job=prod-delivery.src-stubby-dispatcher) by 2002:a17:903:b4f:b0:2ef:f0cc:17ce
- with SMTP id d9443c01a7336-2f03f1ceec3mr187359255ad.11.1795587415506; Tue, 24
- Nov 2026 22:16:55 -0800 (PST)
-Date: Tue, 24 Nov 2026 22:15:22 -0800
+        bh=B0szZcyaY7NP1HowgKnJWSVhbM1uN8jco8rE2rfxzUA=;
+        b=F7WxokGddmOXiwsE1kKRddypMR1i9T9lXi0zF0C1+R80gRKzK/ae2R2w8bY1o7fkA4
+         ilrmpFERd+WEp5NcqNUj04EKLRjI6g7YEk6U5/t+cO7CNmkJ+O9rOkOXhy25/MoYjaWU
+         1Ar+hSKQIUg/5tyc61lCS2gqTzqniLNpmSMZerHvyE1rmgjTXJMwIUiNCbEN3TGI+A7T
+         XP+BM2oyxR4OztZBkJxBMvx8HoxeAG5Ytc/BlDCrHXCsBWi7PCRQGFrxVBht5dEdb+lR
+         AojJtaN+5yPJFyxQhQgtW5G2MMbetJak1f/O79nLUBZA0RoLaQDffSIH/Swt6nbNABwC
+         0F8Q==
+X-Forwarded-Encrypted: i=1; AL+hErHffh88Jqep46MiCaI+dUASGgjwSaCEVyR+j0fHj9pGO4WSEvejJAy13iLWp37m5/E6wNKYT9VXikyW@vger.kernel.org
+X-Gm-Message-State: APuU4Z/Y1G7M+wEcer8tDLY3EVvnndo1KtJIh5vnxwTX8AirJ+egvH3h
+	lzClPMtH1Q+0e3uIlgF406u0Pjd9SFqW0eBfPvHm8DMXb5ALsqN5L0bJ+C1r6VCwQg4cnVQ60sh
+	c6We5Pn3ewQ==
+X-Received: from pgin21-n1.prod.google.com ([2002:a05:6a02:8795:10b0:cdb:932c:948b])
+ (user=irogers job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6300:8095:b0:3dd:85a8:cac8
+ with SMTP id adf61e73a8af0-4014c949c92mr14160775637.31.1795587417428; Tue, 24
+ Nov 2026 22:16:57 -0800 (PST)
+Date: Tue, 24 Nov 2026 22:15:23 -0800
 In-Reply-To: <20261125061523.1540234-1-irogers@google.com>
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -81,9 +81,8 @@ Precedence: list
 Mime-Version: 1.0
 References: <20261125061523.1540234-1-irogers@google.com>
 X-Mailer: git-send-email 2.56.1.831.g720f3f5937-goog
-Message-ID: <20261125061523.1540234-30-irogers@google.com>
-Subject: [RFC PATCH v2 29/30] tools/unwind: Add x86-64 ORC cross-check oracle
- to verify_cfi
+Message-ID: <20261125061523.1540234-31-irogers@google.com>
+Subject: [RFC PATCH v2 30/30] MAINTAINERS: Add DWARF CFI stack unwinding entry
 From: Ian Rogers <irogers@google.com>
 To: linux-kernel@vger.kernel.org, linux-trace-kernel@vger.kernel.org, 
 	linux-arch@vger.kernel.org
@@ -103,254 +102,56 @@ Cc: jpoimboe@kernel.org, rostedt@goodmis.org, peterz@infradead.org,
 	wnliu@google.com, dylanbhatch@google.com, Ian Rogers <irogers@google.com>
 Content-Type: text/plain; charset="UTF-8"
 
-Add verifyOracle3Orc() in tools/unwind/verify_orc.cpp using
-<asm/orc_types.h> and enable -DHAVE_VERIFY_ORC in tools/unwind/Makefile,
-cross-checking objtool's ORC_TYPE_CALL entries in .orc_unwind /
-.orc_unwind_ip directly against Minimal DWARF CFI across every
-instruction covered by an FDE (matching identically on 99.9823% of
-4,468,154 x86-64 vmlinux instructions, with 0 BP diffs).
+Add a MAINTAINERS entry for Minimal DWARF CFI stack unwinding covering
+the core .eh_frame / .eh_frame_hdr bytecode interpreter and KUnit tests,
+the user-space PT_GNU_EH_FRAME VMA unwinder, the x86-64 DWARF CFI kernel
+unwinder, the build-time .eh_frame minifier and analyzer scripts, the
+standalone tools/unwind/ CFI verifier, and the deferred user-space CFI
+kselftest.
+
+Also add arch/*/include/asm/unwind_user*.h to USERSPACE STACK UNWINDING
+so architectural unwind_user headers on x86, arm64, riscv, and future
+ports are routed to the user-space unwinding maintainers.
 
 Signed-off-by: Ian Rogers <irogers@google.com>
 ---
- tools/unwind/Makefile       |   5 +-
- tools/unwind/verify_orc.cpp | 205 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 208 insertions(+), 2 deletions(-)
- create mode 100644 tools/unwind/verify_orc.cpp
+ MAINTAINERS | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
-diff --git a/tools/unwind/Makefile b/tools/unwind/Makefile
-index c0a8d477dc13..d368b9ed90ee 100644
---- a/tools/unwind/Makefile
-+++ b/tools/unwind/Makefile
-@@ -79,7 +79,7 @@ TOOLS_INCLUDES := -I$(srctree)/tools/include -I$(srctree)/tools/include/uapi \
- SHIM_CFLAGS := -O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-maybe-uninitialized \
- 	$(TOOLS_INCLUDES)
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 44540a1eb2b8..0584279d745e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9496,6 +9496,21 @@ Q:	http://patchwork.linuxtv.org/project/linux-media/list/
+ F:	drivers/media/usb/dvb-usb-v2/dvb_usb*
+ F:	drivers/media/usb/dvb-usb-v2/usb_urb.c
  
--VERIFY_CXXFLAGS := -O2 -g -Wall -Wextra -std=gnu++20 $(LLVM_CXXFLAGS) -DHAVE_VERIFY_INSN \
-+VERIFY_CXXFLAGS := -O2 -g -Wall -Wextra -std=gnu++20 $(LLVM_CXXFLAGS) -DHAVE_VERIFY_INSN -DHAVE_VERIFY_ORC \
- 	-I$(CURDIR) $(TOOLS_INCLUDES) $(CXXFLAGS)
- VERIFY_LDFLAGS  := $(LLVM_LDFLAGS) $(LDFLAGS)
++DWARF CFI STACK UNWINDING
++M:	Ian Rogers <irogers@google.com>
++L:	linux-trace-kernel@vger.kernel.org
++L:	linux-kernel@vger.kernel.org
++S:	Maintained
++F:	arch/x86/kernel/unwind_dwarf.c
++F:	include/linux/unwind_dwarf_cfi.h
++F:	kernel/unwind/dwarf_cfi*.c
++F:	kernel/unwind/user_cfi.c
++F:	scripts/eh_frame_min.py
++F:	scripts/min_eh_frame.c
++F:	tools/include/linux/unwind_dwarf_cfi.h
++F:	tools/testing/selftests/perf_events/unwind_user_cfi.c
++F:	tools/unwind/
++
+ DYNAMIC DEBUG
+ M:	Jason Baron <jbaron@akamai.com>
+ M:	Jim Cromie <jim.cromie@gmail.com>
+@@ -29300,6 +29315,7 @@ USERSPACE STACK UNWINDING
+ M:	Josh Poimboeuf <jpoimboe@kernel.org>
+ M:	Steven Rostedt <rostedt@goodmis.org>
+ S:	Maintained
++F:	arch/*/include/asm/unwind_user*.h
+ F:	include/linux/unwind*.h
+ F:	kernel/unwind/
  
-@@ -89,7 +89,8 @@ KERNEL_CFI_DEPS := $(srctree)/kernel/unwind/dwarf_cfi.c \
- VERIFY_OBJS := $(OUTPUT)dwarf_cfi_host.o \
- 		 $(OUTPUT)verify_cfi.o \
- 		 $(OUTPUT)verify_insn_arch.o \
--		 $(OUTPUT)verify_insn.o
-+		 $(OUTPUT)verify_insn.o \
-+		 $(OUTPUT)verify_orc.o
- 
- ifeq ($(HAS_LIBLLVM),1)
- all: $(OUTPUT)verify_cfi
-diff --git a/tools/unwind/verify_orc.cpp b/tools/unwind/verify_orc.cpp
-new file mode 100644
-index 000000000000..629849f3187e
---- /dev/null
-+++ b/tools/unwind/verify_orc.cpp
-@@ -0,0 +1,205 @@
-+// SPDX-License-Identifier: GPL-2.0-only OR MIT
-+/*
-+ * Oracle 3: Direct x86-64 .orc_unwind / .orc_unwind_ip comparison against
-+ * kernel/unwind/dwarf_cfi.c.
-+ */
-+
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wunused-parameter"
-+#include "llvm/MC/MCInst.h"
-+#include "llvm/Support/Endian.h"
-+#include "llvm/Support/raw_ostream.h"
-+#pragma GCC diagnostic pop
-+
-+#include "verify_cfi.hpp"
-+
-+#include <algorithm>
-+#include <cinttypes>
-+#include <cstdio>
-+
-+extern "C" {
-+#include <asm/orc_types.h>
-+}
-+
-+using namespace llvm;
-+
-+/**
-+ * verifyOracle3Orc() - Cross-check x86-64 .orc_unwind against Minimal DWARF CFI
-+ * @AS: Target architecture specification (x86_64).
-+ * @eh_hdr_vma: Virtual address of .eh_frame_hdr.
-+ * @eh_hdr_bytes: Raw contents of .eh_frame_hdr.
-+ * @orc_bytes: Raw contents of .orc_unwind (6-byte &struct orc_entry records).
-+ * @orc_ip_bytes: Raw contents of .orc_unwind_ip (PC-relative s32 offsets).
-+ * @orc_ip_vma: Virtual address of .orc_unwind_ip.
-+ * @exec_secs: Executable ELF sections.
-+ * @func_syms: Deduplicated STT_FUNC symbol list.
-+ * @Disasm: x86-64 LLVM MCDisassembler.
-+ * @STI: Target subtarget info for instruction printing.
-+ * @InstPrinter: Disassembly formatter for mismatch diagnostics.
-+ * @opts: CLI verification options.
-+ * @st: Aggregated verification counters and diagnostic samples.
-+ *
-+ * Evaluates every instruction inside STT_FUNC symbols whose active ORC record
-+ * has type %ORC_TYPE_CALL and a defined SP base register, mapping `<asm/
-+ * orc_types.h>` `ORC_REG_*` encodings directly to `DWARF_CFI_BASE_*` and
-+ * `DWARF_CFI_RULE_*` fields.
-+ */
-+void verifyOracle3Orc(const ArchSpec &AS, uint64_t eh_hdr_vma,
-+		      StringRef eh_hdr_bytes, StringRef orc_bytes,
-+		      StringRef orc_ip_bytes, uint64_t orc_ip_vma,
-+		      const std::vector<ExecSec> &exec_secs,
-+		      const std::vector<FuncSym> &func_syms,
-+		      const MCDisassembler &Disasm, const MCSubtargetInfo &STI,
-+		      MCInstPrinter &InstPrinter, const VerifyOptions &opts,
-+		      VerifyStats &st)
-+{
-+	st.has_orc = true;
-+	constexpr size_t kOrcEntSz = 6;
-+	size_t n_orc = orc_bytes.size() / kOrcEntSz;
-+	size_t n_ip = orc_ip_bytes.size() / 4;
-+	size_t n = std::min(n_orc, n_ip);
-+	const uint8_t *orc_raw =
-+		reinterpret_cast<const uint8_t *>(orc_bytes.data());
-+	const uint8_t *ip_raw =
-+		reinterpret_cast<const uint8_t *>(orc_ip_bytes.data());
-+
-+	std::vector<std::pair<uint64_t, size_t>> sorted_orc;
-+	sorted_orc.reserve(n);
-+	for (size_t i = 0; i < n; i++) {
-+		int32_t rel = (int32_t)support::endian::read32le(ip_raw + i * 4);
-+		uint64_t epc = orc_ip_vma + i * 4 + (uint64_t)(int64_t)rel;
-+		sorted_orc.push_back({epc, i});
-+	}
-+	std::stable_sort(sorted_orc.begin(), sorted_orc.end(),
-+			 [](const auto &a, const auto &b) {
-+				 return a.first < b.first;
-+			 });
-+
-+	auto lookupOrcIdx = [&](uint64_t pc, size_t &idx_out) -> bool {
-+		auto it = std::upper_bound(
-+			sorted_orc.begin(), sorted_orc.end(), pc,
-+			[](uint64_t val, const std::pair<uint64_t, size_t> &e) {
-+				return val < e.first;
-+			});
-+		if (it == sorted_orc.begin())
-+			return false;
-+		--it;
-+		idx_out = it->second;
-+		return true;
-+	};
-+
-+	for (const FuncSym &fn : func_syms) {
-+		if (!fn.size)
-+			continue;
-+		ArrayRef<uint8_t> code =
-+			findExecBytes(exec_secs, fn.addr, fn.size);
-+		if (code.empty())
-+			continue;
-+
-+		uint64_t off = 0;
-+		while (off < code.size()) {
-+			uint64_t pc = fn.addr + off;
-+			MCInst MI;
-+			uint64_t InsnSize = 0;
-+			auto DStat = Disasm.getInstruction(
-+				MI, InsnSize, code.slice(off), pc, nulls());
-+			if (DStat != MCDisassembler::Success || InsnSize == 0) {
-+				off++;
-+				continue;
-+			}
-+			off += InsnSize;
-+
-+			size_t oidx = 0;
-+			if (!lookupOrcIdx(pc, oidx))
-+				continue;
-+			const uint8_t *ep = orc_raw + oidx * kOrcEntSz;
-+			int16_t sp_offset =
-+				(int16_t)support::endian::read16le(ep + 0);
-+			int16_t bp_offset =
-+				(int16_t)support::endian::read16le(ep + 2);
-+			uint16_t flags = support::endian::read16le(ep + 4);
-+
-+			unsigned o_sp_reg = flags & 0xf;
-+			unsigned o_bp_reg = (flags >> 4) & 0xf;
-+			unsigned o_type = (flags >> 8) & 0x7;
-+			if (o_type != ORC_TYPE_CALL ||
-+			    o_sp_reg == ORC_REG_UNDEFINED)
-+				continue;
-+
-+			st.orc_call_insns++;
-+			dwarf_cfi_row row{};
-+			if (dwarf_cfi_unwind_user_eh_frame_hdr(
-+				    (unsigned long)eh_hdr_vma,
-+				    eh_hdr_bytes.size(), (unsigned long)pc,
-+				    &AS.karch, &row) != 0) {
-+				st.orc_no_fde++;
-+				continue;
-+			}
-+
-+			bool cfa_ok = false;
-+			if (o_sp_reg == ORC_REG_SP) {
-+				cfa_ok = (row.cfa_base == DWARF_CFI_BASE_SP &&
-+					  row.cfa_off == sp_offset);
-+			} else if (o_sp_reg == ORC_REG_BP) {
-+				cfa_ok = (row.cfa_base == DWARF_CFI_BASE_FP &&
-+					  row.cfa_off == sp_offset);
-+			} else if (o_sp_reg == ORC_REG_BP_INDIRECT) {
-+				cfa_ok = (row.cfa_base ==
-+						  DWARF_CFI_BASE_FP_INDIRECT &&
-+					  row.cfa_off == sp_offset);
-+			} else if (o_sp_reg == ORC_REG_SP_INDIRECT) {
-+				cfa_ok = (row.cfa_base ==
-+						  DWARF_CFI_BASE_SP_INDIRECT &&
-+					  row.cfa_off == sp_offset);
-+			} else if (row.cfa_base == DWARF_CFI_BASE_REG) {
-+				int exp_dreg = (o_sp_reg == ORC_REG_AX) ? 0 :
-+					       (o_sp_reg == ORC_REG_DX) ? 1 :
-+					       (o_sp_reg == ORC_REG_DI) ? 5 :
-+					       (o_sp_reg == ORC_REG_R10) ? 10 :
-+					       (o_sp_reg == ORC_REG_R13) ? 13 :
-+					       -1;
-+				cfa_ok = (row.cfa_reg == exp_dreg &&
-+					  row.cfa_off == sp_offset);
-+			}
-+
-+			bool bp_ok = false;
-+			if (o_bp_reg == ORC_REG_UNDEFINED) {
-+				bp_ok = (row.fp_rule == DWARF_CFI_RULE_SAME);
-+			} else if (o_bp_reg == ORC_REG_PREV_SP) {
-+				bp_ok = (row.fp_rule == DWARF_CFI_RULE_OFFSET &&
-+					 row.fp_off == bp_offset);
-+			} else if (o_bp_reg == ORC_REG_BP) {
-+				bp_ok = (row.fp_rule ==
-+						 DWARF_CFI_RULE_FP_OFFSET &&
-+					 row.fp_off == bp_offset);
-+			}
-+
-+			if (cfa_ok && bp_ok) {
-+				st.orc_matched++;
-+			} else {
-+				if (!cfa_ok)
-+					st.orc_cfa_mismatch++;
-+				if (!bp_ok)
-+					st.orc_bp_mismatch++;
-+				if (st.sample_orc_diffs.size() <
-+				    opts.max_samples * 3) {
-+					std::string dis_str;
-+					raw_string_ostream rso(dis_str);
-+					InstPrinter.printInst(&MI, pc, "", STI,
-+							      rso);
-+					char b[256];
-+					snprintf(b, sizeof(b),
-+						 "%s+0x%" PRIx64 " (0x%" PRIx64
-+						 ")%s | ORC(sp=%u:%+d bp=%u:%+d)"
-+						 " vs CFI(cfa=%u:%+d fp=%u:%+d)",
-+						 fn.name.c_str(), pc - fn.addr,
-+						 pc, rso.str().c_str(), o_sp_reg,
-+						 sp_offset, o_bp_reg, bp_offset,
-+						 row.cfa_base, row.cfa_off,
-+						 row.fp_rule, row.fp_off);
-+					st.sample_orc_diffs.push_back(b);
-+				}
-+			}
-+		}
-+	}
-+}
 -- 
 2.56.1.831.g720f3f5937-goog
 
