@@ -1,34 +1,71 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795610468;
-	b=JKrMv3W9ys6MXcLOJV8AUHhctaB9V3H+WBEB1BYZdGW2nBcmL70rkYgD2I9t9M0bFnHI
-	 0e2SvaOxjz7+BAXh0+JhPYoHHvfmP04k/Pj24iRl2fAhHyubolrblSnsjNB30HPWgT3ha
-	 hwXXeRugptS90SMdoi0DWt4MOcmtFsLVuHcWwMhPuHoWhBikdbJ7N8t4WDqQbp/7DYHNu
-	 NYOxqpzCw2ctM1w6qM9G5AMkUt1NSX3zZ6jdJWjZQeqPszHopA5JiXrVl5nDGqf731/k4
-	 OIWfejYyzrhbo2oC02i96bca5u4EXpTeCV8G0MScMGur3mkhhe11v1DBpfHr1Du4E3Q==
+	t=1795617835;
+	b=iUE9sZwZujJP/wLrAZuyHNMhTSoGBlIyKUD57GNOs5lU58N84WmT6GQFLt94rvjAvCrB
+	 ou4h1d9IFrRhFXw3yOS1fuRaOqhfV2yY7ph9Pkxq3F/tNxdnlOfeLR4I3FtHHUR0iU1eB
+	 D9LtCZ4o1f1Z79Yo4VtcPG/oFDH5tonzV7vSfIiCS/4ac5lbAdumNRFbO8XLIk2ceJdmP
+	 yLwcj353Panulh3AVZUXciPV27EBj6TsialZ/DHVqU/wtSlL8xFe6eGVQ1bhYeqPiA4rx
+	 zx0EM1kfEf/s9Kziegb/s/6SRE9KDWgByxpOiQbRNHd2b82ouoLiYtiaIBEDH1WnWkw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795610468;
-	h=Received:Message-ID:Date:MIME-Version:User-Agent:Subject:To:Cc:
-	 References:Content-Language:From:In-Reply-To:Content-Type:
-	 Content-Transfer-Encoding;
-	bh=KfUOxpLQJkovw7z2Qf0Qn6lhPyS9idJ1/zdVB8+NA18=;
-	b=jQgsfD2nEh/MbSUs0iaGIvh/OjEtab6nGPuc+QEhsDreJj2Bd8qVIWIFH78HwpDZudN2
-	 c5X1OzC4xGQJ/W1g85bK6mdGuAT0omtdJmHIO1MxjMURo77/w3diYCiRU9uxh0x+RlFGs
-	 +W2LdcE/BE2Upj8OsZyiuHtj08SwstI/PlovrfHwwojm/do0OGrjwTJZSFU+hUjy2+RLT
-	 WnDQ0IduTvYQEBJK8WX2JYTCTZwPJIYCzNRMkh+SNpgjuiJFtMt3eP2U/Ji8phKpOeYuX
-	 4xtckl5osJNwJn68kg1Zuay4nMq9CHilZQUzsvOuBRG7Ly32iMY9KNbcfQT3FeWYdOw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795617835;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
+	bh=DSDBbrxDF7QE7mJ7cGh5psk8NDNsiMzdc0pE9t4TEt8=;
+	b=OQhaYXsn9hxEJUWc0bWcvtHM9hvQLmvtT90tnVIVVKsIvOPqhy4c55HrIsUGndsucUau
+	 hnjjA9/zGcfyqOrFJI/2cqglg1h4ETIoCqJHG8Vg42a3VopZ+WPiOjsdBvJKDKTKBUK7a
+	 HLnRqxCbfz8WpkzRlh9NbylGQ4FuNjRihumGX5BPrJ/AthTaxxjK5zlrJZKsGXToJts7Y
+	 I7QKxub1PUPwU3SfF58T/k4HEugKhKGs6oxLTexqsNc3W5qksRcY9T7RvTKbNOxliFqKw
+	 8Zttpr4PEqWtAvLHVH05MC99TgW8hQEeAcqO1j+Rdi7jNmSo1eGR72E4eE/VdTWSugA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=IaxxUP7L;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D378C606A31E;
-	Wed, 25 Nov 2026 12:41:08 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5F4FA1F000C0;
-	Wed, 25 Nov 2026 12:41:05 +0000 (UTC)
-Message-ID: <9ffb268e-d7db-4908-b9be-35b1807dfd2c@linux-m68k.org>
-Date: Wed, 25 Nov 2026 22:41:02 +1000
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C32B606A326;
+	Wed, 25 Nov 2026 14:43:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=IaxxUP7L
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2F3521F000C6;
+	Wed, 25 Nov 2026 14:43:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1795617835;
+	bh=DSDBbrxDF7QE7mJ7cGh5psk8NDNsiMzdc0pE9t4TEt8=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=IaxxUP7LRnqywT22he7m+Fp7ezJgAfkpHSw5REph0tRYPRC/9tQDBnxNGaqFCUe0P
+	 HC4OCPR1FvefXZR0jreOarx1/ItxF0Kd5XwRm18+njWXI6kfrP7K+QHWF1l9XvxXHk
+	 Wb3T7KBp5sU8Uq3JjMSsDtDz2cQ1vDbxW6cRqzm0jkDQjr5S84bbH7Zbc/9r5XtFga
+	 tXPaD+SS8GZvYPYpD187DBOSIhZ28zt4gF80M0lT+Uc0vOeuoEM5ntTj2myprO+Uo6
+	 0KAYN/vccLRY3U4aBHQmotXHdObAadnDVOITnax/jMq8UASOsc7R09dQV9GiPujVaw
+	 zu/OOYjuPVOYA==
+From: Pratyush Yadav <pratyush@kernel.org>
+To: "David Matlack" <dmatlack@google.com>
+Cc: "Pratyush Yadav" <pratyush@kernel.org>,  "Tarun Sahu"
+ <tarunsahu@google.com>,  "Pasha Tatashin" <pasha.tatashin@soleen.com>,
+  "Mike Rapoport" <rppt@kernel.org>,  <robin.murphy@arm.com>,
+  <maz@kernel.org>,  <will@kernel.org>,  "Alexander Graf"
+ <graf@amazon.com>,  <seanjc@google.com>,  <jgg@nvidia.com>,
+  <loganodell@google.com>,  <arnd@arndb.de>,  <dwmw2@infradead.org>,
+  <baolu.lu@linux.intel.com>,  "Bjorn Helgaas" <bhelgaas@google.com>,
+  <oupton@kernel.org>,  <alex@shazbot.org>,  <gle.com@google.com>,
+  <pbonzini@redhat.com>,  "Andrew Morton" <akpm@linux-foundation.org>,
+  <kevin.tian@intel.com>,  <joro@8bytes.org>,  <kvmarm@lists.linux.dev>,
+  <linux-pci@vger.kernel.org>,  <kexec@lists.infradead.org>,
+  <kvm@vger.kernel.org>,  <iommu@lists.linux.dev>,
+  <linux-arm-kernel@lists.infradead.org>,  <skhawaja@google.com>,
+  <sagis@google.com>,  <linux-arch@vger.kernel.org>,  <linux-mm@kvack.org>,
+  <linux-kernel@vger.kernel.org>
+Subject: Re: [PATCH v4 03/19] kho, memfd_luo: Reference struct kho_vmalloc
+ via serialized pointer
+In-Reply-To: <DN3VG4JCILOO.YN40XHHSWRPH@google.com> (David Matlack's message
+	of "Tue, 24 Nov 2026 16:39:52 -0800")
+References: <20261110050202.529473-1-tarunsahu@google.com>
+	<20261110050202.529473-4-tarunsahu@google.com>
+	<2vxz4idb1i2w.fsf@kernel.org> <DN3VG4JCILOO.YN40XHHSWRPH@google.com>
+Date: Wed, 25 Nov 2026 14:43:47 +0000
+Message-ID: <2vxzld6hx97g.fsf@kernel.org>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -38,131 +75,80 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] m68k: coldfire: Use the builtin fls() and __fls() on
- ISA_A+ and ISA_C
-To: Tzu-Ching Yang <shingekinocore@gmail.com>,
- Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org,
- Angelo Dureghello <adureghello@baylibre.com>,
- Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>,
- Yury Norov <yury.norov@gmail.com>,
- Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-References: <20261123131101.639643-1-shingekinocore@gmail.com>
-Content-Language: en-US
-From: Greg Ungerer <gerg@linux-m68k.org>
-In-Reply-To: <20261123131101.639643-1-shingekinocore@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 
-Hi Tzu-Ching,
+On Tue, Nov 24 2026, David Matlack wrote:
 
+> On Fri Nov 20, 2026 at 10:19 AM PST, Pratyush Yadav wrote:
+> [...]
+>
+>>> +static size_t memfd_luo_ser_size(void)
+>>> +{
+>>> +	return sizeof(struct memfd_luo_ser) + sizeof(struct kho_vmalloc);
+>>> +}
+>>> +
+>>> +static struct memfd_luo_ser *memfd_luo_ser_init(void *mem)
+>>> +{
+>>> +	struct kho_vmalloc *kho_vmalloc = mem + sizeof(struct memfd_luo_ser);
+>>> +	struct memfd_luo_ser *ser = mem;
+>>> +
+>>> +	KHOSER_STORE_PTR(ser->folios, kho_vmalloc);
+>>> +	return ser;
+>>> +}
+>>> +
+>>
+>> Hmm, I am not a huge fan of this. This makes doing such allocations
+>> quite annoying, and I reckon we will be seeing a fair bit of them in
+>> many places.
+>>
+>> The key observation here is that most file handlers need to allocate a
+>> bunch of preserved memory, but they usually can free it all at once. So
+>> we can get away with a very simple allocator that hands out memory
+>> linearly.
+>>
+>> I have sketched out some code for this, take a look at the patch below.
+>> Note that it is only compile tested.
+>>
+>> Perhaps give it a try and see if it does the job better.
+>
+> I agree the manual packing in memfd_luo_ser_init() isn't great, but I'm
+> not sure we need an arena. This seems like something KHO slab support
+> will solve properly, and since kho_alloc_preserve() already takes a
+> size, KHO slab can be dropped in underneath it later without changing
+> any callers.
 
-On 23/11/26 23:11, Tzu-Ching Yang wrote:
-> Let fls() and __fls() use the ff1 instruction on ColdFire ISA_A+ and
-> ISA_C cores instead of the generic binary search in C, as __ffs() and
-> ffs() already do. GCC emits ff1 for __builtin_clz() on exactly the cores
-> for which it defines __mcfisaaplus__ or __mcfisac__, the macros that
-> already select the ff1 versions of __ffs() and ffs(), so no new
-> condition is needed. Commit a6260ef84103 ("m68knommu: add ffs and __ffs
-> plattform which support ISA A+ or ISA C") added the ff1 versions of
-> __ffs() and ffs() in 2008 and kept the generic fls(); the generic
-> __fls() followed in 2009.
-> 
-> Use the asm-generic builtin versions of fls() and __fls() when
-> __mcfisaaplus__ or __mcfisac__ is defined, and keep the generic C
-> versions for ISA_A, ISA_B and 68000. The bitrev/ff1 asm of __ffs() and
-> ffs() stays, as this asm is shorter than the code GCC generates for
-> the builtin versions of __ffs() and ffs().
-> 
-> With GCC 12 to 16, fls() shrinks from 28 instructions to 8 or 9 and
-> __fls() from 24 to 6. With GCC 8 to 16, the functions of each ISA_A+ or
-> ISA_C defconfig kernel shrink in total by at least 8676 and at most
-> 13266 bytes (scripts/bloat-o-meter -t), depending on the defconfig and
-> the compiler. In lib/find_bit.c, only _find_last_bit() changes, from 55
-> to 35 instructions for m5208evb with GCC 16.
-> 
-> fls(0) still returns 0, and __fls() still returns unsigned int.
-> __fls(0), which is undefined, now returns ~0 instead of 0. For other
-> CPUs, the preprocessed source changes only in its line numbers.
-> 
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Link: https://lore.kernel.org/all/dbb44e92-0bc5-449d-9e43-1f93362aa6c3@app.fastmail.com/
-> Signed-off-by: Tzu-Ching Yang <shingekinocore@gmail.com>
+While it would be nice to have, I peeked at what we need for slab
+support and it sounds overkill. For one, a slab cache is for fixed size
+objects. So you'd need a bucket of slabs for different sizes, similar to
+what kmalloc() does. You probably don't want to preserve objects spread
+around in kmalloc's buckets, so you would need a set of buckets
+dedicated for LUO/KHO.
 
-Looks good to me. I tested it on a ColdFire 5271, which is ISA_A+, and it
-checked out good. I don't have my 54418 board handy at the moment (its ISA_C)
-but when I get a chance I will double check that too.
+For another, slab cache is great when you are allocating and freeing a
+bunch of objects of varying sizes. But that isn't really the workload
+preservation has. Each preservation hook needs to allocate a handful of
+objects, and then hold them until unpreserve. This arena style allocator
+does the job pretty well.
 
-Applied to the for-next branch of the m68knommu git tree.
+And finally, the object layout within a page/slab of the cache can
+change based on configs or kernel versions. See SLAB_RED_ZONE or KASAN
+for example. We would need to standardize the layout without
+compromising the non-KHO slab users. We can probably solve these
+problems, but I don't expect it to be easy.
 
-Thanks
-Greg
+So I wouldn't want to support slab until we have file handlers that
+churn through a lot of preserved objects.
 
+>
+> Until then, maybe we should just allocate struct kho_vmalloc separately
+> with kho_alloc_preserve() and accept wasting a folio per object. For
+> memfd that's one extra page per preserved file.
 
+Yeah, that is fine too I suppose, at least until we start to run into
+problems with the memory overhead. I think the arena style allocator is
+fairly straightforward and makes the memory savings easy so to me it
+sounds promising.
 
-
-> ---
-> I have no ColdFire hardware. On QEMU mcf5208evb (ISA_A+), the ffs and
-> bitops KUnit tests pass before and after with GCC 8.3 to 16.2. In
-> find_bit_benchmark on that machine, with the bitmaps drawn from a fixed
-> seed so that the kernels before and after use the same bitmaps, and the
-> executed instructions counted by a TCG plugin, find_last_bit goes from
-> 52.3 to 38.3 instructions per iteration on the random bitmap with GCC
-> 16, and bitmap_find_next_zero_area_off, which calls find_last_bit(),
-> from 3302 to 2864; the tests of the other helpers do not change. The
-> ISA_C kernels were only built, as QEMU has no ISA_C machine.
-> 
-> Under QEMU user mode, with the kernel's flags for -mcpu=5208, 532x and
-> 54455 and each GCC at -O2 and -Os, old and new fls(), __fls() and
-> fls64() agree on all 2^32 inputs (fls64() in either 32-bit half)
-> except the undefined __fls(0).
-> 
-> The seven ISA_A+ and ISA_C defconfigs (m5208evb, m5235evb, m5275evb,
-> m5282evb, m5329evb, m54418evb and stmark2) were built with GCC 8.3 to
-> 16.2 before and after, with the same .config before and after. A W=1
-> build of these seven and of twenty other ColdFire and m68k defconfigs,
-> each with at least GCC 8.3, 12.5 and 16.2, has no new warning.
-> 
-> The new out-of-line fls() for m5208evb with GCC 16.2:
-> 
-> 	movel %sp@(4),%d0
-> 	tstl %d0
-> 	beqs 1f
-> 	movel %d0,%d1
-> 	ff1 %d1
-> 	moveq #32,%d0
-> 	subl %d1,%d0
-> 1:	rts
-> 
-> Against v7.4-rc1; also applies to the m68knommu and m68k for-next
-> branches and to next-20261113.
-> 
->  arch/m68k/include/asm/bitops.h | 5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
-> index e9639e48c6c3c..81923a9fa4494 100644
-> --- a/arch/m68k/include/asm/bitops.h
-> +++ b/arch/m68k/include/asm/bitops.h
-> @@ -506,13 +506,14 @@ static inline __attribute_const__ int ffs(int x)
->  	return __ffs(x) + 1;
->  }
->  
-> +#include <asm-generic/bitops/builtin-fls.h>
-> +#include <asm-generic/bitops/builtin-__fls.h>
->  #else
->  #include <asm-generic/bitops/ffs.h>
->  #include <asm-generic/bitops/__ffs.h>
-> -#endif
-> -
->  #include <asm-generic/bitops/fls.h>
->  #include <asm-generic/bitops/__fls.h>
-> +#endif
->  
->  #else
->  
-> 
-> base-commit: 6628e7d4c6b25c8d18f1345e3a20d21829aae7e4
-
+-- 
+Regards,
+Pratyush Yadav
