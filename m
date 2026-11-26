@@ -1,93 +1,69 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795716663;
-	b=mfHQ4ZYHxtXbH5ESMB7UoHLXOlTu6rBUcgNuAEKYY7m2F5HAR1lBoOcx8LfDk2xmn8YD
-	 Xewx2vGlrDswogjyHIq+dEoTmt5KqXe3hNpteNFCTwbqi30+efTKiIhzv7fkbfzjaoTA0
-	 vCJ5btKA1aBfaXWCpsIGl+wJLf44Y8A+zeatGLo/mdVR8RAMKlA1yEPfTuWMTPWDjSbip
-	 lUVLS0nnMpNSdkUFmaeDCf8lPdusRlYF3odoeActfWyQow+BqezzE6QPzzwLgKnySqr8U
-	 GFtP/VjOdtwa3FQR3n4/65pZ87It9RkMB5Ji3JVXWkjgzqvrlikr1VfsM8hPcACCCNA==
+	t=1795718971;
+	b=DliFpQuKO8An4SwNWfHup8T7yxZR27nQF1kkjLzXol2D73nIQryPoLTiCIMicuNWomrQ
+	 iYmtFaX3G85svq0I2Vz42Mb7G9dJ4cU0YJX96o5NZ0LZsHOk4S3cQJAjLtL9IsxiH2mn0
+	 s6OrYyeRkhqRpGdboba7zGnxya+2N9m0PeTySrKeBgZvuTVstWBAO/Z9E7e/9CdQJ5EzP
+	 pEoxWX6A3x2o6gCCbIMMj+mGhYeuhMXPpSzpJs28r8bw7nAPP8tWroHZTvwfNW7XgBvsf
+	 ZNaoVslQUXZLD7bGClCO5c1JJEWqedpKU29bKwm8t7CcL5QlxxYth1p3oJm7/THwIQw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795716663;
-	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
-	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
-	bh=u9v575CLn7pmoDOzWOn9peb7SoijlK+LbrKGpES9aRg=;
-	b=zCRBOXk6piKOkjLeYJ25xMi4+S1hRDFTDabLsGrs7ecsDmCjUB0pnRBRIoopF15PKsgl
-	 xLrWzlsgqkxRNosRbNeqFkU2OU25bOCfU/83eejxIV2D/O7xdBq/+JZVNDZeVkqQy1Ysq
-	 4b9Th2KxfZRiwuxivc77n+mKKtnguJ3qe1YEjpUp8DKHK/85Ytdz6WSAau+v2BlL68til
-	 13Gfh7VjzT12cmZW1/5NcLW5I8n0b8DhzzAcQ5F6K15S/2OkeWJHKGl/P7y0l3lssCZgT
-	 /8Nlyo30HEXv8kenWsQE+0qO4Xl9ezX46D5RE8A48xVpBX3MCR8gGlqL9RL1SnNmpVw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795718971;
+	h=Received:DKIM-Signature:From:To:Cc:Subject:In-Reply-To:References:
+	 Date:Message-ID:User-Agent:MIME-Version:Content-Type;
+	bh=OJrIBssRihwY1hjT7BcClChtfC90/g3C4v7S4XKqBtA=;
+	b=1ErA4LhnGlgtuk8MKI7pnLmq49cXV/V2k5icPnzeNImobp3bnavyNU8END0emyu8WUSH
+	 7kFegIm5sZsaWAnLY5ZvI4Gp738I1dwxsPMklJFWSdoz6sRemFf0RFrRlhQpcPaYfzD3A
+	 Kq6UN7n8NDvn6RYZaCXg5rCJCsePDyO9E+8YMts6raCD556/PHJsxinmZSbrl70LBCAnK
+	 s0xisFOo6VBbC/JUduPrSC2o8qPZDhKGPKMVExYJnKoNuUUwvpzA/rDUsDkh3OrqTZOTG
+	 UEfVX6RV64JCtw5hat73RargdozJFqZVtepj9gz/tv/PFOkYyRb2TtzpR+/no4uJu6A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eTrh4ivt;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=n2CNBE5+;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 866D0606A326;
-	Thu, 26 Nov 2026 18:11:03 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DDEA5606A31C;
+	Thu, 26 Nov 2026 18:49:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eTrh4ivt
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E52761F00AD3;
-	Thu, 26 Nov 2026 18:10:46 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=n2CNBE5+
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9C5161F000C0;
+	Thu, 26 Nov 2026 18:49:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1795716662;
-	bh=u9v575CLn7pmoDOzWOn9peb7SoijlK+LbrKGpES9aRg=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=eTrh4ivtfPOlk36i/Syox5jVW6dXJmhOgZwioO+nYxMKjGShC7TMyjjJl/zzRZ/W3
-	 SkP6MLdWC5iwrRV6uvUn6/rKonHWO56PFB3c75THzdQTim1Mri+dYH52nOteGfRTCj
-	 M+BZepOCmKNRYHvlRa117MS6yceBdzXjdmtuENyHhISgbQTyWosUB771P8KFuwQKC8
-	 pVw08LjMZlVYdDIpRqOeWvsFhzaGdSX4qDT0MagmIoJIq2tNOTskLwvuvj9X76KZmW
-	 omTnmVri/xaVPYJp7AvvaZYW/JxAmTrlzAhShiP47YqYQ+fQwkXl5svB+CMxRIbwv0
-	 XMDyeevoEqAuQ==
-Date: Thu, 26 Nov 2026 20:10:43 +0200
-From: Mike Rapoport <rppt@kernel.org>
-To: Yeoreum Yun <yeoreum.yun@arm.com>
-Cc: "David Hildenbrand (Arm)" <david@kernel.org>,
-	Russell King <linux@armlinux.org.uk>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Kairui Song <kasong@tencent.com>, Qi Zheng <qi.zheng@linux.dev>,
-	Shakeel Butt <shakeel.butt@linux.dev>,
-	Barry Song <baohua@kernel.org>,
-	Axel Rasmussen <axelrasmussen@google.com>,
-	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
-	Johannes Weiner <hannes@cmpxchg.org>,
-	Michal Hocko <mhocko@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>,
-	Bibo Mao <maobibo@loongson.cn>, Anup Patel <anup@brainfault.org>,
-	Atish Patra <atish.patra@linux.dev>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	"Liam R. Howlett" <liam@infradead.org>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>, Jonas Bonn <jonas@southpole.se>,
-	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-	Stafford Horne <shorne@gmail.com>,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org,
-	kvm-riscv@lists.infradead.org, linux-riscv@lists.infradead.org,
-	linux-openrisc@vger.kernel.org
-Subject: Re: [PATCH RESEND v2 12/21] mm/pgtable: redefine PGTABLE_LEVEL enum
- with ascend order from PGD
-Message-ID: <awh2I4llsjkB7Vds@kernel.org>
-References: <20261102-dummy_ptxp3-v2-0-78840b2ec73c@arm.com>
- <20261102-dummy_ptxp3-v2-12-78840b2ec73c@arm.com>
- <awXD4i47F-VAG1tD@kernel.org>
- <awXc0MSZl9t9VW8e@e129823.arm.com>
- <682c765f-332f-4ac2-b448-4201c8fae6fc@kernel.org>
- <awhCnpiUc1R_BLx4@e129823.arm.com>
+	s=k20260515; t=1795718971;
+	bh=OJrIBssRihwY1hjT7BcClChtfC90/g3C4v7S4XKqBtA=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date;
+	b=n2CNBE5+M6S3Gti+E4h/BEiW+QZsCLWVg3Z07JmCFD4CJWtQOT7wmTFvMHay90J17
+	 FASidj/Tb9qKR6r+t0f8m5l2GSXoRaCyDUjouiMfYBDRAya375OAB8ifBdjby0L3cN
+	 XvZu0xkJxI/+pA9AAyI7y3aIotV8xSxGc2csYUvuvg6Uw1JsXVX+0NOYxmoIoYXxv2
+	 M34fX1uPVfxBkS9zufumLpfpKWYxQRuFEpxczh1v12sNbqWWyTovgyCerZ8wJElZbL
+	 qHPbpDy15BB/FUoYPImERW6CSIHqZ46EBBEwU+aASP6SbeqtKq5FQihbH4FEKfQfVt
+	 VyCXs6QVLSDTA==
+From: Pratyush Yadav <pratyush@kernel.org>
+To: Tarun Sahu <tarunsahu@google.com>
+Cc: Pasha Tatashin <pasha.tatashin@soleen.com>,  Mike Rapoport
+ <rppt@kernel.org>,  robin.murphy@arm.com,  maz@kernel.org,
+  will@kernel.org,  David Matlack <dmatlack@google.com>,  Alexander Graf
+ <graf@amazon.com>,  seanjc@google.com,  jgg@nvidia.com,
+  loganodell@google.com,  arnd@arndb.de,  dwmw2@infradead.org,
+  baolu.lu@linux.intel.com,  Bjorn Helgaas <bhelgaas@google.com>,
+  oupton@kernel.org,  alex@shazbot.org,  gle.com@google.com,
+  pbonzini@redhat.com,  Andrew Morton <akpm@linux-foundation.org>,
+  kevin.tian@intel.com,  joro@8bytes.org,  kvmarm@lists.linux.dev,
+  linux-pci@vger.kernel.org,  Pratyush Yadav <pratyush@kernel.org>,
+  kexec@lists.infradead.org,  kvm@vger.kernel.org,  iommu@lists.linux.dev,
+  linux-arm-kernel@lists.infradead.org,  skhawaja@google.com,
+  sagis@google.com,  linux-arch@vger.kernel.org,  linux-mm@kvack.org,
+  linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v4 18/19] mm: memfd_luo: Add feature header to struct
+ memfd_luo_folio_ser
+In-Reply-To: <20261110050202.529473-19-tarunsahu@google.com> (Tarun Sahu's
+	message of "Tue, 10 Nov 2026 05:02:01 +0000")
+References: <20261110050202.529473-1-tarunsahu@google.com>
+	<20261110050202.529473-19-tarunsahu@google.com>
+Date: Thu, 26 Nov 2026 18:49:24 +0000
+Message-ID: <2vxz8q2fwhqj.fsf@kernel.org>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Post: <mailto:linux-arch@vger.kernel.org>
@@ -97,66 +73,31 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 List-Owner: <mailto:linux-arch+owner@vger.kernel.org>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <awhCnpiUc1R_BLx4@e129823.arm.com>
+Content-Type: text/plain
 
-On Thu, Nov 26, 2026 at 02:30:54PM +0000, Yeoreum Yun wrote:
-> On Thu, Nov 26, 2026 at 03:19:13PM +0100, David Hildenbrand (Arm) wrote:
-> > On 11/24/26 19:52, Yeoreum Yun wrote:
-> > > On Tue, Nov 24, 2026 at 07:05:38PM +0200, Mike Rapoport wrote:
-> > >> On Mon, Nov 02, 2026 at 11:21:25AM +0000, Yeoreum Yun wrote:
-> > >>> The PGTABLE_LEVEL enum values appear to be ordered in the opposite direction
-> > >>> from their intended usage.
-> > >>>
-> > >>> Intuitively, higher page table levels should have smaller enum values,
-> > >>> but PTE is currently assigned 0.
-> > >>
-> > >> That's not what x86 thinks :)
-> > >> They even expose it in /proc/vmstat with smaller numbers meaning lower levels
-> > >>
-> > >> $ grep direct_map /proc/vmstat 
-> > >> direct_map_level2_splits 152
-> > >> direct_map_level3_splits 4
-> > >> direct_map_level2_collapses 0
-> > >> direct_map_level3_collapses 0
-> > >>
-> > >> Just an observation, I don't mind either order.
-> > > 
-> > > Right. I made this change because a depth-based scheme seems more intuitive.
-> > > 
-> > > As you pointed out, though, the x86 specification uses smaller
-> > > numbers (0) for lower levels (pte), so I think we can leave the
-> > > x86-specific direct_map_* entries as they are.
-> > 
-> > patch #14 depends on this, no?
-> 
-> Interestingly, x86 documentation numbers the PGD level as 4 or 5,
-> whereas helpers such as effective_prot_pgd() use 0 for PGD.
-> 
-> Anyway, this follows the usage and semantics of effective_prot_pXd(),
-> rather than architecture-specific level numbering, which varies across
-> architectures.
+On Tue, Nov 10 2026, Tarun Sahu wrote:
 
-I asked an LLM and here's what it told me:
+> Precede each serialized folio entry in the preserved memfd folio array
+> with struct kho_ser_hdr via DECLARE_KHO_SER so future per-folio memfd
+> features can append fields to struct memfd_luo_folio_ser without breaking
+> compatibility between adjacent kernels.
+>
+> Allocate the preserved folio array using kho_ser_size(memfd_luo_folio_ser)
+> per entry and initialize each entry feature header in
+> memfd_luo_preserve_folios(). On the incoming path in
+> memfd_luo_discard_folios() and memfd_luo_retrieve_folios(), validate each
+> entry feature header with kho_ser_validate() and advance between entries
+> using fhdr->size so entries written with a different feature layout are
+> traversed accurately.
 
-  x86, s390, riscv, LoongArch and powerpc count from the leaf. arm64 and
-  ARM count from the root, and so does the generic page walk and ptdump.
+No. The flags in each folio entry is a part of memfd's ABI. These flags
+don't have an ABI of their own. If the layout of memfd_luo_folio_ser
+changes, it goes in the memfd_luo_ser flags.
 
-My guess that the only reason that generic ptdump counts from the root is
-because it came from @arm.com :)
+Doubling the memory needed to preserve a memfd is not acceptable.
 
-> And yes, patch #14 depends on this, although changing the condition to
-> level != PGD_LEVEL would remove that dependency.
-
-I think the only real hard dependency on levels numbering is x86's KVM code
-that manages secondary page tables, but it anyway does not use enum
-pgtable_level but rather x86's own enum pg_level.
-
-> -- 
-> Sincerely,
-> Yeoreum Yun
+[...]
 
 -- 
-Sincerely yours,
-Mike.
+Regards,
+Pratyush Yadav
